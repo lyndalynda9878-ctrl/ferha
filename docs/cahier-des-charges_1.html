@@ -1,0 +1,990 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>html{color-scheme:light dark}body{margin:0;font:14px system-ui}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Cahier des charges Ferha v2.0</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,400..800&family=Source+Serif+4:opsz,wght@8..60,400..600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+<style>
+:root{
+  --ground:#FAF5EC;
+  --surface:#FFFCF6;
+  --surface-2:#F8EDDD;
+  --ink:#2A2118;
+  --ink-2:#5C5044;
+  --ink-3:#968878;
+  --rule:#EFE1CB;
+  --rule-strong:#E3D2B8;
+  --accent:#A06B22;
+  --accent-ink:#7A5015;
+  --accent-soft:#F6E6CE;
+  --on-accent:#FFFFFF;
+  --ok:#5C7F5A;
+  --warn:#A85A68;
+  --crit:#B4574B;
+  --warn-soft:#F7E9E7;
+  --crit-soft:#F8E5E0;
+  --ok-soft:#E7EFE3;
+  --shadow:0 1px 2px rgba(42,33,24,.05), 0 8px 24px -16px rgba(42,33,24,.22);
+  --display:"Bricolage Grotesque","Trebuchet MS",system-ui,sans-serif;
+  --body:"Source Serif 4",Georgia,"Times New Roman",serif;
+  --mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#17130F;
+    --surface:#211B17;
+    --surface-2:#2A231C;
+    --ink:#F2EBE4;
+    --ink-2:#BDB0A6;
+    --ink-3:#8F827C;
+    --rule:#332A24;
+    --rule-strong:#4A3D33;
+    --accent:#E0A94E;
+    --accent-ink:#F0C782;
+    --accent-soft:#33280F;
+    --on-accent:#17130F;
+    --ok:#7FA97C;
+    --warn:#D79AA2;
+    --crit:#DE8A7C;
+    --warn-soft:#2E1F21;
+    --crit-soft:#2E1D1A;
+    --ok-soft:#1E2A1C;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#17130F;
+  --surface:#211B17;
+  --surface-2:#2A231C;
+  --ink:#F2EBE4;
+  --ink-2:#BDB0A6;
+  --ink-3:#8F827C;
+  --rule:#332A24;
+  --rule-strong:#4A3D33;
+  --accent:#E0A94E;
+  --accent-ink:#F0C782;
+  --accent-soft:#33280F;
+  --on-accent:#17130F;
+  --ok:#7FA97C;
+  --warn:#D79AA2;
+  --crit:#DE8A7C;
+  --warn-soft:#2E1F21;
+  --crit-soft:#2E1D1A;
+  --ok-soft:#1E2A1C;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.8);
+}
+
+*{box-sizing:border-box}
+body{
+  background:var(--ground);
+  color:var(--ink);
+  font-family:var(--body);
+  font-size:16.5px;
+  line-height:1.62;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ---------- layout ---------- */
+.wrap{max-width:1240px;margin:0 auto;padding:0 22px 96px}
+.shell{display:grid;grid-template-columns:1fr;gap:44px}
+@media (min-width:1080px){
+  .shell{grid-template-columns:232px minmax(0,1fr);gap:56px;align-items:start}
+}
+main{min-width:0;display:flex;flex-direction:column;gap:0}
+
+/* ---------- masthead ---------- */
+header.mast{
+  border-bottom:1px solid var(--rule);
+  background:var(--surface);
+  margin-bottom:40px;
+}
+.mast-inner{max-width:1240px;margin:0 auto;padding:34px 22px 30px;display:flex;flex-wrap:wrap;gap:26px;align-items:flex-end;justify-content:space-between}
+.brandline{display:flex;align-items:center;gap:13px}
+.glyph{
+  width:42px;height:42px;flex:none;border-radius:11px;
+  background:var(--accent);color:var(--on-accent);
+  display:grid;place-items:center;
+  font-family:var(--display);font-weight:700;font-size:20px;
+  box-shadow:var(--shadow);
+}
+h1{
+  font-family:var(--display);font-weight:700;font-size:30px;line-height:1.1;
+  letter-spacing:-.018em;margin:0;text-wrap:balance;
+}
+.h1sub{font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);margin-top:5px}
+.meta{display:flex;gap:26px;flex-wrap:wrap;font-family:var(--mono);font-size:11.5px;line-height:1.6;color:var(--ink-3)}
+.meta b{display:block;color:var(--ink-2);font-weight:500;letter-spacing:.04em}
+.meta span{display:block;text-transform:uppercase;letter-spacing:.1em;font-size:10px;color:var(--ink-3);margin-bottom:2px}
+
+/* ---------- toc ---------- */
+nav.toc{position:sticky;top:20px;font-family:var(--mono);font-size:12px;line-height:1.45}
+nav.toc .toch{text-transform:uppercase;letter-spacing:.12em;font-size:10px;color:var(--ink-3);padding-bottom:9px;border-bottom:1px solid var(--rule);margin-bottom:10px}
+nav.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:1px}
+nav.toc a{
+  display:grid;grid-template-columns:22px 1fr;gap:6px;
+  color:var(--ink-2);text-decoration:none;padding:5px 7px;border-radius:6px;
+}
+nav.toc a:hover{background:var(--surface-2);color:var(--accent-ink)}
+nav.toc a:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+nav.toc .n{color:var(--ink-3)}
+@media (max-width:1079px){
+  nav.toc{position:static;background:var(--surface);border:1px solid var(--rule);border-radius:12px;padding:16px}
+  nav.toc ol{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr))}
+}
+
+/* ---------- sections ---------- */
+section{padding:38px 0 10px;border-top:1px solid var(--rule)}
+section:first-of-type{border-top:none;padding-top:0}
+h2{
+  font-family:var(--display);font-weight:700;font-size:24px;letter-spacing:-.014em;
+  margin:0 0 6px;display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:baseline;text-wrap:balance;
+}
+h2 .num{font-family:var(--mono);font-size:13px;font-weight:500;color:var(--accent);letter-spacing:.02em}
+.lede{color:var(--ink-2);max-width:66ch;margin:0 0 22px;font-size:16px}
+h3{
+  font-family:var(--display);font-weight:600;font-size:17px;letter-spacing:-.008em;
+  margin:30px 0 9px;color:var(--ink);
+}
+h3 .num{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--ink-3);margin-right:7px}
+h4{font-family:var(--display);font-weight:600;font-size:14px;margin:20px 0 6px;color:var(--ink)}
+p{margin:0 0 13px;max-width:70ch}
+ul,ol.body{margin:0 0 14px;padding-left:20px;max-width:70ch}
+li{margin-bottom:5px}
+li::marker{color:var(--ink-3)}
+strong{font-weight:600;color:var(--ink)}
+em{font-style:italic;color:var(--ink-2)}
+code{font-family:var(--mono);font-size:.86em;background:var(--surface-2);padding:1.5px 5px;border-radius:4px;color:var(--accent-ink)}
+a.inline{color:var(--accent-ink);text-decoration:underline;text-decoration-color:var(--rule-strong);text-underline-offset:2px}
+
+/* ---------- components ---------- */
+.grid{display:grid;gap:14px}
+@media (min-width:640px){.g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:repeat(3,1fr)}}
+
+.card{
+  background:var(--surface);border:1px solid var(--rule);border-radius:12px;padding:17px 19px;
+}
+.card h4{margin-top:0}
+.card p:last-child,.card ul:last-child{margin-bottom:0}
+
+.persona{background:var(--surface);border:1px solid var(--rule);border-radius:12px;padding:18px 20px;display:flex;flex-direction:column;gap:9px}
+.persona .who{font-family:var(--display);font-weight:700;font-size:16px}
+.persona .role{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-top:-6px}
+.persona dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:14.5px}
+.persona dt{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);padding-top:5px}
+.persona dd{margin:0;color:var(--ink-2)}
+
+.tablewrap{overflow-x:auto;border:1px solid var(--rule);border-radius:12px;background:var(--surface);margin:0 0 16px}
+table{border-collapse:collapse;width:100%;font-size:14px;min-width:520px}
+th,td{text-align:left;padding:9px 14px;border-bottom:1px solid var(--rule);vertical-align:top}
+thead th{
+  font-family:var(--mono);font-size:10px;letter-spacing:.11em;text-transform:uppercase;
+  color:var(--ink-3);font-weight:500;background:var(--surface-2);white-space:nowrap;
+}
+tbody tr:last-child td{border-bottom:none}
+td.mono,th.mono{font-family:var(--mono);font-size:12.5px;color:var(--accent-ink);white-space:nowrap}
+td.num{font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+
+pre{
+  font-family:var(--mono);font-size:12.5px;line-height:1.62;
+  background:var(--surface);border:1px solid var(--rule);border-radius:12px;
+  padding:15px 17px;overflow-x:auto;margin:0 0 16px;color:var(--ink-2);
+}
+pre b{color:var(--accent-ink);font-weight:500}
+pre i{color:var(--ink-3);font-style:normal}
+
+.note{
+  border-left:3px solid var(--accent);background:var(--accent-soft);
+  padding:13px 16px;border-radius:0 9px 9px 0;margin:0 0 16px;font-size:15px;color:var(--ink-2);
+}
+.note.warn{border-left-color:var(--warn);background:var(--warn-soft)}
+.note.crit{border-left-color:var(--crit);background:var(--crit-soft)}
+.note .tag{font-family:var(--mono);font-size:10px;letter-spacing:.11em;text-transform:uppercase;display:block;margin-bottom:4px;color:var(--accent-ink)}
+.note.warn .tag{color:var(--warn)}
+.note.crit .tag{color:var(--crit)}
+.note p:last-child{margin-bottom:0}
+
+.pill{
+  display:inline-block;font-family:var(--mono);font-size:10px;letter-spacing:.08em;
+  text-transform:uppercase;padding:2.5px 8px;border-radius:20px;
+  background:var(--surface-2);color:var(--ink-2);border:1px solid var(--rule);white-space:nowrap;
+}
+.pill.p1{background:var(--ok-soft);color:var(--ok);border-color:transparent}
+.pill.p2{background:var(--warn-soft);color:var(--warn);border-color:transparent}
+.pill.p3{background:var(--surface-2);color:var(--ink-3)}
+
+/* feature list */
+.feat{display:flex;flex-direction:column;border:1px solid var(--rule);border-radius:12px;overflow:hidden;background:var(--surface);margin-bottom:16px}
+.feat .row{display:grid;grid-template-columns:64px minmax(0,1fr) auto;gap:14px;padding:11px 16px;border-bottom:1px solid var(--rule);align-items:baseline}
+.feat .row:last-child{border-bottom:none}
+.feat .code{font-family:var(--mono);font-size:11.5px;color:var(--accent);letter-spacing:.02em}
+.feat .txt{font-size:14.5px;color:var(--ink-2)}
+.feat .txt b{color:var(--ink)}
+@media (max-width:560px){
+  .feat .row{grid-template-columns:1fr auto;gap:4px 10px}
+  .feat .code{grid-column:1/-1}
+}
+
+/* architecture stack */
+.stack{display:flex;flex-direction:column;gap:9px;margin:0 0 18px}
+.layer{border:1px solid var(--rule);border-radius:12px;background:var(--surface);padding:13px 16px}
+.layer .lname{font-family:var(--mono);font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--ink-3);margin-bottom:8px}
+.layer .boxes{display:flex;flex-wrap:wrap;gap:7px}
+.box{
+  font-family:var(--display);font-size:12.5px;font-weight:600;
+  padding:6px 11px;border-radius:8px;background:var(--surface-2);color:var(--ink);
+  border:1px solid var(--rule);
+}
+.box.hi{background:var(--accent-soft);border-color:transparent;color:var(--accent-ink)}
+.arrow{text-align:center;color:var(--rule-strong);font-family:var(--mono);font-size:15px;line-height:1;margin:-3px 0}
+
+/* phases */
+.phase{display:grid;grid-template-columns:auto minmax(0,1fr);gap:0 18px;position:relative}
+.phase .stem{position:relative;width:11px}
+.phase .stem::before{content:"";position:absolute;left:4px;top:9px;bottom:-4px;width:1.5px;background:var(--rule-strong)}
+.phase:last-child .stem::before{display:none}
+.phase .dot{position:absolute;left:0;top:6px;width:9px;height:9px;border-radius:50%;background:var(--accent);border:2px solid var(--ground)}
+.phase .body{padding-bottom:22px}
+.phase .ph{font-family:var(--display);font-weight:700;font-size:15.5px;display:flex;flex-wrap:wrap;gap:9px;align-items:center;margin-bottom:2px}
+.phase .dur{font-family:var(--mono);font-size:11px;color:var(--ink-3);letter-spacing:.05em}
+.phase ul{margin:6px 0 0;font-size:14.5px;color:var(--ink-2)}
+
+footer.foot{border-top:1px solid var(--rule);margin-top:44px;padding-top:20px;font-family:var(--mono);font-size:11.5px;color:var(--ink-3);line-height:1.7}
+footer.foot a{color:var(--accent-ink)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+</head>
+<body>
+<header class="mast">
+  <div class="mast-inner">
+    <div class="brandline">
+      <div class="glyph">ف</div>
+      <div>
+        <h1>Ferha — réservation de salles des fêtes</h1>
+        <div class="h1sub">Cahier des charges &amp; architecture technique · v2.0 · version 0 DA</div>
+      </div>
+    </div>
+    <div class="meta">
+      <div><span>Plateforme</span><b>Flutter · Android + Web</b></div>
+      <div><span>Marché</span><b>Algérie · FR + AR (RTL)</b></div>
+      <div><span>Budget</span><b>0 DA — aucun abonnement</b></div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+<div class="shell">
+
+<nav class="toc" aria-label="Sommaire">
+  <div class="toch">Sommaire</div>
+  <ol>
+    <li><a href="#s1"><span class="n">1</span><span>Vision &amp; positionnement</span></a></li>
+    <li><a href="#s2"><span class="n">2</span><span>Utilisateurs</span></a></li>
+    <li><a href="#s3"><span class="n">3</span><span>Parcours principal</span></a></li>
+    <li><a href="#s4"><span class="n">4</span><span>Périmètre fonctionnel</span></a></li>
+    <li><a href="#s5"><span class="n">5</span><span>Règles métier</span></a></li>
+    <li><a href="#s6"><span class="n">6</span><span>Modèle de données</span></a></li>
+    <li><a href="#s7"><span class="n">7</span><span>Architecture technique</span></a></li>
+    <li><a href="#s8"><span class="n">8</span><span>L'agent RAG</span></a></li>
+    <li><a href="#s9"><span class="n">9</span><span>Sécurité &amp; RLS</span></a></li>
+    <li><a href="#s10"><span class="n">10</span><span>Écrans &amp; identité</span></a></li>
+    <li><a href="#s11"><span class="n">11</span><span>Plan de développement</span></a></li>
+    <li><a href="#s12"><span class="n">12</span><span>Risques &amp; coûts</span></a></li>
+  </ol>
+</nav>
+
+<main>
+
+<!-- ================= 1 ================= -->
+<section id="s1">
+  <h2><span class="num">01</span><span>Vision &amp; positionnement</span></h2>
+  <p class="lede">Une place de marché à deux faces qui transforme la location de salle des fêtes — aujourd'hui une affaire de bouche-à-oreille et de visites physiques — en une réservation vérifiable, datée et payée en ligne.</p>
+
+  <div class="note">
+    <span class="tag">Ce qui change en v2.0</span>
+    <p>Cette version construit exactement le même produit, mais sans aucune dépense. Sept substitutions&nbsp;: authentification par e-mail au lieu du SMS, embeddings auto-hébergés au lieu d'une API facturée, LLM gratuit, paiement en mode test, OpenStreetMap au lieu de Google Maps, distribution par GitHub au lieu des magasins d'applications, et un cron qui empêche la base gratuite de se mettre en pause. Chaque changement est signalé dans le texte par la mention <b>v2.0</b>. L'identité visuelle change aussi&nbsp;: la palette passe du vert pétrole à <b>Ambre &amp; ivoire</b> (§10.1).</p>
+  </div>
+
+  <h3><span class="num">1.1</span>Le problème</h3>
+  <p>En Algérie, réserver une salle pour un mariage se fait encore par téléphone, recommandation familiale ou annonce classée. Trois frictions reviennent systématiquement&nbsp;:</p>
+  <ul>
+    <li><strong>L'opacité des prix.</strong> Le tarif dépend de la date, du jour de la semaine, de la saison et du nombre de couverts — il n'est presque jamais affiché.</li>
+    <li><strong>L'incertitude sur la disponibilité.</strong> Il faut appeler chaque salle une par une pour savoir si le 14 août est libre.</li>
+    <li><strong>L'absence de preuve.</strong> Un acompte remis en liquide, sans reçu ni contrat, et des litiges fréquents sur ce qui était inclus (traiteur, sono, chambre de la mariée…).</li>
+  </ul>
+
+  <h3><span class="num">1.2</span>La proposition de valeur</h3>
+  <div class="grid g2">
+    <div class="card">
+      <h4>Pour la famille</h4>
+      <p>Un calendrier de disponibilité réel, des prix par créneau, des photos et des avis de clients qui ont <em>réellement</em> réservé, et un acompte payé en ligne qui bloque la date.</p>
+    </div>
+    <div class="card">
+      <h4>Pour le propriétaire</h4>
+      <p>Un agenda qui empêche les doubles réservations, un flux de demandes qualifiées sans passer sa journée au téléphone, et des acomptes encaissés avant l'événement.</p>
+    </div>
+  </div>
+
+  <h3><span class="num">1.3</span>Ce qui existe déjà</h3>
+  <p>Le marché algérien est couvert par des sites d'<em>annonces</em> (Ouedkniss, Darrna) et des annuaires spécialisés (3ersi.com). Aucun ne fait de <strong>réservation transactionnelle</strong>&nbsp;: on y trouve un numéro de téléphone, pas une date bloquée. C'est exactement l'espace que Ferha occupe.</p>
+  <div class="note">
+    <span class="tag">Différenciateur</span>
+    <p>Le calendrier de disponibilité en temps réel + l'acompte en ligne sont le cœur du produit. L'agent IA est un accélérateur de découverte, pas le produit lui-même — construisez la réservation d'abord.</p>
+  </div>
+
+  <div class="note warn">
+    <span class="tag">Nom de travail</span>
+    <p>«&nbsp;Ferha&nbsp;» (فرحة, la joie / la fête) est une proposition. Vérifiez la disponibilité du nom commercial et du domaine avant de l'ancrer dans le code — un identifiant de package Flutter (<code>com.ferha.app</code>) est pénible à changer après publication sur le Play Store.</p>
+  </div>
+</section>
+
+<!-- ================= 2 ================= -->
+<section id="s2">
+  <h2><span class="num">02</span><span>Utilisateurs</span></h2>
+  <p class="lede">Trois rôles, trois applications logiques dans un seul binaire Flutter. Le rôle est porté par le profil, pas par l'application installée.</p>
+
+  <div class="grid g3">
+    <div class="persona">
+      <div class="who">Amina, 27&nbsp;ans</div>
+      <div class="role">Cliente · Oran</div>
+      <dl>
+        <dt>But</dt><dd>Trouver une salle pour 300 invités, en juillet, à moins de 250&nbsp;000&nbsp;DA.</dd>
+        <dt>Usage</dt><dd>Mobile Android, réseau 4G irrégulier, tape en français et en darja.</dd>
+        <dt>Frein</dt><dd>Peur de payer en ligne. Doit pouvoir visiter avant de s'engager.</dd>
+      </dl>
+    </div>
+    <div class="persona">
+      <div class="who">Karim, 45&nbsp;ans</div>
+      <div class="role">Propriétaire · Blida</div>
+      <dl>
+        <dt>But</dt><dd>Remplir son agenda hors saison et arrêter de gérer 40&nbsp;appels par jour.</dd>
+        <dt>Usage</dt><dd>Mobile, peu à l'aise avec l'informatique. Prend ses photos au téléphone.</dd>
+        <dt>Frein</dt><dd>Ne veut pas d'un formulaire de 30&nbsp;champs pour publier sa salle.</dd>
+      </dl>
+    </div>
+    <div class="persona">
+      <div class="who">L'équipe</div>
+      <div class="role">Administration · Back-office</div>
+      <dl>
+        <dt>But</dt><dd>Valider les salles, arbitrer les litiges, modérer les avis, suivre les paiements.</dd>
+        <dt>Usage</dt><dd>Web uniquement (même build Flutter, route protégée).</dd>
+        <dt>Frein</dt><dd>Volume de modération à maintenir bas via des règles automatiques.</dd>
+      </dl>
+    </div>
+  </div>
+
+  <div class="note warn">
+    <span class="tag">Décision produit</span>
+    <p>Un même compte peut être client <em>et</em> propriétaire. Ne créez pas deux tables d'utilisateurs&nbsp;: un seul <code>profiles</code>, et un booléen <code>is_owner</code> qui débloque l'espace propriétaire. Beaucoup de propriétaires réservent aussi des salles pour leur famille.</p>
+  </div>
+</section>
+
+<!-- ================= 3 ================= -->
+<section id="s3">
+  <h2><span class="num">03</span><span>Parcours principal</span></h2>
+  <p class="lede">Le chemin critique de l'application, de la recherche à l'avis. Chaque étape correspond à une transition d'état de la réservation.</p>
+
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Étape</th><th>Côté client</th><th>Côté propriétaire</th><th class="mono">État réservation</th></tr></thead>
+      <tbody>
+        <tr><td>1. Recherche</td><td>Filtre wilaya, date, capacité, budget — ou pose sa question à l'agent IA</td><td>—</td><td class="mono">—</td></tr>
+        <tr><td>2. Fiche salle</td><td>Photos, équipements, tarifs par créneau, avis, calendrier</td><td>—</td><td class="mono">—</td></tr>
+        <tr><td>3. Demande</td><td>Choisit date + créneau + nb d'invités, envoie la demande</td><td>Notification dans l'app (temps réel), 48&nbsp;h pour répondre</td><td class="mono">pending</td></tr>
+        <tr><td>4. Réponse</td><td>Reçoit accord + montant d'acompte</td><td>Accepte ou refuse, peut ajuster le devis</td><td class="mono">accepted</td></tr>
+        <tr><td>5. Acompte</td><td>Paie 20–30&nbsp;% par CIB / Edahabia <em>(mode test en v2.0)</em>, ou en espèces sur place</td><td>Voit la date passer en « bloquée »</td><td class="mono">confirmed</td></tr>
+        <tr><td>6. Événement</td><td>Solde réglé sur place</td><td>Marque comme honoré</td><td class="mono">completed</td></tr>
+        <tr><td>7. Avis</td><td>Note 1–5 + commentaire, débloqué J+1</td><td>Droit de réponse publique</td><td class="mono">completed</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note crit">
+    <span class="tag">Point de rupture</span>
+    <p>L'étape 5 est celle où le produit gagne ou perd. Si le paiement en ligne fait peur, tout s'effondre en simple annuaire. Prévoyez dès le MVP une variante <strong>«&nbsp;réservation sans acompte en ligne&nbsp;»</strong>&nbsp;: la date est pré-bloquée 72&nbsp;h, le client verse l'acompte en main propre, le propriétaire confirme dans l'app. Moins bon pour le business model, indispensable pour l'adoption.</p>
+  </div>
+</section>
+
+<!-- ================= 4 ================= -->
+<section id="s4">
+  <h2><span class="num">04</span><span>Périmètre fonctionnel</span></h2>
+  <p class="lede">Chaque fonctionnalité porte un identifiant stable (utilisable dans vos tickets) et une priorité&nbsp;: <span class="pill p1">MVP</span> <span class="pill p2">V1</span> <span class="pill p3">V2</span></p>
+
+  <h3><span class="num">4.1</span>Socle commun</h3>
+  <div class="feat">
+    <div class="row"><span class="code">CORE-01</span><span class="txt"><b>Inscription / connexion par e-mail et mot de passe.</b> <em>v2.0</em>&nbsp;— le SMS était le seul poste réellement coûteux du projet (0,03 à 0,10&nbsp;$ l'unité, facturé même quand l'inscription échoue). Le téléphone devient un champ de profil, vérifié plus tard. Deux comptes de démonstration sont proposés en un tap sur l'écran de connexion.</span><span class="pill p1">MVP</span></div>
+    <div class="row"><span class="code">CORE-02</span><span class="txt"><b>Profil</b> — nom, photo, téléphone vérifié, wilaya, langue préférée.</span><span class="pill p1">MVP</span></div>
+    <div class="row"><span class="code">CORE-03</span><span class="txt"><b>Bilingue FR / AR avec bascule RTL complète.</b> Flutter gère le RTL nativement&nbsp;; utilisez <code>EdgeInsetsDirectional</code> et <code>start/end</code> partout, jamais <code>left/right</code>.</span><span class="pill p2">V1</span></div>
+    <div class="row"><span class="code">CORE-04</span><span class="txt"><b>Notifications dans l'application</b> — nouvelle demande, réponse du propriétaire, rappel J-7 et J-1, invitation à laisser un avis. <em>v2.0</em>&nbsp;: table <code>notifications</code> + Realtime au MVP&nbsp;; le push FCM (gratuit lui aussi) s'ajoute par-dessus en V1 sans rien changer au reste.</span><span class="pill p1">MVP</span></div>
+    <div class="row"><span class="code">CORE-05</span><span class="txt"><b>Mode dégradé hors-ligne</b> — cache des dernières recherches et des fiches consultées. Le réseau algérien coupe souvent.</span><span class="pill p2">V1</span></div>
+  </div>
+
+  <h3><span class="num">4.2</span>Espace client</h3>
+  <div class="feat">
+    <div class="row"><span class="code">CLI-01</span><span class="txt"><b>Recherche filtrée</b> — wilaya &amp; commune, date, créneau, capacité (couverts), fourchette de prix, type d'événement, équipements.</span><span class="pill p1">MVP</span></div>
+    <div class="row"><span class="code">CLI-02</span><span class="txt"><b>Carte interactive</b> des salles avec distance depuis la position. <em>v2.0</em>&nbsp;: OpenStreetMap via <code>flutter_map</code> — ni clé d'API, ni carte bancaire, ni quota. Devenue gratuite, elle passe en MVP.</span><span class="pill p1">MVP</span></div>
+    <div class="row"><span class="code">CLI-03</span><span class="txt"><b>Fiche salle</b> — galerie photo, description, équipements, capacité, règlement intérieur, tarifs, géolocalisation.</span><span class="pill p1">MVP</span></div>
+    <div class="row"><span class="code">CLI-04</span><span class="txt"><b>Calendrier de disponibilité</b> sur 18&nbsp;mois, en lecture seule, avec distinction jour / soirée.</span><span class="pill p1">MVP</span></div>
+    <div class="row"><span class="code">CLI-05</span><span class="txt"><b>Demande de réservation</b> avec nombre d'invités, options souhaitées, message libre.</span><span class="pill p1">MVP</span></div>
+    <div class="row"><span class="code">CLI-06</span><span class="txt"><b>Paiement de l'acompte</b> (CIB / Edahabia via Chargily Pay). <em>v2.0</em>&nbsp;: <b>mode test</b> — mêmes appels, autres clés. Le passage en réel ne demandera qu'un compte vérifié. Le reçu PDF passe en V1.</span><span class="pill p1">MVP</span></div>
+    <div class="row"><span class="code">CLI-07</span><span class="txt"><b>Messagerie</b> client ↔ propriétaire, rattachée à la demande.</span><span class="pill p2">V1</span></div>
+    <div class="row"><span class="code">CLI-08</span><span class="txt"><b>Notation &amp; avis</b> — note globale 1–5 et quatre sous-notes&nbsp;: propreté, service, rapport qualité/prix, conformité aux photos. Photos autorisées dans l'avis.</span><span class="pill p1">MVP</span></div>
+    <div class="row"><span class="code">CLI-09</span><span class="txt"><b>Favoris et comparateur</b> — jusqu'à 3 salles côte à côte.</span><span class="pill p2">V1</span></div>
+    <div class="row"><span class="code">CLI-10</span><span class="txt"><b>Demande de visite</b> — créneau de visite physique avant engagement.</span><span class="pill p2">V1</span></div>
+    <div class="row"><span class="code">CLI-11</span><span class="txt"><b>Prestataires associés</b> — traiteur, negafa, photographe, orchestre proposés depuis la fiche.</span><span class="pill p3">V2</span></div>
+  </div>
+
+  <h3><span class="num">4.3</span>Espace propriétaire</h3>
+  <div class="feat">
+    <div class="row"><span class="code">OWN-01</span><span class="txt"><b>Création de salle assistée</b> — formulaire en 5 étapes courtes&nbsp;: identité, localisation, capacité, équipements, photos.</span><span class="pill p1">MVP</span></div>
+    <div class="row"><span class="code">OWN-02</span><span class="txt"><b>Gestion des photos</b> — upload multiple depuis la galerie ou l'appareil photo, réordonnancement par glisser-déposer, photo de couverture, compression côté client, 5 à 20 photos.</span><span class="pill p1">MVP</span></div>
+    <div class="row"><span class="code">OWN-03</span><span class="txt"><b>Grille tarifaire</b> — prix de base par créneau, majoration week-end, majoration haute saison (juin–septembre), prix par couvert au-delà d'un seuil.</span><span class="pill p1">MVP</span></div>
+    <div class="row"><span class="code">OWN-04</span><span class="txt"><b>Agenda</b> — vue mois, blocage manuel de dates (travaux, événement privé), réservations en cours.</span><span class="pill p1">MVP</span></div>
+    <div class="row"><span class="code">OWN-05</span><span class="txt"><b>Traitement des demandes</b> — accepter, refuser avec motif, contre-proposer une date ou un tarif.</span><span class="pill p1">MVP</span></div>
+    <div class="row"><span class="code">OWN-06</span><span class="txt"><b>Droit de réponse aux avis</b> — une réponse publique par avis.</span><span class="pill p1">MVP</span></div>
+    <div class="row"><span class="code">OWN-07</span><span class="txt"><b>Tableau de bord</b> — taux d'occupation, revenu prévisionnel, note moyenne, taux de conversion des demandes.</span><span class="pill p2">V1</span></div>
+    <div class="row"><span class="code">OWN-08</span><span class="txt"><b>Multi-salles</b> — un propriétaire gère plusieurs salles depuis un même compte.</span><span class="pill p2">V1</span></div>
+    <div class="row"><span class="code">OWN-09</span><span class="txt"><b>Visite virtuelle 360°</b> et vidéo de présentation.</span><span class="pill p3">V2</span></div>
+  </div>
+
+  <h3><span class="num">4.4</span>Back-office</h3>
+  <div class="feat">
+    <div class="row"><span class="code">ADM-01</span><span class="txt"><b>Validation des salles</b> — aucune salle n'est visible avant contrôle humain (photos réelles, adresse plausible, propriétaire joignable).</span><span class="pill p1">MVP</span></div>
+    <div class="row"><span class="code">ADM-02</span><span class="txt"><b>Modération des avis</b> — file des avis signalés, suppression motivée.</span><span class="pill p1">MVP</span></div>
+    <div class="row"><span class="code">ADM-03</span><span class="txt"><b>Suivi des paiements</b> et rapprochement avec Chargily.</span><span class="pill p1">MVP</span></div>
+    <div class="row"><span class="code">ADM-04</span><span class="txt"><b>Gestion des litiges</b> — remboursement d'acompte, pénalités, blocage de compte.</span><span class="pill p2">V1</span></div>
+    <div class="row"><span class="code">ADM-05</span><span class="txt"><b>Console d'observation de l'agent IA</b> — questions posées, réponses, taux de « je ne sais pas », coût par conversation.</span><span class="pill p2">V1</span></div>
+  </div>
+</section>
+
+<!-- ================= 5 ================= -->
+<section id="s5">
+  <h2><span class="num">05</span><span>Règles métier</span></h2>
+  <p class="lede">Ce sont les règles qui, mal spécifiées, produisent les bugs les plus coûteux — ceux qui font perdre un mariage à une famille.</p>
+
+  <h3><span class="num">5.1</span>Disponibilité et créneaux</h3>
+  <ul>
+    <li>Un jour se découpe en deux créneaux&nbsp;: <code>midi</code> (11 h–17 h) et <code>soir</code> (18 h–01 h). Une réservation <code>journee</code> occupe les deux.</li>
+    <li>Une date+créneau ne peut porter qu'<strong>une seule</strong> réservation à l'état <code>confirmed</code>. Cette contrainte doit être garantie <em>en base</em> par un index d'exclusion, pas seulement dans l'application.</li>
+    <li>Une demande <code>pending</code> ne bloque pas la date. Plusieurs familles peuvent demander le même 14 août&nbsp;; le propriétaire arbitre.</li>
+    <li>Une demande <code>accepted</code> pose une <strong>option de 72&nbsp;h</strong>. Sans acompte à l'échéance, elle expire automatiquement et libère la date.</li>
+  </ul>
+
+  <h3><span class="num">5.2</span>Tarification</h3>
+  <p>Le prix affiché est calculé, jamais saisi&nbsp;:</p>
+  <pre><b>prix</b> = prix_base(creneau)
+     × coef_jour        <i>// jeu/ven/sam : 1.0 → 1.4</i>
+     × coef_saison      <i>// juin–sept et vacances scolaires : 1.0 → 1.3</i>
+     + max(0, invites − couverts_inclus) × prix_couvert_sup
+     + Σ options_choisies</pre>
+  <p>Le propriétaire garde le droit de proposer un montant différent au moment d'accepter la demande&nbsp;: le prix calculé est une estimation engageante à ±10&nbsp;%, pas un contrat.</p>
+
+  <h3><span class="num">5.3</span>Acompte et annulation</h3>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Annulation par le client</th><th>Acompte</th><th>Annulation par le propriétaire</th></tr></thead>
+      <tbody>
+        <tr><td>Plus de 60 jours avant</td><td>Remboursé à 100&nbsp;%</td><td rowspan="3">Remboursement intégral au client, pénalité de visibilité pour la salle (déclassement 30&nbsp;jours), 3&nbsp;annulations en 12&nbsp;mois&nbsp;= suspension.</td></tr>
+        <tr><td>Entre 30 et 60 jours</td><td>Remboursé à 50&nbsp;%</td></tr>
+        <tr><td>Moins de 30 jours</td><td>Non remboursé</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3><span class="num">5.4</span>Avis</h3>
+  <ul>
+    <li><strong>Un avis exige une réservation <code>completed</code>.</strong> C'est la règle anti-faux-avis la plus efficace et elle est structurelle&nbsp;: la clé étrangère <code>reviews.booking_id</code> est unique et non nulle.</li>
+    <li>Fenêtre de dépôt&nbsp;: de J+1 à J+30 après l'événement.</li>
+    <li>Un avis n'est pas modifiable après la réponse du propriétaire — sinon la réponse devient incompréhensible.</li>
+    <li>La note affichée est une <strong>moyenne bayésienne</strong>, pas une moyenne simple&nbsp;: une salle avec un seul 5/5 ne doit pas dépasser une salle avec quarante 4,6/5.</li>
+  </ul>
+  <pre><b>note_affichee</b> = (m × C + Σ notes) / (m + n)
+   <i>où n = nombre d'avis, m = 5 (poids de l'a priori),
+      C = 4.0 (note moyenne de la plateforme)</i></pre>
+</section>
+
+<!-- ================= 6 ================= -->
+<section id="s6">
+  <h2><span class="num">06</span><span>Modèle de données</span></h2>
+  <p class="lede">PostgreSQL. Les tables ci-dessous sont le contrat entre l'application Flutter et le backend&nbsp;; le script complet est fourni séparément.</p>
+
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th class="mono">Table</th><th>Rôle</th><th>Colonnes structurantes</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">profiles</td><td>Utilisateur, tous rôles confondus</td><td><code>id</code> (= auth.uid), <code>full_name</code>, <code>email</code>, <code>phone</code> <em>(nullable en v2.0)</em>, <code>phone_verified</code>, <code>is_owner</code>, <code>is_admin</code>, <code>locale</code></td></tr>
+        <tr><td class="mono">venues</td><td>La salle</td><td><code>owner_id</code>, <code>name</code>, <code>wilaya_code</code>, <code>commune</code>, <code>lat/lng</code>, <code>capacity_seated</code>, <code>description</code>, <code>status</code> (draft/pending/published/suspended)</td></tr>
+        <tr><td class="mono">venue_photos</td><td>Galerie</td><td><code>venue_id</code>, <code>storage_path</code>, <code>position</code>, <code>is_cover</code></td></tr>
+        <tr><td class="mono">venue_amenities</td><td>Équipements (n↔n)</td><td><code>venue_id</code>, <code>amenity_code</code></td></tr>
+        <tr><td class="mono">amenities</td><td>Référentiel équipements</td><td><code>code</code>, <code>label_fr</code>, <code>label_ar</code>, <code>icon</code>, <code>category</code></td></tr>
+        <tr><td class="mono">venue_pricing</td><td>Grille tarifaire</td><td><code>venue_id</code>, <code>slot</code>, <code>base_price</code>, <code>weekend_coef</code>, <code>high_season_coef</code>, <code>included_seats</code>, <code>extra_seat_price</code></td></tr>
+        <tr><td class="mono">venue_blackouts</td><td>Dates bloquées par le propriétaire</td><td><code>venue_id</code>, <code>date</code>, <code>slot</code>, <code>reason</code></td></tr>
+        <tr><td class="mono">bookings</td><td>Réservation — table pivot du produit</td><td><code>venue_id</code>, <code>client_id</code>, <code>event_date</code>, <code>slot</code>, <code>guest_count</code>, <code>event_type</code>, <code>quoted_amount</code>, <code>deposit_amount</code>, <code>status</code>, <code>option_expires_at</code></td></tr>
+        <tr><td class="mono">payments</td><td>Trace Chargily</td><td><code>booking_id</code>, <code>checkout_id</code>, <code>amount</code>, <code>method</code> (cib/edahabia/cash), <code>status</code>, <code>is_test</code>, <code>raw_webhook</code></td></tr>
+        <tr><td class="mono">reviews</td><td>Avis vérifié</td><td><code>booking_id</code> <b>UNIQUE NOT NULL</b>, <code>venue_id</code>, <code>rating</code>, <code>rating_cleanliness</code>, <code>rating_service</code>, <code>rating_value</code>, <code>rating_accuracy</code>, <code>body</code>, <code>owner_reply</code></td></tr>
+        <tr><td class="mono">messages</td><td>Fil client ↔ propriétaire</td><td><code>booking_id</code>, <code>sender_id</code>, <code>body</code>, <code>read_at</code></td></tr>
+        <tr><td class="mono">venue_embeddings</td><td>Index sémantique des salles</td><td><code>venue_id</code>, <code>content</code>, <code>embedding vector(384)</code> <em>(v2.0)</em>, <code>model</code>, <code>content_hash</code></td></tr>
+        <tr><td class="mono">kb_documents</td><td>Base de connaissances (FAQ, CGU)</td><td><code>slug</code>, <code>title</code>, <code>chunk</code>, <code>embedding vector(384)</code>, <code>model</code>, <code>locale</code></td></tr>
+        <tr><td class="mono">notifications</td><td><em>v2.0</em> — remplace le push au MVP</td><td><code>user_id</code>, <code>type</code>, <code>payload jsonb</code>, <code>read_at</code></td></tr>
+        <tr><td class="mono">ai_cache</td><td><em>v2.0</em> — cache sémantique et filet de démonstration</td><td><code>question</code>, <code>embedding vector(384)</code>, <code>response jsonb</code>, <code>hits</code></td></tr>
+        <tr><td class="mono">ai_conversations</td><td>Historique agent + observabilité</td><td><code>user_id</code>, <code>role</code>, <code>content</code>, <code>tool_calls</code>, <code>tokens</code>, <code>cost_dzd</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3><span class="num">6.1</span>La contrainte qui protège le produit</h3>
+  <p>Empêcher la double réservation ne se fait pas avec un <code>SELECT</code> suivi d'un <code>INSERT</code> — deux clients qui paient à la même seconde passeraient tous les deux. Il faut un index unique partiel&nbsp;:</p>
+  <pre><b>CREATE UNIQUE INDEX</b> uniq_booking_slot
+  <b>ON</b> bookings (venue_id, event_date, slot)
+  <b>WHERE</b> status <b>IN</b> ('confirmed', 'completed');</pre>
+  <p>La base refuse alors physiquement le deuxième enregistrement, quelle que soit la logique applicative. Le créneau <code>journee</code> se traite en insérant deux lignes (<code>midi</code> + <code>soir</code>) liées par un <code>group_id</code>.</p>
+</section>
+
+<!-- ================= 7 ================= -->
+<section id="s7">
+  <h2><span class="num">07</span><span>Architecture technique</span></h2>
+  <p class="lede">Flutter en façade, PostgreSQL au centre. Une seule base de données porte les données métier <em>et</em> l'index vectoriel du RAG — c'est ce qui rend l'agent simple à construire.</p>
+
+  <div class="stack">
+    <div class="layer">
+      <div class="lname">Client — un seul projet Flutter</div>
+      <div class="boxes">
+        <span class="box hi">Flutter 3.x</span><span class="box">Riverpod</span><span class="box">go_router</span><span class="box">Material 3</span><span class="box">Android</span><span class="box">iOS</span><span class="box">Web (back-office)</span>
+      </div>
+    </div>
+    <div class="arrow">▼</div>
+    <div class="layer">
+      <div class="lname">Accès données — SDK officiel</div>
+      <div class="boxes">
+        <span class="box hi">supabase_flutter</span><span class="box">Auth e-mail</span><span class="box">PostgREST</span><span class="box">Realtime</span><span class="box">Storage</span>
+      </div>
+    </div>
+    <div class="arrow">▼</div>
+    <div class="layer">
+      <div class="lname">Backend managé</div>
+      <div class="boxes">
+        <span class="box hi">PostgreSQL + RLS</span><span class="box hi">pgvector</span><span class="box">Storage (photos)</span><span class="box">Edge Functions (Deno)</span><span class="box">Cron</span>
+      </div>
+    </div>
+    <div class="arrow">▼</div>
+    <div class="layer">
+      <div class="lname">Services externes — tous gratuits en v2.0</div>
+      <div class="boxes">
+        <span class="box">Chargily Pay v2 — mode test</span><span class="box hi">Space Hugging Face — embeddings</span><span class="box">LLM gratuit (Gemini / Groq)</span><span class="box">OpenStreetMap</span>
+      </div>
+    </div>
+    <div class="arrow">▼</div>
+    <div class="layer">
+      <div class="lname">Automatisation &amp; distribution — GitHub</div>
+      <div class="boxes">
+        <span class="box">Actions — intégration continue</span><span class="box hi">Actions — cron gardien</span><span class="box">Pages — démo web</span><span class="box">Releases — APK</span>
+      </div>
+    </div>
+  </div>
+
+  <h3><span class="num">7.1</span>Pourquoi ce choix</h3>
+  <div class="grid g2">
+    <div class="card">
+      <h4>Supabase plutôt que Firebase</h4>
+      <p>Le RAG a besoin de recherche vectorielle <em>et</em> de filtres structurés (wilaya, capacité, date libre) dans la <strong>même</strong> requête. Avec pgvector c'est un seul <code>SELECT</code>. Avec Firestore, il faudrait une base vectorielle séparée et recouper les résultats à la main. Le SQL relationnel colle aussi mieux aux contraintes de disponibilité.</p>
+    </div>
+    <div class="card">
+      <h4>Riverpod plutôt que BLoC</h4>
+      <p>Pour une équipe réduite, Riverpod donne l'injection de dépendances, le cache et l'invalidation avec beaucoup moins de code répétitif. BLoC reste défendable si vous êtes plusieurs développeurs et tenez à une séparation stricte.</p>
+    </div>
+    <div class="card">
+      <h4>Embeddings auto-hébergés <em>(v2.0)</em></h4>
+      <p>Générer les vecteurs sur votre PC règle l'indexation, mais pas la question de l'utilisateur&nbsp;: il faut la vectoriser <strong>avec le même modèle</strong>, et votre PC n'est pas joignable depuis une Edge Function. D'où un petit service <code>FastAPI + sentence-transformers</code> déployé sur un Space Hugging Face gratuit, appelé des deux côtés.</p>
+    </div>
+    <div class="card">
+      <h4>Le cron gardien <em>(v2.0)</em></h4>
+      <p>Un projet Supabase gratuit trop calme sur 7 jours est mis en pause, et un Space gratuit s'endort. Un workflow GitHub Actions les ping toutes les 48&nbsp;h. Sans lui, la démo tombe en panne précisément le jour où quelqu'un la regarde.</p>
+    </div>
+  </div>
+
+  <div class="note crit">
+    <span class="tag">Ne jamais faire</span>
+    <p>La clé d'API du LLM et la clé secrète Chargily ne doivent <strong>jamais</strong> se trouver dans le code Flutter. Un APK se décompile en quelques minutes. Ces deux clés vivent uniquement dans les variables d'environnement des Edge Functions, que l'application appelle avec le jeton de l'utilisateur.</p>
+  </div>
+
+  <h3><span class="num">7.2</span>Edge Functions à écrire</h3>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th class="mono">Fonction</th><th>Déclencheur</th><th>Rôle</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">create-checkout</td><td>Appel client</td><td>Crée le checkout Chargily pour l'acompte, renvoie l'URL de paiement</td></tr>
+        <tr><td class="mono">chargily-webhook</td><td>Chargily</td><td>Vérifie la signature, passe la réservation en <code>confirmed</code>, notifie les deux parties</td></tr>
+        <tr><td class="mono">embed-venue</td><td>Trigger SQL sur <code>venues</code></td><td>Appelle le service d'embedding et recalcule le vecteur d'une salle quand sa description ou ses équipements changent</td></tr>
+        <tr><td class="mono">ai-chat</td><td>Appel client</td><td>Orchestre l'agent RAG (§8)</td></tr>
+        <tr><td class="mono">summarize-reviews</td><td>Cron nocturne</td><td>Régénère la synthèse d'avis des salles ayant reçu un nouvel avis</td></tr>
+        <tr><td class="mono">expire-options</td><td>Cron horaire</td><td>Libère les demandes <code>accepted</code> non payées après 72&nbsp;h</td></tr>
+        <tr><td class="mono">keepalive</td><td>GitHub Actions, 48&nbsp;h <em>(v2.0)</em></td><td>Une requête triviale sur la base et un appel au service d'embedding, pour qu'aucun des deux ne s'endorme</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3><span class="num">7.3</span>Photos</h3>
+  <p>Bucket public <code>venue-photos</code>, chemin <code>{venue_id}/{uuid}.webp</code>. Compression <strong>côté client</strong> avant envoi (largeur max 1600&nbsp;px, qualité 80&nbsp;%, WebP) — sur une 4G algérienne, envoyer 12 photos brutes de 4&nbsp;Mo fait abandonner le propriétaire au milieu du formulaire. Miniatures générées à la volée par les transformations d'image du Storage.</p>
+</section>
+
+<!-- ================= 8 ================= -->
+<section id="s8">
+  <h2><span class="num">08</span><span>L'agent RAG</span></h2>
+  <p class="lede">Quatre usages, un seul agent, mais surtout&nbsp;: une architecture hybride. La recherche de salle n'est <em>pas</em> un problème de RAG pur, et c'est l'erreur la plus fréquente sur ce type de projet.</p>
+
+  <div class="note warn">
+    <span class="tag">Décision d'architecture</span>
+    <p>«&nbsp;Une salle pour 300 personnes à Oran le 14 août à moins de 250&nbsp;000&nbsp;DA&nbsp;» contient quatre critères <strong>déterministes</strong>. La similarité vectorielle ne sait pas compter&nbsp;: elle rapprochera «&nbsp;300 personnes&nbsp;» de «&nbsp;250 personnes&nbsp;» et proposera une salle indisponible. Le LLM doit d'abord <strong>extraire les filtres</strong>, laisser SQL faire le travail exact, et n'utiliser le vectoriel que sur la partie floue («&nbsp;ambiance moderne&nbsp;», «&nbsp;avec un beau jardin&nbsp;»).</p>
+  </div>
+
+  <h3><span class="num">8.1</span>Le flux de recherche assistée</h3>
+  <pre><i>1.</i> Question utilisateur (FR / AR / darja / franco-arabe)
+        │
+<i>2.</i> LLM + function calling → extraction structurée
+        <b>{ wilaya:"31", date:"2026-08-14", slot:"soir",
+          guests:300, budget_max:250000,
+          soft_query:"ambiance moderne, jardin" }</b>
+        │
+<i>3.</i> Embedding de soft_query uniquement   <i>(service gratuit, ~120 ms à chaud)</i>
+        │
+<i>4.</i> UNE requête SQL :
+        <b>WHERE</b>  wilaya = … <b>AND</b> capacity &gt;= 300
+        <b>AND</b>    prix_estime &lt;= 250000
+        <b>AND NOT EXISTS</b> (réservation confirmée ce jour/créneau)
+        <b>ORDER BY</b> embedding &lt;=&gt; :q          <i>-- distance cosinus</i>
+        <b>LIMIT</b> 8
+        │
+<i>5.</i> Le LLM rédige la réponse à partir des 8 salles retournées
+        et ne cite <b>que</b> celles-là.</pre>
+
+  <h3><span class="num">8.2</span>Les quatre usages</h3>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Usage</th><th>Source de connaissance</th><th>Technique</th><th>Fraîcheur</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><b>Assistant de recherche</b><br>« trouve-moi une salle… »</td>
+          <td><code>venues</code> + <code>venue_embeddings</code></td>
+          <td>Function calling → SQL filtré + <code>&lt;=&gt;</code> vectoriel</td>
+          <td>Temps réel</td>
+        </tr>
+        <tr>
+          <td><b>Synthèse des avis</b><br>« que disent les clients ? »</td>
+          <td><code>reviews</code> d'une seule salle</td>
+          <td>Pas de RAG&nbsp;: tous les avis tiennent dans le contexte. Résumé pré-calculé la nuit et stocké.</td>
+          <td>J+1</td>
+        </tr>
+        <tr>
+          <td><b>Support &amp; FAQ</b><br>« comment j'annule ? »</td>
+          <td><code>kb_documents</code> (CGU, FAQ, guides)</td>
+          <td>RAG classique&nbsp;: découpage ~500 tokens, top-4, cache sémantique</td>
+          <td>Manuelle</td>
+        </tr>
+        <tr>
+          <td><b>Copilote propriétaire</b><br>« aide-moi à rédiger »</td>
+          <td>Sa salle + statistiques du marché local</td>
+          <td>Génération guidée + comparaison chiffrée aux salles de la même wilaya</td>
+          <td>Temps réel</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3><span class="num">8.3</span>Ce qu'on indexe pour une salle</h3>
+  <p>Un embedding par salle, calculé sur un <em>document de synthèse</em> plutôt que sur la description brute. La description seule est trop pauvre&nbsp;; ce document rassemble tout ce qui peut être demandé en langage naturel&nbsp;:</p>
+  <pre><b>Salle Nour El Bahdja</b> — Bir El Djir, Oran (31).
+Capacité 400 couverts. Mariage, fiançailles, henné, circoncision.
+Équipements : climatisation, parking 60 places, cuisine équipée,
+chambre de la mariée, sono, espace femmes séparé, groupe électrogène.
+Traiteur libre autorisé. Décoration incluse.
+Description : <i>« Salle moderne sur deux niveaux, jardin arboré… »</i>
+Note 4.6/5 sur 34 avis. Points forts cités : propreté, parking.</pre>
+  <p>Ce texte est régénéré par un trigger SQL dès qu'une des sources change, puis envoyé à <code>embed-venue</code>. Un <code>content_hash</code> évite de repayer un embedding identique.</p>
+
+  <h3><span class="num">8.4</span>Choix du modèle d'embedding</h3>
+  <p>Le point critique est le <strong>multilingue</strong>&nbsp;: vos utilisateurs écriront en français, en arabe standard, en arabe dialectal et en franco-arabe («&nbsp;salle 300 chaise wahran&nbsp;»). Un modèle anglophone échouera. Vérifiez, avant de choisir, que le modèle retenu place bien «&nbsp;قاعة أفراح وهران&nbsp;» à proximité de «&nbsp;salle des fêtes Oran&nbsp;» — un jeu de 30 requêtes réelles suffit à trancher.</p>
+  <p><b>Modèle retenu en v2.0 &nbsp;: <code>multilingual-e5-small</code></b> — environ 470&nbsp;Mo, tourne sur processeur, couvre une centaine de langues et se comporte très bien en arabe comme en français. Il est déployé sur un Space Hugging Face gratuit qui expose un seul point d'entrée <code>/embed</code>, utilisé à la fois pour indexer les salles et pour vectoriser les questions.</p>
+  <ul>
+    <li><strong>Dimension</strong> — <code>384</code>. C'est la taille de ce modèle&nbsp;; la colonne doit être déclarée <code>vector(384)</code>, pas 1536.</li>
+    <li><strong>Préfixes obligatoires</strong> — <code>passage:&nbsp;</code> devant chaque document indexé, <code>query:&nbsp;</code> devant chaque question. Les oublier ne provoque <em>aucune erreur</em>, seulement des résultats médiocres — appliquez-les dans le service, jamais chez l'appelant.</li>
+    <li><strong>Une seule famille de vecteurs</strong> — stockez le nom du modèle dans <code>venue_embeddings.model</code>. Deux modèles différents de même dimension cohabiteraient sans erreur et donneraient des résultats absurdes.</li>
+    <li><strong>Index</strong> — <code>HNSW</code> plutôt que <code>IVFFlat</code>&nbsp;: meilleur rappel, et surtout pas de réentraînement quand le catalogue grandit.</li>
+    <li><strong>Normalisation</strong> — nettoyez les requêtes avant embedding (translittération des chiffres arabes, minuscules, suppression des diacritiques).</li>
+    <li><strong>Mode dégradé</strong> — si le service met plus de 3&nbsp;secondes à répondre (Space endormi), basculez sur la recherche plein texte Postgres (<code>tsvector</code> français + <code>pg_trgm</code>). L'agent répond quand même, un peu moins finement.</li>
+  </ul>
+
+  <h3><span class="num">8.5</span>Garde-fous</h3>
+  <ul>
+    <li><strong>Aucune salle inventée.</strong> Le prompt système impose de ne mentionner que les <code>venue_id</code> présents dans le contexte, et la réponse est post-validée&nbsp;: tout identifiant absent du contexte fait rejouer la génération.</li>
+    <li><strong>Aucun prix inventé.</strong> Les montants viennent du calcul SQL, pas du LLM — celui-ci reçoit le prix déjà calculé.</li>
+    <li><strong>Aucune promesse de disponibilité.</strong> L'agent propose&nbsp;; seul le propriétaire confirme.</li>
+    <li><strong>Limite de débit</strong> par utilisateur (par ex. 20 messages/jour en gratuit) et <strong>cache sémantique</strong> sur la FAQ&nbsp;: si une question ressemble à plus de 0,95 à une question déjà traitée, on renvoie la réponse en cache.</li>
+    <li><strong>Coût suivi par conversation</strong> dans <code>ai_conversations</code>. C'est la seule façon de savoir si l'agent est viable économiquement avant qu'il ne coûte trop cher.</li>
+    <li><strong>Quota gratuit épuisé</strong> <em>(v2.0)</em> — les paliers gratuits se comptent en requêtes par minute <em>et</em> par jour. La table <code>ai_cache</code> contient les réponses pré-générées des 30 questions de référence&nbsp;: la démonstration continue même quand le fournisseur refuse. Prévoyez une deuxième clé chez un autre fournisseur derrière la même interface.</li>
+  </ul>
+</section>
+
+<!-- ================= 9 ================= -->
+<section id="s9">
+  <h2><span class="num">09</span><span>Sécurité &amp; RLS</span></h2>
+  <p class="lede">Avec Supabase, l'application Flutter parle directement à la base. La sécurité n'est donc pas dans le code Flutter — elle est dans les politiques Row Level Security.</p>
+
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th class="mono">Table</th><th>Lecture</th><th>Écriture</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">venues</td><td>Tous si <code>status = 'published'</code>&nbsp;; le propriétaire voit aussi ses brouillons</td><td>Propriétaire uniquement. <code>status</code> non modifiable par lui au-delà de <code>pending</code>.</td></tr>
+        <tr><td class="mono">bookings</td><td>Le client concerné ou le propriétaire de la salle</td><td>Client&nbsp;: création seulement. Transitions d'état par fonction <code>SECURITY DEFINER</code>.</td></tr>
+        <tr><td class="mono">payments</td><td>Client et propriétaire concernés</td><td><b>Aucune écriture cliente.</b> Service role via webhook uniquement.</td></tr>
+        <tr><td class="mono">reviews</td><td>Public</td><td>Client, si <code>booking.status = 'completed'</code>, <code>booking.client_id = auth.uid()</code> et J+1 ≤ maintenant ≤ J+30</td></tr>
+        <tr><td class="mono">messages</td><td>Les deux parties de la réservation</td><td>Les deux parties</td></tr>
+        <tr><td class="mono">venue_embeddings</td><td>Aucune lecture cliente</td><td>Service role uniquement</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h4>Autres points</h4>
+  <ul>
+    <li>Les numéros de téléphone ne sont révélés qu'après passage à <code>accepted</code> — sinon la plateforme se fait contourner dès la première recherche.</li>
+    <li>Signature du webhook Chargily vérifiée à chaque appel&nbsp;; l'endpoint est idempotent (rejouer un webhook ne doit pas créer deux paiements).</li>
+    <li>Les données personnelles relèvent de la loi&nbsp;18-07 sur la protection des données à caractère personnel — prévoyez suppression de compte et export des données.</li>
+  </ul>
+</section>
+
+<!-- ================= 10 ================= -->
+<section id="s10">
+  <h2><span class="num">10</span><span>Écrans &amp; identité visuelle</span></h2>
+  <p class="lede">Vingt-trois écrans pour le MVP. La navigation racine est une barre à onglets dont le contenu change selon le rôle.</p>
+
+  <div class="grid g3">
+    <div class="card">
+      <h4>Commun · 5</h4>
+      <ul>
+        <li>Onboarding (3 volets)</li>
+        <li>Connexion par e-mail</li>
+        <li>Création de compte</li>
+        <li>Profil &amp; réglages</li>
+        <li>Choix de la langue</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>Client · 10</h4>
+      <ul>
+        <li>Accueil / découverte</li>
+        <li>Résultats de recherche</li>
+        <li>Filtres (feuille modale)</li>
+        <li>Fiche salle</li>
+        <li>Galerie plein écran</li>
+        <li>Calendrier de disponibilité</li>
+        <li>Formulaire de demande</li>
+        <li>Paiement de l'acompte</li>
+        <li>Mes réservations</li>
+        <li>Rédaction d'un avis</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>Propriétaire · 6</h4>
+      <ul>
+        <li>Tableau de bord</li>
+        <li>Mes salles</li>
+        <li>Création de salle (5 étapes)</li>
+        <li>Gestion des photos</li>
+        <li>Agenda</li>
+        <li>Détail d'une demande</li>
+      </ul>
+    </div>
+  </div>
+  <div class="card" style="margin-top:14px">
+    <h4>Agent IA · 2</h4>
+    <p>Conversation plein écran, accessible depuis l'onglet central&nbsp;; et une carte «&nbsp;résumé des avis&nbsp;» encastrée dans la fiche salle. L'agent n'est pas un écran isolé&nbsp;: chaque salle qu'il cite est une carte cliquable qui ouvre la fiche réelle.</p>
+  </div>
+
+  <h3><span class="num">10.1</span>Palette «&nbsp;Ambre &amp; ivoire&nbsp;» <em>(v2.0)</em></h3>
+  <p>Le vert pétrole de la v1.0 était froid et grisé. La v2.0 cherche la chaleur d'une soirée de mariage&nbsp;: lumière de bougie, voilages crème, roses poudrées, verdure. <strong>Rien n'est jamais posé sur du blanc pur</strong> — c'est le fond ivoire qui donne le calme, et c'est la règle la plus importante de cette palette.</p>
+
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Rôle</th><th class="mono">Clair</th><th class="mono">Sombre</th><th>Usage</th></tr></thead>
+      <tbody>
+        <tr><td><b>Principale</b> — ambre</td><td class="mono">#A06B22</td><td class="mono">#E0A94E</td><td>Boutons, onglet actif, en-têtes. Texte blanc dessus.</td></tr>
+        <tr><td>Principale foncée</td><td class="mono">#7A5015</td><td class="mono">#F0C782</td><td>Prix, liens, titres d'accent.</td></tr>
+        <tr><td>Principale douce</td><td class="mono">#F6E6CE</td><td class="mono">#33280F</td><td>Fonds d'encart, puce sélectionnée.</td></tr>
+        <tr><td><b>Fond</b> — ivoire</td><td class="mono">#FAF5EC</td><td class="mono">#17130F</td><td>Fond de toutes les pages. <b>Jamais #FFFFFF.</b></td></tr>
+        <tr><td>Surface</td><td class="mono">#FFFCF6</td><td class="mono">#211B17</td><td>Cartes, feuilles modales.</td></tr>
+        <tr><td>Surface secondaire</td><td class="mono">#F8EDDD</td><td class="mono">#2A231C</td><td>Champs de saisie, puces neutres.</td></tr>
+        <tr><td><b>Accent</b> — rose poudré</td><td class="mono">#C98F92</td><td class="mono">#D79AA2</td><td>Puces d'équipement, encarts de conseil. Encre&nbsp;: <code>#8A4552</code>.</td></tr>
+        <tr><td>Or</td><td class="mono">#B8862B</td><td class="mono">#E0A94E</td><td>Étoiles de notation, et rien d'autre.</td></tr>
+        <tr><td>Texte</td><td class="mono">#2A2118</td><td class="mono">#F2EBE4</td><td>Encre principale, brun chaud plutôt que noir.</td></tr>
+        <tr><td>Texte secondaire</td><td class="mono">#5C5044</td><td class="mono">#BDB0A6</td><td>Descriptions, légendes.</td></tr>
+        <tr><td>Filets</td><td class="mono">#EFE1CB</td><td class="mono">#332A24</td><td>Bordures de cartes, séparateurs.</td></tr>
+        <tr><td><b>Libre</b> — sauge</td><td class="mono">#5C7F5A</td><td class="mono">#7FA97C</td><td>Calendrier. Fond&nbsp;: <code>#E7EFE3</code>.</td></tr>
+        <tr><td><b>Réservé</b> — terracotta</td><td class="mono">#B4574B</td><td class="mono">#DE8A7C</td><td>Calendrier. Fond&nbsp;: <code>#F8E5E0</code>.</td></tr>
+        <tr><td><b>Indisponible</b></td><td class="mono">#968878</td><td class="mono">#8F827C</td><td>Sur fond surface secondaire.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h4>Règles d'usage</h4>
+  <ul>
+    <li>Les trois couleurs sémantiques (sauge, terracotta, beige) ne servent <strong>qu'</strong>au calendrier et aux états de réservation. Jamais pour décorer.</li>
+    <li>Rayons&nbsp;: 10&nbsp;px pour les images, 12&nbsp;px pour les cartes et les boutons, 20&nbsp;px pour les puces.</li>
+    <li>Typographie&nbsp;: <b>Bricolage Grotesque</b> pour les titres et les chiffres, la police système pour le corps de texte. En arabe, prévoir une police adaptée (Noto Kufi Arabic ou Cairo) et vérifier les hauteurs de ligne.</li>
+    <li>Les couleurs vivent dans une seule <code>ThemeExtension</code> Flutter nommée <code>FerhaColors</code>. Aucune valeur hexadécimale écrite en dur dans un écran.</li>
+    <li>Les deux thèmes, clair et sombre, sont livrés dès le premier jour&nbsp;: les rattraper après coup demande de rouvrir tous les écrans.</li>
+  </ul>
+</section>
+
+<!-- ================= 11 ================= -->
+<section id="s11">
+  <h2><span class="num">11</span><span>Plan de développement</span></h2>
+  <p class="lede">Version 2.0&nbsp;: quatre semaines, un développeur seul, environ 3&nbsp;à&nbsp;4&nbsp;heures par jour — soit ~92&nbsp;heures. On ne construit pas des couches (tout le front, puis tout le back)&nbsp;: on construit des <strong>tranches</strong>, chacune traversant la base, l'API et l'écran. À la fin de chaque semaine, quelque chose fonctionne vraiment.</p>
+
+  <div>
+    <div class="phase">
+      <div class="stem"><span class="dot"></span></div>
+      <div class="body">
+        <div class="ph">Semaine 1 — Le socle et le catalogue <span class="dur">≈ 23 h</span></div>
+        <ul>
+          <li>Projet Flutter, thème Ambre &amp; ivoire (clair + sombre), navigation, intégration continue</li>
+          <li>Schéma SQL complet, RLS, index d'exclusion, fonction de calcul du prix</li>
+          <li>15 salles de démonstration, authentification par e-mail, recherche filtrée, fiche salle, calendrier en lecture seule</li>
+        </ul>
+        <p style="font-size:14px;color:var(--ink-3);margin:8px 0 0"><b>Jalon&nbsp;:</b> un annuaire réel et navigable — déjà montrable à un propriétaire.</p>
+      </div>
+    </div>
+    <div class="phase">
+      <div class="stem"><span class="dot"></span></div>
+      <div class="body">
+        <div class="ph">Semaine 2 — La réservation <span class="dur">≈ 23 h</span></div>
+        <ul>
+          <li>Formulaire de demande et devis recalculé, machine à états en <code>SECURITY DEFINER</code></li>
+          <li>Espace propriétaire&nbsp;: tableau de bord, traitement des demandes, agenda, création de salle, photos compressées</li>
+          <li>Expiration automatique des options à 72&nbsp;h, notifications en temps réel</li>
+        </ul>
+        <p style="font-size:14px;color:var(--ink-3);margin:8px 0 0"><b>Jalon&nbsp;:</b> une date se bloque vraiment, et deux familles ne peuvent pas réserver le même créneau.</p>
+      </div>
+    </div>
+    <div class="phase">
+      <div class="stem"><span class="dot"></span></div>
+      <div class="body">
+        <div class="ph">Semaine 3 — Paiement, avis et agent <span class="dur">≈ 24 h</span></div>
+        <ul>
+          <li>Chargily en mode test, webhook signé et idempotent, parcours «&nbsp;espèces sur place&nbsp;»</li>
+          <li>Avis vérifiés, sous-notes, moyenne bayésienne, droit de réponse</li>
+          <li>Service d'embedding, index HNSW, <code>ai-chat</code> avec extraction de filtres, écran assistant</li>
+        </ul>
+        <p style="font-size:14px;color:var(--ink-3);margin:8px 0 0"><b>Jalon&nbsp;:</b> le produit complet de ce cahier des charges tourne.</p>
+      </div>
+    </div>
+    <div class="phase">
+      <div class="stem"><span class="dot"></span></div>
+      <div class="body">
+        <div class="ph">Semaine 4 — Arabe, publication, vitrine <span class="dur">≈ 22 h</span></div>
+        <ul>
+          <li>Traduction AR et vérification RTL écran par écran, états vides, erreurs réseau</li>
+          <li>Démo web sur GitHub Pages, APK en Release, cron gardien</li>
+          <li>README avec démonstration animée, tests sur les règles métier, répétition générale</li>
+        </ul>
+        <p style="font-size:14px;color:var(--ink-3);margin:8px 0 0"><b>Jalon&nbsp;:</b> un dépôt public qu'un inconnu peut ouvrir et tester en trois minutes.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="note warn">
+    <span class="tag">Ordre de coupe</span>
+    <p>Si une semaine déborde, on ne rattrape pas le soir&nbsp;: on coupe, dans cet ordre. <b>1.</b> contre-proposition de tarif · <b>2.</b> création de salle en 5 étapes réduite à un formulaire · <b>3.</b> synthèse d'avis par l'IA · <b>4.</b> arabe limité à trois écrans · <b>5.</b> carte OSM. Le parcours recherche → demande → acceptation → acompte ne se coupe jamais&nbsp;: c'est le produit. Et s'il faut sacrifier quelque chose de gros, sacrifiez l'agent IA avant la réservation.</p>
+  </div>
+
+  <div class="note">
+    <span class="tag">Conseil de séquencement</span>
+    <p>Recrutez 10 à 15 salles réelles pendant la phase 1, avant même que la réservation existe. Une place de marché sans offre ne se teste pas&nbsp;: le catalogue est le vrai chemin critique, pas le code.</p>
+  </div>
+</section>
+
+<!-- ================= 12 ================= -->
+<section id="s12">
+  <h2><span class="num">12</span><span>Risques &amp; coûts</span></h2>
+
+  <h3><span class="num">12.1</span>Risques principaux</h3>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Risque</th><th>Gravité</th><th>Parade</th></tr></thead>
+      <tbody>
+        <tr><td><b>Désintermédiation</b> — client et propriétaire concluent hors plateforme</td><td><span class="pill p2">Élevée</span></td><td>Numéro masqué avant acceptation, messagerie interne, valeur ajoutée réelle (contrat, reçu, garantie d'annulation)</td></tr>
+        <tr><td><b>Catalogue vide au lancement</b></td><td><span class="pill p2">Élevée</span></td><td>Prospection terrain wilaya par wilaya, gratuité la première année, saisie des fiches par vos soins</td></tr>
+        <tr><td><b>Rejet du paiement en ligne</b></td><td><span class="pill p2">Moyenne</span></td><td>Parcours « acompte en main propre » dès le MVP&nbsp;; le paiement en ligne devient optionnel et récompensé. En v2.0 le paiement est en mode test&nbsp;: n'importe qui peut essayer le parcours sans dépenser un dinar</td></tr>
+        <tr><td><b>Faux avis</b></td><td><span class="pill p3">Faible</span></td><td>Structurellement bloqués&nbsp;: pas de réservation terminée, pas d'avis</td></tr>
+        <tr><td><b>Quota gratuit du LLM épuisé</b> <em>(v2.0)</em></td><td><span class="pill p2">Moyenne</span></td><td>Cache sémantique, réponses pré-générées des 30 questions de référence, limite de débit par utilisateur, deuxième fournisseur derrière la même interface</td></tr>
+        <tr><td><b>Service gratuit endormi ou en pause</b> <em>(v2.0)</em></td><td><span class="pill p2">Moyenne</span></td><td>Cron gardien toutes les 48&nbsp;h sur la base et sur le service d'embedding&nbsp;; bascule automatique sur la recherche plein texte au-delà de 3&nbsp;s</td></tr>
+        <tr><td><b>Double réservation</b></td><td><span class="pill p3">Faible</span></td><td>Index d'exclusion en base (§6.1)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3><span class="num">12.2</span>Coûts — version 2.0</h3>
+  <p>Le tableau de la v1.0 annonçait 15 à 40&nbsp;$ par mois au démarrage, dont le SMS était le poste le plus dangereux&nbsp;: seule dépense <em>variable</em>, facturée même quand une inscription échoue. La v2.0 le supprime, et avec lui toute dépense variable.</p>
+
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Poste</th><th>v1.0 au démarrage</th><th>v2.0</th><th>Ce qui remplace</th></tr></thead>
+      <tbody>
+        <tr><td>Base, stockage, fonctions</td><td class="num">0 $</td><td class="num">0 $</td><td>Free tier + cron gardien contre la mise en pause</td></tr>
+        <tr><td>LLM — conversations</td><td class="num">~5 $</td><td class="num">0 $</td><td>Palier gratuit (Gemini, Groq), cache sémantique</td></tr>
+        <tr><td>Embeddings</td><td class="num">&lt; 1 $</td><td class="num">0 $</td><td><code>multilingual-e5-small</code> sur un Space gratuit</td></tr>
+        <tr><td><b>SMS OTP</b></td><td class="num">~10 $</td><td class="num">0 $</td><td>Authentification par e-mail</td></tr>
+        <tr><td>Cartographie</td><td class="num">carte bancaire exigée</td><td class="num">0 $</td><td>OpenStreetMap + <code>flutter_map</code></td></tr>
+        <tr><td>Paiement</td><td class="num">commission</td><td class="num">0 $</td><td>Chargily en mode test</td></tr>
+        <tr><td>Comptes développeur</td><td class="num">124 $</td><td class="num">0 $</td><td>APK en GitHub Release + démo sur GitHub Pages</td></tr>
+        <tr><td>Nom de domaine</td><td class="num">~10 $/an</td><td class="num">0 $</td><td>Sous-domaine <code>github.io</code></td></tr>
+        <tr><td><b>Total</b></td><td class="num"><b>~139 $</b></td><td class="num"><b>0 DA</b></td><td>—</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note warn">
+    <span class="tag">Ce que le gratuit coûte quand même</span>
+    <p>Pas de l'argent&nbsp;: de la fragilité. Quotas qui changent sans préavis, services qui s'endorment, projet mis en pause après 7&nbsp;jours de calme, service d'e-mail intégré bridé à quelques messages par heure. Chacun a sa parade dans ce document&nbsp;; aucune ne demande de sortir la carte bancaire.</p>
+  </div>
+
+  <h4>Ce qu'il faudra payer plus tard, et seulement alors</h4>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Déclencheur</th><th>Dépense</th><th class="mono">Ordre de grandeur</th></tr></thead>
+      <tbody>
+        <tr><td>Premiers vrais utilisateurs, base qui ne doit plus jamais dormir</td><td>Plan payant du backend</td><td class="num">25 $/mois</td></tr>
+        <tr><td>Premier paiement réel encaissé</td><td>Chargily en mode réel&nbsp;: compte vérifié, commission par transaction</td><td class="num">variable</td></tr>
+        <tr><td>Publication grand public sur Android</td><td>Compte développeur Play</td><td class="num">25 $ une fois</td></tr>
+        <tr><td>Nom propre plutôt qu'un sous-domaine</td><td>Nom de domaine</td><td class="num">~10 $/an</td></tr>
+        <tr><td>Inscription par SMS, si l'e-mail freine l'adoption</td><td>Agrégateur couvrant les opérateurs algériens</td><td class="num">0,03–0,10 $ / SMS</td></tr>
+        <tr><td>iOS</td><td>Compte Apple + un Mac</td><td class="num">99 $/an</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3><span class="num">12.3</span>Modèle économique — pistes</h3>
+  <div class="grid g3">
+    <div class="card"><h4>Commission</h4><p>5 à 10&nbsp;% sur l'acompte encaissé. Aligné sur le succès, mais dépend du paiement en ligne.</p></div>
+    <div class="card"><h4>Abonnement propriétaire</h4><p>Forfait mensuel pour publier et recevoir des demandes. Revenu prévisible, plus simple à expliquer.</p></div>
+    <div class="card"><h4>Mise en avant</h4><p>Placement en tête de résultats, payé à la période. Compatible avec les deux autres.</p></div>
+  </div>
+  <p style="margin-top:12px">Pour l'Algérie, l'abonnement propriétaire est probablement le plus réaliste la première année&nbsp;: il ne dépend pas de l'adoption du paiement en ligne, que vous ne maîtrisez pas.</p>
+</section>
+
+<footer class="foot">
+  Cahier des charges Ferha · v2.0 · septembre 2026 · version 0 DA · palette «&nbsp;Ambre &amp; ivoire&nbsp;» · document de travail, à faire évoluer au fil du développement.<br>
+  À lire avec les maquettes v2.0 et le plan de sprint sur 4 semaines.<br>
+  Sources externes consultées&nbsp;: <a href="https://dev.chargily.com/pay-v2/test-and-live-mode">Chargily Pay v2 — modes test et live</a>, <a href="https://supabase.com/docs/guides/database/extensions/pgvector">Supabase pgvector</a>, <a href="https://supabase.com/docs/guides/platform/free-project-pausing">mise en pause des projets gratuits</a>, <a href="https://huggingface.co/intfloat/multilingual-e5-small">intfloat/multilingual-e5-small</a>, <a href="https://3ersi.com/fr/salle-des-fetes/recherche">3ersi.com</a>, <a href="https://www.ouedkniss.com/services?keywords=location-salle-mariage&amp;lang=en">Ouedkniss</a>.
+</footer>
+
+</main>
+</div>
+</div>
+
+</body>
+</html>

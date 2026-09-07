@@ -1,0 +1,677 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maquettes Ferha</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,400..800&family=IBM+Plex+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,400..600&display=swap">
+<style>
+:root{
+  --ground:#FAF5EC; --surface:#FFFCF6; --surface-2:#F8EDDD;
+  --ink:#2A2118; --ink-2:#5C5044; --ink-3:#968878;
+  --rule:#EFE1CB; --rule-2:#F5EADA;
+  --accent:#A06B22; --accent-ink:#7A5015; --accent-soft:#F6E6CE; --on-accent:#FFFFFF;
+  --rose:#C98F92; --rose-soft:#F7E9E7; --rose-ink:#8A4552;
+  --gold:#B8862B; --gold-soft:#F6E6CE;
+  --ok:#5C7F5A; --ok-soft:#E7EFE3;
+  --warn:#A85A68; --warn-soft:#F7E9E7;
+  --crit:#B4574B; --crit-soft:#F8E5E0;
+  --display:"Bricolage Grotesque","Trebuchet MS",system-ui,sans-serif;
+  --body:"Source Serif 4",Georgia,serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --frame:#2E251B;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#17130F; --surface:#211B17; --surface-2:#2A231C;
+    --ink:#F2EBE4; --ink-2:#BDB0A6; --ink-3:#8F827C;
+    --rule:#332A24; --rule-2:#2A231C;
+    --accent:#E0A94E; --accent-ink:#F0C782; --accent-soft:#33280F; --on-accent:#17130F;
+    --rose:#D79AA2; --rose-soft:#2E1F21; --rose-ink:#F0C0C4;
+    --gold:#E0A94E; --gold-soft:#33280F;
+    --ok:#7FA97C; --ok-soft:#1E2A1C;
+    --warn:#D79AA2; --warn-soft:#2E1F21;
+    --crit:#DE8A7C; --crit-soft:#2E1D1A;
+    --frame:#0D0A07;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#17130F; --surface:#211B17; --surface-2:#2A231C;
+  --ink:#F2EBE4; --ink-2:#BDB0A6; --ink-3:#8F827C;
+  --rule:#332A24; --rule-2:#2A231C;
+  --accent:#E0A94E; --accent-ink:#F0C782; --accent-soft:#33280F; --on-accent:#17130F;
+  --rose:#D79AA2; --rose-soft:#2E1F21; --rose-ink:#F0C0C4;
+  --gold:#E0A94E; --gold-soft:#33280F;
+  --ok:#7FA97C; --ok-soft:#1E2A1C;
+  --warn:#D79AA2; --warn-soft:#2E1F21;
+  --crit:#DE8A7C; --crit-soft:#2E1D1A;
+  --frame:#0D0A07;
+}
+
+*{box-sizing:border-box}
+html{color-scheme:light dark}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased}
+img{max-width:100%}
+
+/* ---------- page chrome ---------- */
+.mast{border-bottom:1px solid var(--rule);background:var(--surface)}
+.mast-in{max-width:1400px;margin:0 auto;padding:30px 24px 26px;display:flex;flex-wrap:wrap;gap:20px;align-items:flex-end;justify-content:space-between}
+.brand{display:flex;gap:13px;align-items:center}
+.glyph{width:40px;height:40px;border-radius:11px;background:var(--accent);color:var(--on-accent);display:grid;place-items:center;font-family:var(--display);font-weight:700;font-size:19px}
+h1{font-family:var(--display);font-weight:700;font-size:27px;letter-spacing:-.018em;margin:0}
+.sub{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);margin-top:4px}
+.legend{display:flex;gap:18px;flex-wrap:wrap;font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+.legend b{display:block;color:var(--ink-2);font-weight:500}
+.legend span{display:block;text-transform:uppercase;letter-spacing:.1em;font-size:9.5px;margin-bottom:2px}
+
+.wrap{max-width:1400px;margin:0 auto;padding:34px 24px 90px}
+.intro{max-width:66ch;margin:0 0 34px;color:var(--ink-2)}
+.intro p{margin:0 0 10px}
+
+h2.flow{
+  font-family:var(--display);font-weight:700;font-size:19px;letter-spacing:-.01em;
+  margin:44px 0 4px;padding-top:26px;border-top:1px solid var(--rule);
+  display:grid;grid-template-columns:auto 1fr;gap:11px;align-items:baseline;
+}
+h2.flow:first-of-type{border-top:none;padding-top:0;margin-top:0}
+h2.flow .n{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--accent)}
+.flowlede{color:var(--ink-3);font-size:14.5px;margin:0 0 22px;max-width:70ch}
+
+.row{display:flex;gap:26px;flex-wrap:wrap;align-items:flex-start}
+
+/* ---------- phone ---------- */
+figure.screen{margin:0;width:272px;display:flex;flex-direction:column;gap:9px}
+.phone{
+  width:272px;height:566px;border-radius:30px;background:var(--frame);
+  padding:8px;box-shadow:0 2px 4px rgba(0,0,0,.08),0 22px 44px -26px rgba(0,0,0,.45);
+  flex:none;
+}
+.vp{
+  width:100%;height:100%;border-radius:23px;overflow:hidden;background:var(--surface);
+  display:flex;flex-direction:column;font-family:var(--display);color:var(--ink);
+  font-size:12px;line-height:1.4;
+}
+figcaption{font-size:13.5px;color:var(--ink-2);line-height:1.5}
+figcaption b{display:block;font-family:var(--display);font-weight:600;font-size:13.5px;color:var(--ink);margin-bottom:1px}
+
+/* status bar */
+.sbar{display:flex;justify-content:space-between;align-items:center;padding:7px 14px 3px;font-family:var(--mono);font-size:9px;color:var(--ink-3);flex:none}
+.sbar .dots{letter-spacing:1px}
+
+/* app bar */
+.abar{display:flex;align-items:center;gap:9px;padding:6px 14px 10px;flex:none}
+.abar .t{font-weight:700;font-size:14px;letter-spacing:-.01em}
+.abar .back{color:var(--ink-3);font-size:15px;line-height:1}
+.abar .sp{margin-left:auto;display:flex;gap:9px;color:var(--ink-3);font-size:13px}
+
+/* scroll body */
+.body{flex:1;overflow:hidden;padding:0 14px;display:flex;flex-direction:column;gap:10px;justify-content:flex-start}
+.body>*{flex:0 0 auto}
+.body.np{padding:0}
+.tabbar{
+  flex:none;display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--rule);
+  padding:6px 0 8px;background:var(--surface);
+}
+.tabbar div{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:8.5px;color:var(--ink-3)}
+.tabbar div .ic{font-size:14px;line-height:1}
+.tabbar div.on{color:var(--accent);font-weight:600}
+
+/* generic bits */
+.sfield{display:flex;align-items:center;gap:7px;background:var(--surface-2);border:1px solid var(--rule);border-radius:11px;padding:8px 11px;color:var(--ink-3);font-size:11.5px}
+.chips{display:flex;gap:5px;flex-wrap:wrap}
+.chip{font-size:9.5px;padding:3.5px 8px;border-radius:20px;background:var(--surface-2);border:1px solid var(--rule);color:var(--ink-2);white-space:nowrap}
+.chip.on{background:var(--accent);border-color:transparent;color:var(--on-accent);font-weight:600}
+.chip.soft{background:var(--rose-soft);border-color:transparent;color:var(--rose-ink)}
+.lbl{font-family:var(--mono);font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+.btn{
+  display:block;text-align:center;background:var(--accent);color:var(--on-accent);
+  font-weight:700;font-size:12.5px;padding:11px;border-radius:12px;
+}
+.btn.ghost{background:transparent;border:1.4px solid var(--accent);color:var(--accent)}
+.btn.gold{background:var(--gold);color:#fff}
+.divider{height:1px;background:var(--rule);margin:2px 0}
+
+/* photo placeholders — CSS only */
+.ph{border-radius:10px;position:relative;overflow:hidden;background:linear-gradient(140deg,#6B4A22,#B98A50 45%,#E8D3AE)}
+.ph.b{background:linear-gradient(140deg,#5A4433,#A98263 50%,#E6D2B4)}
+.ph.c{background:linear-gradient(140deg,#7A4E4A,#C08A82 48%,#EDD9C2)}
+.ph.d{background:linear-gradient(140deg,#4E5A3E,#93A177 50%,#E2D6B4)}
+.ph::after{
+  content:"photo";position:absolute;inset:auto 0 0 0;padding:3px 6px;
+  font-family:var(--mono);font-size:7px;letter-spacing:.14em;text-transform:uppercase;
+  color:rgba(255,255,255,.8);background:linear-gradient(transparent,rgba(0,0,0,.45));
+}
+
+/* venue card */
+.vcard{border:1px solid var(--rule);border-radius:13px;overflow:hidden;background:var(--surface)}
+.vcard .ph{border-radius:0;height:78px}
+.vcard .info{padding:8px 10px 9px;display:flex;flex-direction:column;gap:3px}
+.vname{font-weight:700;font-size:12.5px;letter-spacing:-.01em}
+.vmeta{font-size:10px;color:var(--ink-3);display:flex;gap:7px;flex-wrap:wrap}
+.vfoot{display:flex;justify-content:space-between;align-items:baseline;margin-top:2px}
+.price{font-weight:700;font-size:12.5px;color:var(--accent-ink);font-variant-numeric:tabular-nums}
+.price small{font-weight:400;font-size:9px;color:var(--ink-3)}
+.stars{font-size:10px;color:var(--gold);white-space:nowrap}
+.stars b{color:var(--ink);font-weight:600}
+
+/* calendar */
+.cal{border:1px solid var(--rule);border-radius:12px;padding:10px;background:var(--surface)}
+.calhead{display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:11.5px;margin-bottom:7px}
+.calhead span{color:var(--ink-3);font-weight:400}
+.calgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;text-align:center}
+.calgrid .dw{font-family:var(--mono);font-size:7.5px;color:var(--ink-3);padding-bottom:2px}
+.d{aspect-ratio:1;display:grid;place-items:center;border-radius:6px;font-size:9.5px;font-variant-numeric:tabular-nums;color:var(--ink-2);background:var(--ok-soft)}
+.d.busy{background:var(--crit-soft);color:var(--crit);text-decoration:line-through}
+.d.blk{background:var(--surface-2);color:var(--ink-3)}
+.d.sel{background:var(--accent);color:var(--on-accent);font-weight:700}
+.d.out{background:transparent;color:var(--rule)}
+.callg{display:flex;gap:9px;flex-wrap:wrap;margin-top:8px;font-size:8.5px;color:var(--ink-3)}
+.callg i{display:inline-block;width:8px;height:8px;border-radius:3px;margin-right:3px;vertical-align:-1px}
+
+/* key-value rows */
+.kv{display:flex;justify-content:space-between;gap:10px;font-size:11px;padding:5px 0;border-bottom:1px solid var(--rule-2)}
+.kv:last-child{border-bottom:none}
+.kv span{color:var(--ink-3)}
+.kv b{font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.kv.total{font-size:12.5px;padding-top:8px;border-top:1.5px solid var(--rule);border-bottom:none}
+.kv.total b{color:var(--accent-ink)}
+
+/* rating bars */
+.rbar{display:grid;grid-template-columns:64px 1fr 22px;gap:7px;align-items:center;font-size:9.5px;color:var(--ink-2)}
+.rbar .track{height:4px;border-radius:3px;background:var(--surface-2);overflow:hidden}
+.rbar .fill{height:100%;background:var(--accent);border-radius:3px}
+.rbar em{font-style:normal;color:var(--ink-3);text-align:right;font-variant-numeric:tabular-nums}
+
+/* review */
+.rev{border:1px solid var(--rule);border-radius:11px;padding:9px 10px;background:var(--surface);display:flex;flex-direction:column;gap:4px}
+.revh{display:flex;gap:7px;align-items:center}
+.av{width:22px;height:22px;border-radius:50%;background:var(--accent-soft);color:var(--accent-ink);display:grid;place-items:center;font-size:9.5px;font-weight:700}
+.revh .nm{font-weight:600;font-size:11px}
+.revh .dt{font-size:9px;color:var(--ink-3);margin-left:auto}
+.rev p{margin:0;font-size:10.5px;color:var(--ink-2);line-height:1.45}
+.reply{border-left:2px solid var(--accent);padding-left:8px;font-size:10px;color:var(--ink-3);margin-top:3px}
+.reply b{color:var(--accent-ink);font-size:9.5px}
+.verified{font-family:var(--mono);font-size:8px;letter-spacing:.08em;text-transform:uppercase;color:var(--ok);background:var(--ok-soft);padding:2px 5px;border-radius:4px}
+
+/* AI */
+.ai{display:flex;flex-direction:column;gap:8px}
+.msg{max-width:86%;padding:8px 11px;border-radius:14px;font-size:11px;line-height:1.5}
+.msg.me{align-self:flex-end;background:var(--accent);color:var(--on-accent);border-bottom-right-radius:4px}
+.msg.bot{align-self:flex-start;background:var(--surface-2);color:var(--ink-2);border-bottom-left-radius:4px;border:1px solid var(--rule)}
+.msg.bot b{color:var(--ink)}
+.airow{display:flex;gap:7px;overflow:hidden}
+.mini{width:112px;flex:none;border:1px solid var(--rule);border-radius:10px;overflow:hidden;background:var(--surface)}
+.mini .ph{border-radius:0;height:48px}
+.mini .mi{padding:5px 7px;display:flex;flex-direction:column;gap:1px}
+.mini .mn{font-weight:700;font-size:10px;line-height:1.2}
+.mini .mm{font-size:8.5px;color:var(--ink-3)}
+.mini .mp{font-size:10px;font-weight:700;color:var(--accent-ink);font-variant-numeric:tabular-nums}
+.aibar{flex:none;display:flex;gap:7px;align-items:center;padding:8px 14px 10px;border-top:1px solid var(--rule)}
+.aibar .in{flex:1;background:var(--surface-2);border:1px solid var(--rule);border-radius:20px;padding:7px 11px;font-size:10.5px;color:var(--ink-3)}
+.aibar .snd{width:29px;height:29px;border-radius:50%;background:var(--accent);color:var(--on-accent);display:grid;place-items:center;font-size:12px}
+
+/* owner dashboard */
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.kpi{border:1px solid var(--rule);border-radius:11px;padding:9px 10px;background:var(--surface)}
+.kpi .k{font-family:var(--mono);font-size:8px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3)}
+.kpi .v{font-family:var(--display);font-weight:700;font-size:18px;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.2}
+.kpi .d{font-size:9px;color:var(--ok)}
+.kpi .d.dn{color:var(--crit)}
+.req{border:1px solid var(--rule);border-radius:11px;padding:9px 10px;background:var(--surface);display:flex;flex-direction:column;gap:5px}
+.req .rh{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.req .rn{font-weight:700;font-size:11.5px}
+.req .rd{font-size:9.5px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.req .ra{display:flex;gap:6px}
+.req .ra span{flex:1;text-align:center;font-size:10px;font-weight:600;padding:6px;border-radius:8px}
+.acc{background:var(--accent);color:var(--on-accent)}
+.dec{background:var(--surface-2);color:var(--ink-3);border:1px solid var(--rule)}
+.badge-new{font-family:var(--mono);font-size:7.5px;letter-spacing:.1em;text-transform:uppercase;background:var(--warn-soft);color:var(--warn);padding:2px 5px;border-radius:4px}
+
+/* photo manager */
+.pgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.pgrid .ph{aspect-ratio:1}
+.pgrid .ph::after{content:""}
+.pgrid .cover{position:relative}
+.pgrid .cover .tagc{position:absolute;top:4px;left:4px;font-family:var(--mono);font-size:7px;letter-spacing:.09em;text-transform:uppercase;background:var(--accent);color:var(--on-accent);padding:2px 5px;border-radius:4px;z-index:2}
+.addph{aspect-ratio:1;border:1.5px dashed var(--rule-2);border-radius:10px;display:grid;place-items:center;color:var(--ink-3);font-size:17px;background:var(--surface-2)}
+.steps{display:flex;gap:4px;align-items:center}
+.steps i{height:3px;flex:1;border-radius:2px;background:var(--rule);display:block}
+.steps i.on{background:var(--accent)}
+
+/* progress / states note */
+.annot{
+  border-left:3px solid var(--accent);background:var(--accent-soft);color:var(--ink-2);
+  padding:11px 14px;border-radius:0 9px 9px 0;font-size:14px;max-width:64ch;margin:0 0 20px;
+}
+.annot .tag{font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--accent-ink);display:block;margin-bottom:3px}
+.annot p{margin:0}
+.annot.warn{border-left-color:var(--warn);background:var(--warn-soft)}
+.annot.warn .tag{color:var(--warn)}
+
+footer{border-top:1px solid var(--rule);margin-top:56px;padding-top:20px;font-family:var(--mono);font-size:11px;color:var(--ink-3);line-height:1.7;max-width:1400px;margin-left:auto;margin-right:auto;padding-left:24px;padding-right:24px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<header class="mast">
+  <div class="mast-in">
+    <div class="brand">
+      <div class="glyph">ف</div>
+      <div>
+        <h1>Maquettes Ferha</h1>
+        <div class="sub">10 écrans · Flutter Material 3 · 390 × 844</div>
+      </div>
+    </div>
+    <div class="legend">
+      <div><span>Parcours client</span><b>Écrans 1 → 6</b></div>
+      <div><span>Agent IA</span><b>Écran 7</b></div>
+      <div><span>Espace propriétaire</span><b>Écrans 8 → 10</b></div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+<div class="intro">
+  <p>Maquettes de référence pour le MVP décrit au cahier des charges. Les visuels des salles sont des aplats de couleur volontairement neutres&nbsp;: ce sont des emplacements photo, pas des images finales.</p>
+  <p>Les contenus (noms de salles, wilayas, tarifs en DA, avis) sont réalistes mais fictifs — ils servent à vérifier que la mise en page tient avec de vraies longueurs de texte.</p>
+</div>
+
+<!-- ============ FLOW 1 ============ -->
+<h2 class="flow"><span class="n">A</span><span>Découverte et recherche</span></h2>
+<p class="flowlede">L'utilisateur arrive sans compte. Il doit pouvoir chercher et consulter une fiche avant qu'on lui demande son numéro — l'inscription n'intervient qu'au moment de la demande de réservation.</p>
+
+<div class="row">
+
+  <!-- 1. Accueil -->
+  <figure class="screen">
+    <div class="phone"><div class="vp">
+      <div class="sbar"><span>21:14</span><span class="dots">▮▮▮ ▲ ▰</span></div>
+      <div class="abar"><div class="t">Trouvez votre salle</div><div class="sp">🔔</div></div>
+      <div class="body">
+        <div class="sfield"><span>🔎</span><span>Wilaya, commune ou nom de salle</span></div>
+        <div class="chips">
+          <span class="chip on">Oran</span><span class="chip">Alger</span><span class="chip">Blida</span><span class="chip">Sétif</span><span class="chip">Constantine</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">
+          <div class="sfield" style="font-size:10.5px"><span>📅</span><span>14 août 2027</span></div>
+          <div class="sfield" style="font-size:10.5px"><span>👥</span><span>300 invités</span></div>
+        </div>
+        <div class="lbl" style="margin-top:3px">Type d'événement</div>
+        <div class="chips">
+          <span class="chip soft">Mariage</span><span class="chip">Fiançailles</span><span class="chip">Henné</span><span class="chip">Circoncision</span><span class="chip">Anniversaire</span>
+        </div>
+        <div class="btn" style="margin-top:2px">Rechercher</div>
+        <div class="lbl" style="margin-top:5px">Les mieux notées à Oran</div>
+        <div class="vcard">
+          <div class="ph" style="height:70px"></div>
+          <div class="info">
+            <div class="vname">Salle Nour El Bahdja</div>
+            <div class="vmeta"><span>Bir El Djir</span><span>·</span><span>400 couverts</span></div>
+            <div class="vfoot"><div class="price">180 000 <small>DA / soirée</small></div><div class="stars">★ <b>4,6</b> (34)</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="tabbar">
+        <div class="on"><span class="ic">⌂</span>Accueil</div>
+        <div><span class="ic">✦</span>Assistant</div>
+        <div><span class="ic">♡</span>Favoris</div>
+        <div><span class="ic">☰</span>Profil</div>
+      </div>
+    </div></div>
+    <figcaption><b>1 · Accueil</b>La recherche est l'écran d'accueil. Trois critères suffisent à lancer une requête&nbsp;: où, quand, combien.</figcaption>
+  </figure>
+
+  <!-- 2. Résultats -->
+  <figure class="screen">
+    <div class="phone"><div class="vp">
+      <div class="sbar"><span>21:15</span><span class="dots">▮▮▮ ▲ ▰</span></div>
+      <div class="abar"><div class="back">←</div><div class="t">18 salles à Oran</div><div class="sp">⚟ 🗺</div></div>
+      <div class="body">
+        <div class="chips">
+          <span class="chip on">14 août · soir</span><span class="chip on">300+</span><span class="chip">Prix</span><span class="chip">Équipements</span>
+        </div>
+        <div class="vcard">
+          <div class="ph"></div>
+          <div class="info">
+            <div class="vname">Salle Nour El Bahdja</div>
+            <div class="vmeta"><span>Bir El Djir · 6 km</span><span>·</span><span>400 couverts</span></div>
+            <div class="chips" style="margin-top:2px"><span class="chip">Climatisée</span><span class="chip">Parking 60</span><span class="chip">Espace femmes</span></div>
+            <div class="vfoot"><div class="price">180 000 <small>DA</small></div><div class="stars">★ <b>4,6</b> (34)</div></div>
+          </div>
+        </div>
+        <div class="vcard">
+          <div class="ph b"></div>
+          <div class="info">
+            <div class="vname">Palais Rihana</div>
+            <div class="vmeta"><span>Es Sénia · 11 km</span><span>·</span><span>600 couverts</span></div>
+            <div class="chips" style="margin-top:2px"><span class="chip">Jardin</span><span class="chip">Traiteur libre</span></div>
+            <div class="vfoot"><div class="price">265 000 <small>DA</small></div><div class="stars">★ <b>4,4</b> (61)</div></div>
+          </div>
+        </div>
+        <div class="vcard">
+          <div class="ph c"></div>
+          <div class="info"><div class="vname">Salle El Feth</div></div>
+        </div>
+      </div>
+      <div class="tabbar">
+        <div class="on"><span class="ic">⌂</span>Accueil</div><div><span class="ic">✦</span>Assistant</div><div><span class="ic">♡</span>Favoris</div><div><span class="ic">☰</span>Profil</div>
+      </div>
+    </div></div>
+    <figcaption><b>2 · Résultats</b>Les filtres actifs restent visibles en tête. Le prix affiché est <em>déjà calculé pour la date choisie</em>, majorations comprises — pas un « à partir de ».</figcaption>
+  </figure>
+
+  <!-- 3. Fiche salle -->
+  <figure class="screen">
+    <div class="phone"><div class="vp">
+      <div class="sbar"><span>21:16</span><span class="dots">▮▮▮ ▲ ▰</span></div>
+      <div class="body np" style="gap:0">
+        <div class="ph" style="height:132px;border-radius:0"></div>
+        <div style="padding:11px 14px 0;display:flex;flex-direction:column;gap:9px;overflow:hidden">
+          <div>
+            <div style="font-family:var(--display);font-weight:700;font-size:15px;letter-spacing:-.015em">Salle Nour El Bahdja</div>
+            <div class="vmeta" style="margin-top:2px"><span>Bir El Djir, Oran (31)</span></div>
+          </div>
+          <div style="display:flex;gap:9px;align-items:center">
+            <div class="stars">★★★★★ <b>4,6</b></div>
+            <span style="font-size:10px;color:var(--ink-3)">34 avis vérifiés</span>
+          </div>
+          <div style="display:flex;gap:6px">
+            <div class="kpi" style="flex:1;padding:7px 8px"><div class="k">Capacité</div><div class="v" style="font-size:14px">400</div></div>
+            <div class="kpi" style="flex:1;padding:7px 8px"><div class="k">Superficie</div><div class="v" style="font-size:14px">620 m²</div></div>
+            <div class="kpi" style="flex:1;padding:7px 8px"><div class="k">Parking</div><div class="v" style="font-size:14px">60</div></div>
+          </div>
+          <div class="chips">
+            <span class="chip soft">Climatisation</span><span class="chip soft">Cuisine équipée</span><span class="chip soft">Chambre de la mariée</span><span class="chip soft">Espace femmes</span><span class="chip soft">Sono</span><span class="chip soft">Groupe électrogène</span>
+          </div>
+          <div class="divider"></div>
+          <div class="kv"><span>Soirée · samedi, haute saison</span><b>180 000 DA</b></div>
+          <div class="kv"><span>Couvert supplémentaire</span><b>450 DA</b></div>
+        </div>
+      </div>
+      <div style="flex:none;padding:9px 14px 11px;border-top:1px solid var(--rule);display:flex;gap:8px;align-items:center">
+        <div style="flex:1"><div class="lbl">Estimation 300 invités</div><div class="price" style="font-size:14px">180 000 DA</div></div>
+        <div class="btn" style="padding:11px 16px">Disponibilité</div>
+      </div>
+    </div></div>
+    <figcaption><b>3 · Fiche salle</b>Barre d'action collée en bas avec le prix estimé — la question « combien ça me coûte » ne doit jamais demander de scroller.</figcaption>
+  </figure>
+
+</div>
+
+<div class="annot">
+  <span class="tag">Détail qui compte</span>
+  <p>Le numéro de téléphone du propriétaire n'apparaît nulle part sur cette fiche. Il n'est révélé qu'une fois la demande acceptée&nbsp;— sinon la plateforme se fait contourner dès la première recherche.</p>
+</div>
+
+<!-- ============ FLOW 2 ============ -->
+<h2 class="flow"><span class="n">B</span><span>Réservation et paiement</span></h2>
+<p class="flowlede">Le cœur transactionnel. Trois écrans qui transforment une consultation en date bloquée.</p>
+
+<div class="row">
+
+  <!-- 4. Calendrier -->
+  <figure class="screen">
+    <div class="phone"><div class="vp">
+      <div class="sbar"><span>21:17</span><span class="dots">▮▮▮ ▲ ▰</span></div>
+      <div class="abar"><div class="back">←</div><div class="t">Disponibilité</div></div>
+      <div class="body">
+        <div class="chips"><span class="chip on">Soirée</span><span class="chip">Midi</span><span class="chip">Journée entière</span></div>
+        <div class="cal">
+          <div class="calhead"><span>‹</span>Août 2027<span>›</span></div>
+          <div class="calgrid">
+            <div class="dw">D</div><div class="dw">L</div><div class="dw">M</div><div class="dw">M</div><div class="dw">J</div><div class="dw">V</div><div class="dw">S</div>
+            <div class="d out">·</div><div class="d out">·</div><div class="d out">·</div><div class="d out">·</div><div class="d out">·</div><div class="d busy">1</div><div class="d busy">2</div>
+            <div class="d">3</div><div class="d">4</div><div class="d">5</div><div class="d">6</div><div class="d busy">7</div><div class="d busy">8</div><div class="d busy">9</div>
+            <div class="d">10</div><div class="d">11</div><div class="d blk">12</div><div class="d blk">13</div><div class="d sel">14</div><div class="d busy">15</div><div class="d busy">16</div>
+            <div class="d">17</div><div class="d">18</div><div class="d">19</div><div class="d">20</div><div class="d">21</div><div class="d busy">22</div><div class="d">23</div>
+            <div class="d">24</div><div class="d">25</div><div class="d">26</div><div class="d">27</div><div class="d busy">28</div><div class="d busy">29</div><div class="d">30</div>
+            <div class="d">31</div>
+          </div>
+          <div class="callg">
+            <span><i style="background:var(--ok-soft)"></i>Libre</span>
+            <span><i style="background:var(--crit-soft)"></i>Réservé</span>
+            <span><i style="background:var(--surface-2)"></i>Indisponible</span>
+          </div>
+        </div>
+        <div class="annot" style="margin:0;font-size:10.5px;padding:8px 10px;border-radius:0 8px 8px 0">
+          <p>Samedi 14 août — soirée. Haute saison, majoration&nbsp;+30&nbsp;% appliquée.</p>
+        </div>
+        <div class="btn">Continuer</div>
+      </div>
+    </div></div>
+    <figcaption><b>4 · Calendrier</b>Trois états seulement, et le créneau se choisit <em>avant</em> le jour — un 14 août libre le midi et pris le soir doit se lire d'un coup d'œil.</figcaption>
+  </figure>
+
+  <!-- 5. Demande -->
+  <figure class="screen">
+    <div class="phone"><div class="vp">
+      <div class="sbar"><span>21:18</span><span class="dots">▮▮▮ ▲ ▰</span></div>
+      <div class="abar"><div class="back">←</div><div class="t">Votre demande</div></div>
+      <div class="body">
+        <div class="lbl">Événement</div>
+        <div class="chips"><span class="chip on">Mariage</span><span class="chip">Fiançailles</span><span class="chip">Henné</span></div>
+        <div class="lbl" style="margin-top:4px">Nombre d'invités</div>
+        <div class="sfield" style="justify-content:space-between"><span style="color:var(--ink);font-weight:600">300</span><span>− &nbsp; +</span></div>
+        <div class="lbl" style="margin-top:4px">Options</div>
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <div class="kv"><span>☑ Décoration florale</span><b>25 000 DA</b></div>
+          <div class="kv"><span>☐ Sono &amp; DJ</span><b>18 000 DA</b></div>
+          <div class="kv"><span>☑ Chambre de la mariée</span><b>Incluse</b></div>
+        </div>
+        <div class="divider"></div>
+        <div class="kv"><span>Soirée samedi (haute saison)</span><b>180 000</b></div>
+        <div class="kv"><span>Décoration florale</span><b>25 000</b></div>
+        <div class="kv total"><span>Estimation totale</span><b>205 000 DA</b></div>
+        <div class="kv"><span>Acompte à verser (25 %)</span><b>51 250 DA</b></div>
+        <div class="btn">Envoyer la demande</div>
+        <div style="font-size:9.5px;color:var(--ink-3);text-align:center">Aucun paiement à cette étape. Le propriétaire répond sous 48 h.</div>
+      </div>
+    </div></div>
+    <figcaption><b>5 · Demande</b>Le devis se recalcule à chaque option cochée. La mention « aucun paiement à cette étape » lève le principal frein à l'envoi.</figcaption>
+  </figure>
+
+  <!-- 6. Paiement -->
+  <figure class="screen">
+    <div class="phone"><div class="vp">
+      <div class="sbar"><span>21:41</span><span class="dots">▮▮▮ ▲ ▰</span></div>
+      <div class="abar"><div class="back">←</div><div class="t">Verser l'acompte</div></div>
+      <div class="body">
+        <div style="background:var(--ok-soft);border-radius:11px;padding:9px 11px">
+          <div style="font-weight:700;font-size:11.5px;color:var(--ok)">Demande acceptée ✓</div>
+          <div style="font-size:10px;color:var(--ink-2);margin-top:2px">Karim a confirmé le samedi 14 août au soir. La date vous est réservée pendant <b>71 h 12 min</b>.</div>
+        </div>
+        <div class="lbl">Récapitulatif</div>
+        <div class="kv"><span>Salle Nour El Bahdja</span><b>Bir El Djir</b></div>
+        <div class="kv"><span>Samedi 14 août 2027 · soirée</span><b>300 inv.</b></div>
+        <div class="kv"><span>Montant convenu</span><b>205 000 DA</b></div>
+        <div class="kv total"><span>Acompte (25 %)</span><b>51 250 DA</b></div>
+        <div class="lbl" style="margin-top:4px">Moyen de paiement</div>
+        <div class="sfield" style="border-color:var(--accent);background:var(--accent-soft);color:var(--accent-ink);font-weight:600"><span>◉</span><span>Carte CIB</span></div>
+        <div class="sfield"><span>○</span><span>Carte Edahabia</span></div>
+        <div class="sfield"><span>○</span><span>Espèces sur place (72 h)</span></div>
+        <div class="btn">Payer 51 250 DA</div>
+        <div style="font-size:9px;color:var(--ink-3);text-align:center">Solde de 153 750 DA réglé sur place le jour J.</div>
+      </div>
+    </div></div>
+    <figcaption><b>6 · Acompte</b>Le compte à rebours de 72 h est affiché en toutes lettres. L'option « espèces sur place » est offerte dès le MVP&nbsp;: elle sauve les utilisateurs réticents au paiement en ligne.</figcaption>
+  </figure>
+
+</div>
+
+<!-- ============ FLOW 3 ============ -->
+<h2 class="flow"><span class="n">C</span><span>Avis et assistant IA</span></h2>
+<p class="flowlede">Les deux écrans où l'intelligence de la plateforme devient visible pour le client.</p>
+
+<div class="row">
+
+  <!-- 7. Avis -->
+  <figure class="screen">
+    <div class="phone"><div class="vp">
+      <div class="sbar"><span>21:19</span><span class="dots">▮▮▮ ▲ ▰</span></div>
+      <div class="abar"><div class="back">←</div><div class="t">Avis · 34</div></div>
+      <div class="body">
+        <div style="display:flex;gap:11px;align-items:center">
+          <div><div style="font-family:var(--display);font-weight:700;font-size:26px;line-height:1">4,6</div><div class="stars">★★★★★</div></div>
+          <div style="flex:1;display:flex;flex-direction:column;gap:3px">
+            <div class="rbar"><span>Propreté</span><div class="track"><div class="fill" style="width:96%"></div></div><em>4,8</em></div>
+            <div class="rbar"><span>Service</span><div class="track"><div class="fill" style="width:88%"></div></div><em>4,4</em></div>
+            <div class="rbar"><span>Rapport q/p</span><div class="track"><div class="fill" style="width:84%"></div></div><em>4,2</em></div>
+            <div class="rbar"><span>Conformité</span><div class="track"><div class="fill" style="width:94%"></div></div><em>4,7</em></div>
+          </div>
+        </div>
+        <div style="background:var(--accent-soft);border-radius:11px;padding:9px 11px">
+          <div style="font-size:9px;font-family:var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--accent-ink);margin-bottom:3px">✦ Synthèse des 34 avis</div>
+          <div style="font-size:10.5px;color:var(--ink-2);line-height:1.5">Les invités saluent surtout la <b>propreté</b> et le <b>parking</b>, rarement suffisant ailleurs. Deux réserves reviennent&nbsp;: la climatisation peine en fin de soirée quand la salle est pleine, et le service traiteur a été jugé lent par 4 clients sur les mariages de plus de 350 invités.</div>
+        </div>
+        <div class="rev">
+          <div class="revh"><div class="av">SB</div><div><div class="nm">Sarah B.</div><div class="stars" style="font-size:9px">★★★★★</div></div><div class="dt">août 2026</div></div>
+          <p>Salle impeccable, le personnel a tout installé la veille. Le parking a vraiment fait la différence pour nos invités venus de Mostaganem.</p>
+          <span class="verified">✓ Réservation vérifiée</span>
+        </div>
+        <div class="rev">
+          <div class="revh"><div class="av">MT</div><div><div class="nm">Mohamed T.</div><div class="stars" style="font-size:9px">★★★★☆</div></div><div class="dt">juil. 2026</div></div>
+          <p>Très bien dans l'ensemble mais il faisait chaud vers minuit avec 380 personnes.</p>
+          <div class="reply"><b>Réponse du propriétaire</b><br>Merci Mohamed. Nous avons ajouté deux climatiseurs en septembre.</div>
+        </div>
+      </div>
+    </div></div>
+    <figcaption><b>7 · Avis</b>La synthèse IA est <em>pré-calculée la nuit</em> et mentionne les réserves, pas seulement les éloges — un résumé exclusivement flatteur n'est pas cru.</figcaption>
+  </figure>
+
+  <!-- 8. Agent IA -->
+  <figure class="screen">
+    <div class="phone"><div class="vp">
+      <div class="sbar"><span>21:22</span><span class="dots">▮▮▮ ▲ ▰</span></div>
+      <div class="abar"><div class="t">✦ Assistant Ferha</div><div class="sp">⟲</div></div>
+      <div class="body ai" style="padding:0 14px">
+        <div class="msg me">salut, je cherche une salle f wahran pour 300 personne le 14 aout, budget max 250 000</div>
+        <div class="msg bot">J'ai compris&nbsp;: <b>Oran</b>, <b>14 août 2027</b>, <b>300 invités</b>, <b>250 000 DA maximum</b>. Voici 3 salles libres ce soir-là&nbsp;:</div>
+        <div class="airow">
+          <div class="mini"><div class="ph"></div><div class="mi"><div class="mn">Nour El Bahdja</div><div class="mm">Bir El Djir · 400</div><div class="mp">180 000</div></div></div>
+          <div class="mini"><div class="ph b"></div><div class="mi"><div class="mn">Dar El Wiam</div><div class="mm">Canastel · 320</div><div class="mp">225 000</div></div></div>
+          <div class="mini"><div class="ph c"></div><div class="mi"><div class="mn">El Feth</div><div class="mm">Bir El Djir</div><div class="mp">160 000</div></div></div>
+        </div>
+        <div class="msg bot">Nour El Bahdja est la mieux notée (4,6) et la seule des trois avec un <b>espace femmes séparé</b>. Voulez-vous que je filtre sur ce critère&nbsp;?</div>
+        <div class="chips" style="align-self:flex-start">
+          <span class="chip soft">Avec espace femmes</span><span class="chip soft">Moins de 200 000</span><span class="chip soft">Avec jardin</span>
+        </div>
+      </div>
+      <div class="aibar">
+        <div class="in">Posez votre question…</div>
+        <div class="snd">↑</div>
+      </div>
+    </div></div>
+    <figcaption><b>8 · Assistant IA</b>La question mélange français et darja. Chaque salle citée est une carte cliquable issue de la base — l'agent ne peut rien nommer qui n'existe pas.</figcaption>
+  </figure>
+
+</div>
+
+<div class="annot warn">
+  <span class="tag">Contrainte technique visible à l'écran</span>
+  <p>Les trois salles proposées viennent d'une requête SQL filtrée (wilaya, capacité ≥ 300, prix ≤ 250 000, créneau libre le 14/08), classée ensuite par proximité sémantique. Le modèle rédige la phrase&nbsp;; il ne choisit pas les salles et n'invente aucun prix.</p>
+</div>
+
+<!-- ============ FLOW 4 ============ -->
+<h2 class="flow"><span class="n">D</span><span>Espace propriétaire</span></h2>
+<p class="flowlede">Conçu pour Karim, 45 ans, peu à l'aise avec l'informatique, qui publie ses photos depuis son téléphone. Chaque écran tient en une action principale.</p>
+
+<div class="row">
+
+  <!-- 9. Dashboard -->
+  <figure class="screen">
+    <div class="phone"><div class="vp">
+      <div class="sbar"><span>09:03</span><span class="dots">▮▮▮ ▲ ▰</span></div>
+      <div class="abar"><div class="t">Salle Nour El Bahdja</div><div class="sp">⌄</div></div>
+      <div class="body">
+        <div class="kpis">
+          <div class="kpi"><div class="k">Taux d'occupation</div><div class="v">68 %</div><div class="d">▲ 9 pts vs 2026</div></div>
+          <div class="kpi"><div class="k">Prévisionnel août</div><div class="v" style="font-size:15px">1,84 M DA</div><div class="d">12 dates</div></div>
+          <div class="kpi"><div class="k">Note moyenne</div><div class="v">4,6</div><div class="d">34 avis</div></div>
+          <div class="kpi"><div class="k">Demandes acceptées</div><div class="v">41 %</div><div class="d dn">▼ 6 pts</div></div>
+        </div>
+        <div class="lbl" style="margin-top:3px">Demandes en attente · 3</div>
+        <div class="req">
+          <div class="rh"><div class="rn">Amina K. <span class="badge-new">Nouveau</span></div><div class="rd">il y a 2 h</div></div>
+          <div style="font-size:10px;color:var(--ink-2)">Sam. 14 août · soirée · 300 invités · mariage</div>
+          <div class="kv" style="border:none;padding:2px 0"><span>Estimation</span><b>205 000 DA</b></div>
+          <div class="ra"><span class="acc">Accepter</span><span class="dec">Contre-proposer</span></div>
+        </div>
+        <div class="req">
+          <div class="rh"><div class="rn">Yacine M.</div><div class="rd">hier</div></div>
+          <div style="font-size:10px;color:var(--ink-2)">Ven. 3 sept. · midi · 180 invités · circoncision</div>
+          <div class="ra"><span class="acc">Accepter</span><span class="dec">Contre-proposer</span></div>
+        </div>
+      </div>
+      <div class="tabbar">
+        <div class="on"><span class="ic">▤</span>Tableau</div><div><span class="ic">▦</span>Agenda</div><div><span class="ic">✉</span>Messages</div><div><span class="ic">☰</span>Ma salle</div>
+      </div>
+    </div></div>
+    <figcaption><b>9 · Tableau de bord</b>Les demandes en attente sont l'action à faire aujourd'hui&nbsp;; elles passent devant les statistiques dès qu'il y en a une.</figcaption>
+  </figure>
+
+  <!-- 10. Photos -->
+  <figure class="screen">
+    <div class="phone"><div class="vp">
+      <div class="sbar"><span>09:08</span><span class="dots">▮▮▮ ▲ ▰</span></div>
+      <div class="abar"><div class="back">←</div><div class="t">Photos de la salle</div></div>
+      <div class="body">
+        <div class="steps"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></div>
+        <div style="font-size:10px;color:var(--ink-3)">Étape 4 sur 5</div>
+        <div style="font-size:11px;color:var(--ink-2);line-height:1.5">Ajoutez au moins <b>5 photos</b>. Les salles qui en ont plus de 10 reçoivent en moyenne trois fois plus de demandes.</div>
+        <div class="pgrid">
+          <div class="ph cover"><span class="tagc">Couverture</span></div>
+          <div class="ph b"></div>
+          <div class="ph c"></div>
+          <div class="ph d"></div>
+          <div class="ph"></div>
+          <div class="addph">＋</div>
+        </div>
+        <div style="display:flex;gap:7px">
+          <div class="btn ghost" style="flex:1;padding:9px">📷 Appareil</div>
+          <div class="btn ghost" style="flex:1;padding:9px">🖼 Galerie</div>
+        </div>
+        <div style="font-size:9.5px;color:var(--ink-3);line-height:1.5">Maintenez une photo pour la déplacer. La première devient la couverture.</div>
+        <div style="background:var(--warn-soft);border-radius:9px;padding:8px 10px;font-size:10px;color:var(--ink-2)">
+          <b style="color:var(--warn)">Conseil</b> — il manque une photo de l'extérieur et une du parking. Ce sont les deux plus demandées.
+        </div>
+        <div class="btn">Continuer</div>
+      </div>
+    </div></div>
+    <figcaption><b>10 · Ajout des photos</b>Formulaire découpé en 5 étapes courtes. Les images sont compressées sur le téléphone avant envoi — 12 photos brutes en 4G font abandonner.</figcaption>
+  </figure>
+
+  <div style="flex:1;min-width:250px;max-width:340px;display:flex;flex-direction:column;gap:14px;padding-top:4px">
+    <div style="border:1px solid var(--rule);border-radius:13px;padding:15px 17px;background:var(--surface)">
+      <h3 style="font-family:var(--display);font-size:15px;margin:0 0 7px">Système visuel</h3>
+      <div style="display:flex;flex-direction:column;gap:7px;font-size:13px;color:var(--ink-2)">
+        <div><b style="color:var(--ink)">Couleur principale</b> — ambre <code style="font-family:var(--mono);font-size:11px">#A06B22</code>, la lumière des bougies. Chaude, lisible en blanc dessus, et jamais posée sur du blanc pur.</div>
+        <div><b style="color:var(--ink)">Fond</b> — ivoire <code style="font-family:var(--mono);font-size:11px">#FAF5EC</code>, jamais <code style="font-family:var(--mono);font-size:11px">#FFFFFF</code>. C'est ce fond crème qui rend l'ensemble apaisant&nbsp;; le blanc pur casserait tout.</div>
+        <div><b style="color:var(--ink)">Accent secondaire</b> — rose poudré <code style="font-family:var(--mono);font-size:11px">#C98F92</code> pour les puces d'information et les encarts de conseil.</div>
+        <div><b style="color:var(--ink)">Sémantique</b> — sauge <code style="font-family:var(--mono);font-size:11px">#5C7F5A</code>&nbsp;=&nbsp;libre, terracotta <code style="font-family:var(--mono);font-size:11px">#B4574B</code>&nbsp;=&nbsp;réservé, beige&nbsp;=&nbsp;indisponible. Jamais réutilisés ailleurs.</div>
+        <div><b style="color:var(--ink)">Rayons</b> — 10 px pour les images, 12 px pour les cartes et boutons, 20 px pour les puces.</div>
+      </div>
+    </div>
+    <div style="border:1px solid var(--rule);border-radius:13px;padding:15px 17px;background:var(--surface)">
+      <h3 style="font-family:var(--display);font-size:15px;margin:0 0 7px">À prévoir pour l'arabe</h3>
+      <div style="font-size:13px;color:var(--ink-2);line-height:1.55">
+        Toutes ces maquettes doivent être miroir en RTL. Trois pièges&nbsp;: le calendrier commence toujours par dimanche mais se lit de droite à gauche&nbsp;; les prix et les chiffres restent en écriture latine&nbsp;; les icônes directionnelles (← retour) se retournent, les autres non.
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</div>
+
+<footer>
+  Maquettes Ferha · v2.0 · septembre 2026 · palette « Ambre &amp; ivoire » · à lire avec le cahier des charges v2.0.<br>
+  Emplacements photo simulés en CSS · contenus fictifs · dimensions 390 × 844 (référence Flutter).
+</footer>
+
+</body>
+</html>
