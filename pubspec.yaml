@@ -41,8 +41,6 @@ dependencies:
   flutter_riverpod: ^3.3.2
   # Navigation declarative (onglets + routes profondes).
   go_router: ^17.2.3
-  # Police d'affichage Bricolage Grotesque.
-  google_fonts: ^8.1.0
 
 dev_dependencies:
   flutter_test:
@@ -68,6 +66,14 @@ flutter:
 
   # Genere les classes de localisation a partir des fichiers ARB (voir l10n.yaml).
   generate: true
+
+  fonts:
+    # Bricolage Grotesque, police d'affichage de la charte (SIL OFL 1.1 --
+    # voir assets/fonts/OFL.txt). Un seul fichier variable porte toutes les
+    # graisses : les styles pilotent les axes wght et opsz par fontVariations.
+    - family: Bricolage Grotesque
+      fonts:
+        - asset: assets/fonts/BricolageGrotesque-Variable.ttf
 
   # To add assets to your application, add an assets section, like this:
   # assets:

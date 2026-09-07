@@ -1,21 +1,42 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
-/// Fabrique de la police d'affichage : reçoit un style de base et le rend
-/// habillé de la police des titres.
-typedef DisplayFont = TextStyle Function(TextStyle base);
+/// Famille de la police d'affichage, telle que déclarée dans `pubspec.yaml`.
+const String ferhaDisplayFontFamily = 'Bricolage Grotesque';
 
-/// Bricolage Grotesque, servie par `google_fonts`.
+/// Bornes de l'axe de graisse du fichier variable.
+const double _minWeight = 200;
+const double _maxWeight = 800;
+
+/// Bornes de l'axe de taille optique du fichier variable.
+const double _minOpticalSize = 12;
+const double _maxOpticalSize = 96;
+
+/// Habille un style de texte avec Bricolage Grotesque.
 ///
-/// C'est la police d'affichage de production : titres et chiffres. Le corps de
-/// texte reste sur la police système (cahier des charges §10.1).
+/// La police est embarquée en un seul fichier variable
+/// (`assets/fonts/BricolageGrotesque-Variable.ttf`, SIL OFL 1.1). Ses valeurs
+/// par défaut sont en haut de plage — `wght` 800, `opsz` 96 — donc les deux
+/// axes sont toujours pilotés explicitement, sinon tout s'afficherait en très
+/// gras à la taille d'un titre d'affiche :
+///
+/// - `wght` suit le [TextStyle.fontWeight] demandé ;
+/// - `opsz` suit la taille du texte, ce à quoi sert la taille optique : des
+///   formes plus ouvertes en petit corps, plus serrées en grand titre.
+///
+/// `fontWeight` reste posé sur le style : c'est lui que lisent la synthèse de
+/// graisse d'une police de secours et les outils d'accessibilité.
 TextStyle bricolageGrotesque(TextStyle base) {
-  return GoogleFonts.bricolageGrotesque(textStyle: base);
-}
+  final weight = base.fontWeight ?? FontWeight.w400;
+  final size = base.fontSize ?? 14;
 
-/// Police d'affichage neutre : la police système, sans habillage.
-///
-/// `google_fonts` télécharge Bricolage Grotesque au premier lancement. Un test
-/// ou une intégration continue n'ont pas de réseau : ils construisent le thème
-/// avec cette fabrique-ci, ce qui laisse tout le reste du thème identique.
-TextStyle systemDisplayFont(TextStyle base) => base;
+  return base.copyWith(
+    fontFamily: ferhaDisplayFontFamily,
+    fontVariations: <FontVariation>[
+      FontVariation(
+        'wght',
+        weight.value.toDouble().clamp(_minWeight, _maxWeight),
+      ),
+      FontVariation('opsz', size.clamp(_minOpticalSize, _maxOpticalSize)),
+    ],
+  );
+}

@@ -4,16 +4,10 @@ import 'package:ferha/core/theme/ferha_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// Thème clair sans appel réseau (voir [systemDisplayFont]).
-ThemeData _light() => FerhaTheme.light(displayFont: systemDisplayFont);
-
-/// Thème sombre sans appel réseau (voir [systemDisplayFont]).
-ThemeData _dark() => FerhaTheme.dark(displayFont: systemDisplayFont);
-
 void main() {
   group('FerhaTheme', () {
     test('le thème clair se construit et porte la palette Ambre & ivoire', () {
-      final theme = _light();
+      final theme = FerhaTheme.light();
       final colors = theme.extension<FerhaColors>();
 
       expect(theme.brightness, Brightness.light);
@@ -29,7 +23,7 @@ void main() {
     });
 
     test('le thème sombre se construit et porte la palette sombre', () {
-      final theme = _dark();
+      final theme = FerhaTheme.dark();
       final colors = theme.extension<FerhaColors>();
 
       expect(theme.brightness, Brightness.dark);
@@ -44,7 +38,7 @@ void main() {
     test('aucun fond n’est du blanc pur', () {
       const white = Color(0xFFFFFFFF);
 
-      for (final theme in <ThemeData>[_light(), _dark()]) {
+      for (final theme in <ThemeData>[FerhaTheme.light(), FerhaTheme.dark()]) {
         final colors = theme.extension<FerhaColors>()!;
         expect(colors.background, isNot(white));
         expect(theme.scaffoldBackgroundColor, isNot(white));
@@ -53,7 +47,7 @@ void main() {
     });
 
     test('les rayons de la charte sont appliqués', () {
-      for (final theme in <ThemeData>[_light(), _dark()]) {
+      for (final theme in <ThemeData>[FerhaTheme.light(), FerhaTheme.dark()]) {
         final card = theme.cardTheme.shape! as RoundedRectangleBorder;
         final chip = theme.chipTheme.shape! as RoundedRectangleBorder;
 
@@ -62,8 +56,41 @@ void main() {
       }
     });
 
+    test(
+      'les titres portent Bricolage Grotesque, le corps la police système',
+      () {
+        final text = FerhaTheme.light().textTheme;
+
+        for (final style in <TextStyle?>[
+          text.displayLarge,
+          text.headlineMedium,
+          text.titleLarge,
+        ]) {
+          expect(style!.fontFamily, ferhaDisplayFontFamily);
+          // Les deux axes du fichier variable sont pilotés : sans eux la police
+          // s'afficherait à ses valeurs par défaut, wght 800 et opsz 96.
+          expect(
+            style.fontVariations?.map((v) => v.axis),
+            containsAll(<String>['wght', 'opsz']),
+          );
+        }
+
+        for (final style in <TextStyle?>[text.bodyLarge, text.bodyMedium]) {
+          expect(style!.fontFamily, isNot(ferhaDisplayFontFamily));
+        }
+      },
+    );
+
+    test('la graisse demandée se retrouve sur l’axe wght', () {
+      final title = FerhaTheme.light().textTheme.titleMedium!;
+      final wght = title.fontVariations!.firstWhere((v) => v.axis == 'wght');
+
+      expect(title.fontWeight, FontWeight.w600);
+      expect(wght.value, 600);
+    });
+
     testWidgets('les deux thèmes s’appliquent sans erreur', (tester) async {
-      for (final theme in <ThemeData>[_light(), _dark()]) {
+      for (final theme in <ThemeData>[FerhaTheme.light(), FerhaTheme.dark()]) {
         await tester.pumpWidget(
           MaterialApp(
             theme: theme,

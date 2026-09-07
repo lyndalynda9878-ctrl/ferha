@@ -11,25 +11,12 @@ import 'ferha_radii.dart';
 /// demanderait de rouvrir tous les écrans.
 abstract final class FerhaTheme {
   /// Thème clair — fond ivoire.
-  ///
-  /// [displayFont] n'est remplacée que par les tests, qui n'ont pas de réseau
-  /// pour aller chercher Bricolage Grotesque.
-  static ThemeData light({DisplayFont displayFont = bricolageGrotesque}) {
-    return _build(Brightness.light, FerhaColors.light, displayFont);
-  }
+  static ThemeData light() => _build(Brightness.light, FerhaColors.light);
 
   /// Thème sombre.
-  ///
-  /// Voir [light] pour [displayFont].
-  static ThemeData dark({DisplayFont displayFont = bricolageGrotesque}) {
-    return _build(Brightness.dark, FerhaColors.dark, displayFont);
-  }
+  static ThemeData dark() => _build(Brightness.dark, FerhaColors.dark);
 
-  static ThemeData _build(
-    Brightness brightness,
-    FerhaColors colors,
-    DisplayFont displayFont,
-  ) {
+  static ThemeData _build(Brightness brightness, FerhaColors colors) {
     final scheme = _colorScheme(brightness, colors);
     final base = ThemeData(
       brightness: brightness,
@@ -42,7 +29,7 @@ abstract final class FerhaTheme {
       scaffoldBackgroundColor: colors.background,
       canvasColor: colors.background,
       dividerColor: colors.rule,
-      textTheme: _textTheme(base.textTheme, colors, displayFont),
+      textTheme: _textTheme(base.textTheme, colors),
       appBarTheme: AppBarTheme(
         backgroundColor: colors.background,
         foregroundColor: colors.ink,
@@ -50,7 +37,7 @@ abstract final class FerhaTheme {
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: false,
-        titleTextStyle: displayFont(
+        titleTextStyle: bricolageGrotesque(
           TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.w700,
@@ -86,7 +73,7 @@ abstract final class FerhaTheme {
           shape: const RoundedRectangleBorder(
             borderRadius: FerhaRadii.cardBorder,
           ),
-          textStyle: displayFont(
+          textStyle: bricolageGrotesque(
             const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
           ),
         ),
@@ -99,7 +86,7 @@ abstract final class FerhaTheme {
           shape: const RoundedRectangleBorder(
             borderRadius: FerhaRadii.cardBorder,
           ),
-          textStyle: displayFont(
+          textStyle: bricolageGrotesque(
             const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
           ),
         ),
@@ -247,13 +234,9 @@ abstract final class FerhaTheme {
 
   /// Bricolage Grotesque pour les titres et les chiffres, police système pour
   /// le corps de texte.
-  static TextTheme _textTheme(
-    TextTheme base,
-    FerhaColors colors,
-    DisplayFont displayFont,
-  ) {
+  static TextTheme _textTheme(TextTheme base, FerhaColors colors) {
     TextStyle display(TextStyle? style, double size, FontWeight weight) {
-      return displayFont(
+      return bricolageGrotesque(
         (style ?? const TextStyle()).copyWith(
           fontSize: size,
           fontWeight: weight,

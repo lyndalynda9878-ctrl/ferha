@@ -40,6 +40,11 @@ hexadécimale est écrite. Un écran lit ses couleurs par `context.ferhaColors`.
 
 Les deux thèmes, clair et sombre, sont livrés ensemble.
 
+La police d'affichage, Bricolage Grotesque, est embarquée en un seul fichier
+variable : `assets/fonts/BricolageGrotesque-Variable.ttf`. Les styles pilotent
+ses axes `wght` et `opsz` — l'application n'a donc besoin d'aucun réseau pour
+s'afficher correctement, dès le premier lancement.
+
 ## Galerie de contrôle
 
 La route `/_design` affiche chaque couleur avec son code, l'échelle
@@ -59,4 +64,7 @@ Depuis le code : `context.go(FerhaRoutes.design)`.
 
 ## Licence
 
-MIT — voir [LICENSE](LICENSE).
+Le code est sous licence MIT — voir [LICENSE](LICENSE).
+
+Bricolage Grotesque est sous SIL Open Font License 1.1 — voir
+[assets/fonts/OFL.txt](assets/fonts/OFL.txt).
