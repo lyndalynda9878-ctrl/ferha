@@ -65,20 +65,34 @@ pas encore écrites.
 - **Une journée entière se stocke en deux lignes**, `midi` et `soir`. Même
   découpage que les réservations (§6.1), pour que la requête de disponibilité
   lise `venue_blackouts` et `bookings` de la même façon.
+- **Le motif d'un blocage ne sort pas.** `venue_blackouts` n'est lisible que par
+  le propriétaire de la salle, parce que `reason` y figure. Le calendrier lit la
+  vue `venue_availability`, qui expose `venue_id`, `date` et `slot` — et rien
+  d'autre.
+- **Le parking est une colonne, pas un équipement.** `venues.parking_spaces`
+  porte le nombre de places, et c'est de lui que se fabrique la puce
+  « Parking 60 » des maquettes. `NULL` veut dire « non renseigné », `0` veut
+  dire « pas de parking ». Deux endroits pour dire la même chose finissent
+  toujours par se contredire.
+
+## Ce que lit le calendrier
+
+| Objet | Qui lit | Contenu |
+|---|---|---|
+| `venue_availability` (vue) | tous, sur une salle publiée | `venue_id`, `date`, `slot` |
+| `venue_blackouts` (table) | le propriétaire de la salle | tout, `reason` comprise |
+
+La vue s'exécute avec les droits de son propriétaire : elle traverse donc la
+politique de la table, et c'est son propre `WHERE` qui borne ce qui sort. Ne pas
+la passer en `security_invoker = true` — elle ne renverrait plus rien.
 
 ## Points à reprendre plus tard
 
-- `venue_blackouts.reason` est un motif interne du propriétaire, mais la table
-  est lisible publiquement parce que le calendrier l'est. Avant que l'écran
-  calendrier ne lise cette table directement, poser une vue qui n'expose que
-  `venue_id`, `date` et `slot`.
 - `profiles` n'est lisible que par son titulaire. L'affichage public du nom d'un
   propriétaire, et la révélation de son téléphone après passage à `accepted`
   (§9), viendront avec les réservations.
 - La suppression d'un profil supprime ses salles en cascade. À revoir quand
   `bookings` existera : une salle qui porte des réservations confirmées ne doit
   pas disparaître avec le compte de son propriétaire.
-- Les maquettes affichent « Parking 60 » et « Superficie 620 m² ». Ni la valeur
-  numérique d'un équipement ni la superficie ne figurent au §6 : elles ne sont
-  donc pas dans le schéma.
-- Les libellés arabes du référentiel sont à faire relire.
+- Les libellés arabes du référentiel sont marqués `-- À RELIRE` dans
+  `003_amenities.sql`, en attente d'une relecture.

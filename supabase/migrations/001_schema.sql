@@ -107,6 +107,15 @@ create table if not exists public.venues (
   lng              double precision check (lng between -180 and 180),
   -- Capacité assise, en couverts. C'est le nombre que cherche le client.
   capacity_seated  integer     not null check (capacity_seated > 0),
+  -- Superficie en mètres carrés. Nullable : tous les propriétaires ne la
+  -- connaissent pas, et une salle reste publiable sans elle.
+  area_sqm         integer     check (area_sqm > 0),
+  -- Nombre de places de parking. NULL veut dire « non renseigné », 0 veut dire
+  -- « pas de parking » : les deux se distinguent. C'est de ce nombre que se
+  -- fabrique la puce « Parking 60 » des maquettes — il n'existe volontairement
+  -- pas d'équipement « parking » dans le référentiel, pour qu'une seule colonne
+  -- porte l'information.
+  parking_spaces   integer     check (parking_spaces >= 0),
   description      text,
   -- Cycle de vie : brouillon → en attente de validation → publiée.
   -- « suspended » est une décision d'administration, jamais du propriétaire.
@@ -124,6 +133,9 @@ comment on table  public.venues is 'La salle des fêtes (§6).';
 comment on column public.venues.wilaya_code is
   'Code wilaya sur deux chiffres, « 01 » à « 58 ».';
 comment on column public.venues.capacity_seated is 'Capacité assise, en couverts.';
+comment on column public.venues.area_sqm is 'Superficie en mètres carrés.';
+comment on column public.venues.parking_spaces is
+  'Places de parking. NULL = non renseigné, 0 = pas de parking. Remplace l''équipement « parking ».';
 comment on column public.venues.status is
   'draft → pending par le propriétaire ; published et suspended relèvent de l''administration.';
 

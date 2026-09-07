@@ -175,15 +175,14 @@ create policy venue_pricing_write
   using (public.owns_venue(venue_id))
   with check (public.owns_venue(venue_id));
 
--- Le calendrier de disponibilité est public : les dates bloquées doivent donc
--- être lisibles par tous sur une salle publiée. La colonne reason est un motif
--- interne — voir supabase/README.md, elle devra passer derrière une vue avant
--- que l'écran calendrier ne lise cette table directement.
+-- venue_blackouts porte reason, le motif interne du propriétaire (travaux, fête
+-- de famille). La table n'est donc lisible que par lui. Le public passe par la
+-- vue venue_availability, plus bas, qui n'expose pas cette colonne.
 drop policy if exists venue_blackouts_select on public.venue_blackouts;
 create policy venue_blackouts_select
   on public.venue_blackouts for select
-  to anon, authenticated
-  using (public.can_read_venue(venue_id));
+  to authenticated
+  using (public.owns_venue(venue_id));
 
 drop policy if exists venue_blackouts_write on public.venue_blackouts;
 create policy venue_blackouts_write
@@ -191,6 +190,32 @@ create policy venue_blackouts_write
   to authenticated
   using (public.owns_venue(venue_id))
   with check (public.owns_venue(venue_id));
+
+-- -----------------------------------------------------------------------------
+-- venue_availability — ce que le calendrier a le droit de voir
+--
+-- La vue expose les créneaux bloqués sans leur motif. Elle s'exécute avec les
+-- droits de son propriétaire (security_invoker = false, le défaut, écrit ici
+-- explicitement parce que c'est tout l'argument) : elle traverse donc la
+-- politique de venue_blackouts, et c'est son propre WHERE qui borne ce qui sort
+-- — les salles publiées, plus les brouillons de celui qui regarde.
+--
+-- C'est cette vue que lit l'écran calendrier, jamais la table.
+-- -----------------------------------------------------------------------------
+
+create or replace view public.venue_availability
+  with (security_invoker = false) as
+  select
+    b.venue_id,
+    b.date,
+    b.slot
+  from public.venue_blackouts b
+  where public.can_read_venue(b.venue_id);
+
+comment on view public.venue_availability is
+  'Créneaux bloqués, sans le motif. Seule lecture publique de venue_blackouts (§9).';
+
+grant select on public.venue_availability to anon, authenticated;
 
 -- -----------------------------------------------------------------------------
 -- amenities
