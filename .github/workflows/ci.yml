@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  analyse-et-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.35.5
+          channel: stable
+          cache: true
+
+      # `flutter pub get` régénère aussi les classes de localisation
+      # (pubspec `generate: true` + l10n.yaml).
+      - name: Dépendances
+        run: flutter pub get
+
+      - name: Format
+        run: dart format --output=none --set-exit-if-changed .
+
+      - name: Analyse
+        run: flutter analyze --fatal-infos --fatal-warnings
+
+      - name: Tests
+        run: flutter test
