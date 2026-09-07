@@ -1,0 +1,15 @@
+{
+  "@@locale": "fr",
+  "appTitle": "Ferha",
+  "@appTitle": {
+    "description": "Nom de l'application, affiche dans la barre de titre."
+  },
+  "designGalleryTitle": "Galerie de controle",
+  "@designGalleryTitle": {
+    "description": "Titre de l'ecran cache /_design."
+  },
+  "switchLanguage": "العربية",
+  "@switchLanguage": {
+    "description": "Libelle du bouton de bascule de langue : il annonce toujours la langue vers laquelle on bascule."
+  }
+}
