@@ -32,6 +32,16 @@ palette en §10.1) et docs/maquettes.html (écrans).
 - Aucune donnée de salle écrite en dur dans le code.
 - Aucune clé ni secret dans le dépôt.
 
+## Vues publiques sans RLS
+Une vue exposée publiquement — venue_availability aujourd'hui — est sans RLS
+à dessein : elle ne montre que des colonnes publiques par nature, et c'est son
+propre WHERE qui borne les lignes qui sortent.
+
+N'y ajoute aucune colonne sans avoir vérifié qu'un inconnu, non connecté, a le
+droit de la lire. En cas de doute, la réponse est non : la colonne reste dans
+la table, derrière sa politique. Ne remplace pas non plus ce filtrage par
+security_invoker = true — la vue se viderait.
+
 ## Avant de me rendre la main
 Utilise la skill « verification ». Systématiquement, après toute
 modification.

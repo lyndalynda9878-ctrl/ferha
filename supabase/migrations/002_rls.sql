@@ -194,13 +194,30 @@ create policy venue_blackouts_write
 -- -----------------------------------------------------------------------------
 -- venue_availability — ce que le calendrier a le droit de voir
 --
--- La vue expose les créneaux bloqués sans leur motif. Elle s'exécute avec les
--- droits de son propriétaire (security_invoker = false, le défaut, écrit ici
--- explicitement parce que c'est tout l'argument) : elle traverse donc la
--- politique de venue_blackouts, et c'est son propre WHERE qui borne ce qui sort
--- — les salles publiées, plus les brouillons de celui qui regarde.
+-- CETTE VUE EST VOLONTAIREMENT SANS RLS.
+--
+-- Ce n'est pas un oubli, et il n'y a pas de politique à lui ajouter. Elle est
+-- ouverte parce que les trois colonnes qu'elle expose — venue_id, date, slot —
+-- sont publiques par nature : savoir qu'une salle publiée est prise le 14 août
+-- au soir, c'est précisément ce que le client vient chercher. Ce qui est
+-- confidentiel, c'est le motif du blocage, et il reste dans la table.
+--
+-- RÈGLE : n'ajouter aucune colonne à cette vue sans avoir vérifié qu'un
+-- inconnu, non connecté, a le droit de la lire. En cas de doute, la réponse est
+-- non — la colonne reste dans venue_blackouts, que seul le propriétaire lit.
+-- Ajouter reason ici annulerait tout l'intérêt de la vue.
+--
+-- Comment elle tient : elle s'exécute avec les droits de son propriétaire
+-- (security_invoker = false, le défaut, écrit ici explicitement parce que c'est
+-- tout l'argument). Elle traverse donc la politique de venue_blackouts, et
+-- c'est son propre WHERE qui borne ce qui sort — les salles publiées, plus les
+-- brouillons de celui qui regarde. La passer en security_invoker = true la
+-- viderait entièrement.
 --
 -- C'est cette vue que lit l'écran calendrier, jamais la table.
+--
+-- Le linter Supabase la signale comme « security definer view ». C'est un faux
+-- positif : la vue filtre elle-même, et n'expose que du public.
 -- -----------------------------------------------------------------------------
 
 create or replace view public.venue_availability
@@ -213,7 +230,8 @@ create or replace view public.venue_availability
   where public.can_read_venue(b.venue_id);
 
 comment on view public.venue_availability is
-  'Créneaux bloqués, sans le motif. Seule lecture publique de venue_blackouts (§9).';
+  'Créneaux bloqués, sans le motif. Seule lecture publique de venue_blackouts (§9). '
+  'Sans RLS à dessein : n''y ajouter aucune colonne qui ne soit lisible par un inconnu.';
 
 grant select on public.venue_availability to anon, authenticated;
 
