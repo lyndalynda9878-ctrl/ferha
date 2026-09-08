@@ -18,6 +18,8 @@ seulement :
 | 5 | `migrations/005_pricing.sql` | `estimate_price()` et ses tables | 002, 004 |
 | 6 | `migrations/006_rls_bookings.sql` | RLS des réservations | 004 |
 | 7 | `migrations/007_auth.sql` | Un compte créé, un profil créé | 001 |
+| 8 | `migrations/008_search.sql` | `search_venues()` — la recherche | 004, 005 |
+| 9 | `migrations/009_wilayas.sql` | Référentiel des 58 wilayas | 001 |
 
 `002` a besoin des tables de `001`. `003` a besoin de la table `amenities` de
 `001`, mais pas de `002`. Appliquer `002` avant `003` reste le bon ordre : le
@@ -46,9 +48,11 @@ psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/004_bookings.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/005_pricing.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/006_rls_bookings.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/007_auth.sql
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/008_search.sql
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/009_wilayas.sql
 ```
 
-Les sept fichiers sont **rejouables** : les relancer sur une base déjà à jour
+Les neuf fichiers sont **rejouables** : les relancer sur une base déjà à jour
 ne produit ni erreur ni doublon. `003` va plus loin et met à jour les libellés
 existants — c'est le moyen prévu pour corriger une traduction.
 
@@ -96,6 +100,23 @@ appelle et d'où l'on part (§9).
   toutes les clés étrangères du projet pointent vers `profiles`. La fonction
   n'avale jamais ses erreurs : elle normalise ses valeurs pour ne pas pouvoir
   échouer, plutôt que d'échouer en silence.
+- **La recherche filtre et tarife en base.** `search_venues()` (008) prend les
+  critères, écarte les salles et calcule le prix ; le Dart affiche des lignes.
+  C'est ce qui garantit que le montant d'une carte de résultat est le même que
+  celui de la fiche et que celui du devis — il vient d'`estimate_price()`, pour
+  la date demandée, majorations comprises. **Pas un « à partir de ».**
+  S'il devient tentant d'écarter une salle côté Flutter, c'est que la fonction
+  SQL est incomplète.
+- **`search_venues()` est `SECURITY DEFINER`**, comme la vue
+  `venue_availability` et pour la même raison : elle doit lire `bookings` pour
+  savoir si un créneau est pris, alors que cette table est fermée aux visiteurs
+  (§9). Elle ne renvoie que des colonnes publiques d'une salle **publiée** —
+  jamais le téléphone d'un propriétaire, jamais le motif d'un blocage, jamais
+  rien de `bookings`. N'y ajoutez aucune colonne sans avoir vérifié qu'un
+  inconnu a le droit de la lire.
+- **Une salle sans avis n'a pas de note.** `search_venues()` renvoie `NULL`, pas
+  `0.0` : l'écran n'affiche alors aucune étoile. « 0,0 (0) » ferait passer une
+  salle neuve pour une salle mal notée.
 - **Le prix se calcule dans `estimate_price()`, et nulle part ailleurs.** Ni en
   Dart, ni dans une seconde fonction SQL. Le trigger `bookings_set_price` jette
   le `quoted_amount` reçu à l'insertion et le remplace par celui
@@ -272,8 +293,21 @@ la passer en `security_invoker = true` — elle ne renverrait plus rien.
   Chargily.
 - `bookings.event_type` n'a **pas de contrainte** : le §4.2 cite « type
   d'événement » sans en fixer la liste. Un référentiel viendra.
-- Les libellés arabes du référentiel sont marqués `-- À RELIRE` dans
-  `003_amenities.sql`, en attente d'une relecture.
+- **`search_venues(p_event_type)` est accepté mais ne filtre pas.** Le §4.2
+  (CLI-01) liste le type d'événement parmi les filtres et les maquettes en
+  montrent les puces, mais **aucune table du §6 ne dit quels événements une
+  salle accueille**. Inventer une colonne et la laisser vide ferait un filtre
+  qui ne renvoie jamais rien — pire que pas de filtre. Le paramètre existe donc
+  déjà dans la signature : le jour où le modèle portera l'information, seul le
+  corps de la fonction changera.
+- **`venues.wilaya_code` n'a pas de clé étrangère vers `wilayas`.** Le
+  référentiel arrive en 009, la colonne existe depuis 001 : ajouter la
+  contrainte demande de vérifier d'abord qu'aucune salle ne porte un code
+  inconnu.
+- `search_venues()` appelle `estimate_price()` **une fois par salle**. Sans
+  incidence sur quinze salles ; à revoir si le catalogue grandit beaucoup.
+- Les libellés arabes des référentiels sont marqués `-- À RELIRE` dans
+  `003_amenities.sql` et `009_wilayas.sql`, en attente d'une relecture.
 
 ## Fermeture de compte : on anonymise, on ne supprime pas
 

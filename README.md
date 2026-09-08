@@ -4,8 +4,8 @@ Réservation de salles des fêtes en Algérie. Application Flutter, français et
 arabe.
 
 Ce dépôt contient pour l'instant **le socle** : thème, navigation,
-internationalisation, schéma de base de données, branchement sur Supabase et
-comptes utilisateurs. Aucun écran métier.
+internationalisation, schéma de base de données, branchement sur Supabase,
+comptes utilisateurs et **la recherche de salles**.
 
 ## Configuration
 
@@ -67,6 +67,7 @@ lib/
     theme/      palette « Ambre & ivoire », rayons, galerie de contrôle
   features/
     auth/       connexion, inscription, profil, session
+    search/     accueil (= recherche) et résultats
   main.dart
 supabase/
   migrations/   le schéma : tables, RLS, prix
@@ -75,6 +76,51 @@ supabase/
 ```
 
 La base de données a son propre document : [supabase/README.md](supabase/README.md).
+
+## La recherche
+
+L'accueil **est** la recherche (maquettes, écran 1) : où, quand, combien, et le
+bouton part. Les résultats (écran 2) gardent les filtres actifs en tête, chacun
+retirable d'un tap.
+
+**Rien n'est filtré ni calculé en Dart.** Une seule fonction SQL,
+`search_venues()`, prend les critères et renvoie des lignes déjà triées, déjà
+tarifées. Le prix d'une carte est celui de la **date choisie**, majorations du
+§5.2 comprises — pas un « à partir de », et pas un montant qui changerait entre
+la liste et la fiche.
+
+Le nombre d'invités sert deux fois : il écarte les salles trop petites, et il
+entre dans le calcul du prix comme nombre de couverts. « 300 invités » affiche
+donc le prix pour 300 couverts, supplément compris.
+
+Les critères voyagent dans l'URL (`/resultats?wilaya=31&date=…`) et non dans
+l'état : sur le web, une recherche se copie, se partage et survit à un
+rechargement.
+
+### Ce qui ne s'affiche pas
+
+Une salle **sans avis n'a pas d'étoiles**. Pas « 0,0 (0) » : une salle neuve
+n'est pas une salle mal notée. La base renvoie `NULL` plutôt que zéro, et
+l'écran d'accueil intitule sa liste « Salles à découvrir » tant qu'aucune note
+n'existe, « Les mieux notées » ensuite.
+
+### Les trois états
+
+| État | Ce qu'on voit |
+|---|---|
+| Chargement | des cartes squelettes, à la forme de ce qui arrive |
+| Vide | ce qui bloque, **nommé**, et un bouton par critère à retirer |
+| Erreur | le message traduit, un bouton Réessayer, et le détail technique repliable |
+
+L'état vide ne dit jamais « aucun résultat » tout court : il nomme le critère le
+plus probablement responsable — une date déjà prise, un budget sous le prix réel
+d'un vendredi d'été — et chaque piste proposée est un bouton qui retire
+vraiment ce critère.
+
+### Sans compte
+
+Chercher et consulter ne demandent **aucune connexion**. Voir la règle de
+navigation plus bas.
 
 ## Comptes et connexion
 
@@ -160,15 +206,9 @@ flutter run -d chrome --dart-define-from-file=env.json --print-dtd
 
 Depuis le code : `context.go(FerhaRoutes.design)`.
 
-Elle porte aussi, **temporairement**, un encart « État de la connexion » en
-deux lignes, parce que deux pannes différentes s'y distinguent :
-
-1. **la base** — nombre de salles publiées et nom de la première ;
-2. **l'authentification** — session ouverte ou non, et profil lu ou non.
-
-Une seule ligne pour les deux obligerait à deviner laquelle est tombée.
-Marqué `// TEMPORAIRE — retirer en J6`, il part avec le premier écran métier
-qui lit ces mêmes données.
+Elle a porté un temps un encart « État de la connexion », le temps de brancher
+l'application sur la base. Il a été retiré : l'écran de recherche lit désormais
+les mêmes données pour de bon, et une panne s'y verra sans instrument dédié.
 
 ## Documents
 
