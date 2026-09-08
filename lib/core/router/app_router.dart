@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/auth/connexion_screen.dart';
+import '../../features/auth/inscription_screen.dart';
+import '../../features/auth/profil_screen.dart';
 import '../theme/design_gallery_screen.dart';
 import 'home_shell.dart';
 import 'placeholder_screen.dart';
@@ -44,15 +47,33 @@ final routerProvider = Provider<GoRouter>((ref) {
               icon: Icons.favorite_outline,
             ),
           ),
-          _branch(
-            FerhaRoutes.profil,
-            const PlaceholderScreen(
-              title: 'Profil',
-              icon: Icons.person_outline,
-            ),
-          ),
+          _branch(FerhaRoutes.profil, const ProfilScreen()),
         ],
       ),
+
+      // AUCUNE REDIRECTION VERS LA CONNEXION, ICI NI AILLEURS.
+      //
+      // Un visiteur non connecté doit pouvoir chercher une salle et consulter
+      // une fiche : c'est le parcours du §3, dont les deux premières étapes se
+      // font sans compte. La connexion se demande au moment d'agir, par
+      // `exigerConnexion` (exiger_connexion.dart), depuis l'écran qui porte le
+      // geste. Une `redirect` posée ici fermerait le catalogue.
+      //
+      // Ces deux routes sont hors de la coque d'onglets : elles s'ouvrent
+      // par-dessus l'écran en cours, et se referment dessus.
+      GoRoute(
+        path: FerhaRoutes.connexion,
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => ConnexionScreen(
+          retour: state.uri.queryParameters[FerhaRoutes.parametreRetour],
+        ),
+      ),
+      GoRoute(
+        path: FerhaRoutes.inscription,
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const InscriptionScreen(),
+      ),
+
       // Route cachée : hors de la coque d'onglets, donc jamais atteignable
       // depuis la barre de navigation.
       GoRoute(

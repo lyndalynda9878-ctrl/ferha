@@ -15,6 +15,22 @@ abstract final class FerhaRoutes {
   /// Onglet 4 — profil et réglages.
   static const String profil = '/profil';
 
+  /// Connexion par e-mail et mot de passe.
+  ///
+  /// Hors de la barre d'onglets : on y entre par-dessus l'écran en cours, et
+  /// on en revient exactement là où l'on était.
+  static const String connexion = '/connexion';
+
+  /// Création de compte.
+  static const String inscription = '/inscription';
+
+  /// Paramètre de requête de [connexion] : la route à rejoindre une fois
+  /// connecté.
+  ///
+  /// `/connexion?retour=/salle/123` ramène le client sur la fiche qu'il
+  /// consultait, et non sur un accueil qui lui ferait tout recommencer.
+  static const String parametreRetour = 'retour';
+
   /// Route cachée : galerie de contrôle de l'identité visuelle.
   ///
   /// Volontairement absente de la barre d'onglets. On y accède par lien

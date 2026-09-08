@@ -29,6 +29,16 @@ Future<void> main() async {
       // supabase_flutter 2.17. Les deux paramètres aboutissent à la même clé
       // dans le paquet — une clé « anon » se passe donc ici telle quelle.
       publishableKey: FerhaEnv.supabaseAnonKey,
+      // La session survit à la fermeture de l'application. C'est le défaut du
+      // paquet ; on l'écrit quand même, parce que c'est une exigence du
+      // produit et non un détail d'implémentation — personne ne doit le
+      // désactiver sans s'en apercevoir.
+      //
+      // Concrètement : le jeton est rangé dans localStorage sur le web, dans
+      // SharedPreferences sur mobile, et `Supabase.initialize` le restaure
+      // avant que la première image ne s'affiche. Un utilisateur connecté ne
+      // voit donc jamais clignoter l'écran « connectez-vous ».
+      authOptions: const FlutterAuthClientOptions(persistSession: true),
     );
   } on Object catch (erreur) {
     // Une URL mal formée échoue ici, et pas plus tard au premier écran.
