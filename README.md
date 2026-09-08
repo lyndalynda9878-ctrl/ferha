@@ -91,6 +91,16 @@ Ils supposent que `supabase/seed/003_demo_accounts.sql` a été lancé. Les
 identifiants vivent dans `lib/features/auth/demo_accounts.dart`, et nulle part
 ailleurs.
 
+Le seed remplit `email_confirmed_at` sur ces comptes : ils fonctionnent donc
+**même si « Confirm email » est actif** sur le projet Supabase. C'est
+indispensable — personne ne recevra jamais de message à une adresse
+`@demo.ferha.dz`.
+
+En revanche, quand ce réglage est actif, une **inscription normale** depuis
+l'application n'ouvre pas de session : l'écran affiche « Vérifiez votre boîte
+mail », parce que c'est ce que le serveur a répondu. L'application ne fait rien
+de plus — le parcours de confirmation n'est pas traité.
+
 **La session survit à la fermeture de l'application** : le jeton est rangé dans
 `localStorage` sur le web, dans `SharedPreferences` sur mobile, et restauré par
 `Supabase.initialize()` avant la première image.

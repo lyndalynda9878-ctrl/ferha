@@ -86,7 +86,17 @@ $$;
 
 insert into auth.users (
   instance_id, id, aud, role, email,
-  encrypted_password, email_confirmed_at,
+  encrypted_password,
+  -- email_confirmed_at EST OBLIGATOIRE ICI. Si « Confirm email » est actif sur
+  -- le projet Supabase, GoTrue refuse la connexion de tout compte dont cette
+  -- colonne est nulle — avec un « Email not confirmed » qui n'a aucun sens
+  -- pour un compte de démonstration : personne ne recevra jamais le message,
+  -- l'adresse @demo.ferha.dz n'existe pas.
+  --
+  -- La remplir revient à confirmer l'adresse à la main, ce qui est exactement
+  -- ce qu'on veut : ces deux comptes doivent fonctionner en un tap, quel que
+  -- soit le réglage du projet. NE PAS LA RETIRER.
+  email_confirmed_at,
   created_at, updated_at,
   raw_app_meta_data, raw_user_meta_data,
   -- GoTrue lit ces colonnes comme des chaînes, pas comme des valeurs
@@ -136,14 +146,39 @@ where id = 'd0000000-0000-4000-a000-000000000001';
 -- Les autres propriétaires de démonstration ne servent pas à se connecter,
 -- mais leurs colonnes de jetons sont à NULL depuis 001 : GoTrue les lit dès
 -- qu'il liste les comptes, y compris dans le tableau de bord. On les normalise
--- toutes d'un coup.
+-- toutes d'un coup — et on confirme leur adresse au passage, pour qu'aucun
+-- compte de démonstration ne dépende du réglage « Confirm email » du projet.
 update auth.users set
+  email_confirmed_at        = coalesce(email_confirmed_at, now()),
   confirmation_token        = coalesce(confirmation_token, ''),
   recovery_token            = coalesce(recovery_token, ''),
   email_change              = coalesce(email_change, ''),
   email_change_token_new    = coalesce(email_change_token_new, ''),
   email_change_token_current = coalesce(email_change_token_current, '')
 where id::text like 'd0000000-%';
+
+-- Vérification, pas décoration : si une version de GoTrue rend
+-- email_confirmed_at non écrivable, ou si quelqu'un retire une des lignes
+-- ci-dessus, la connexion échouerait plus tard avec « Email not confirmed » et
+-- il faudrait remonter jusqu'ici pour comprendre. On le dit maintenant.
+do $$
+declare
+  v_non_confirmes integer;
+begin
+  select count(*) into v_non_confirmes
+  from auth.users u
+  where u.id::text like 'd0000000-%'
+    and u.email_confirmed_at is null;
+
+  if v_non_confirmes > 0 then
+    raise exception
+      '% compte(s) de démonstration ont email_confirmed_at à NULL. Ils '
+      'seront refusés si « Confirm email » est actif sur ce projet.',
+      v_non_confirmes
+      using hint = 'Authentication › Providers › Email, ou confirmez-les à la main.';
+  end if;
+end;
+$$;
 
 -- -----------------------------------------------------------------------------
 -- auth.identities — le fournisseur « email » de chaque compte
