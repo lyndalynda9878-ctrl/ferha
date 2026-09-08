@@ -138,6 +138,69 @@ appelle et d'où l'on part (§9).
   dire « pas de parking ». Deux endroits pour dire la même chose finissent
   toujours par se contredire.
 
+## Les photos : chemin de Storage, ou URL complète
+
+`venue_photos.storage_path` porte normalement un **chemin dans le bucket**
+`venue-photos`, de la forme `{venue_id}/{uuid}.webp` (§7.3). C'est ce que
+produira l'application quand un propriétaire téléversera ses photos.
+
+Les salles de démonstration, elles, portent une **URL Unsplash complète** :
+nous n'avons pas encore de photos réelles, et une application de salles des
+fêtes sans images ne se juge pas.
+
+**La règle, côté Flutter :**
+
+> Si `storage_path` commence par `http`, on l'affiche tel quel.
+> Sinon, on le résout dans le Storage.
+
+Deux lignes de code, un seul endroit. Le jour où les vraies photos arrivent,
+rien à changer : les nouvelles lignes porteront un chemin, les anciennes
+partiront avec `seed/002_reset_demo.sql`.
+
+**N'écrivez pas d'URL externe dans `venue_photos` en dehors de
+`seed/001_demo_venues.sql`.** C'est une exception de démonstration, pas une
+seconde façon de stocker une photo.
+
+## Données de démonstration
+
+Ce ne sont **pas** des migrations : elles ne créent aucune table et ne touchent
+à aucune contrainte. Elles vivent dans `seed/` pour qu'on puisse les lancer,
+les effacer et les relancer sans que le schéma bouge.
+
+| Fichier | Rôle |
+|---|---|
+| `seed/001_demo_venues.sql` | 4 propriétaires, 15 salles, 5 wilayas |
+| `seed/002_reset_demo.sql` | efface tout cela, et rien d'autre |
+
+```bash
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/seed/001_demo_venues.sql
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/seed/002_reset_demo.sql   # pour tout retirer
+```
+
+`001` est **rejouable** : comptes et salles sont posés en `ON CONFLICT`, les
+tables filles sont effacées puis réécrites. Le relancer ne crée aucun doublon
+et ramène les quinze salles à l'état décrit dans le fichier.
+
+Les identifiants portent une marque, et c'est par elle que `002` reconnaît ses
+données — pas par le nom, pas par la wilaya : un vrai propriétaire peut
+s'appeler Karim et tenir une salle à Oran.
+
+| Préfixe | Quoi |
+|---|---|
+| `d0000000-0000-4000-a000-…` | les quatre propriétaires de démonstration |
+| `5a11e000-0000-4000-a000-…` | les quinze salles |
+
+Treize salles sont `published`, **deux sont `pending`** — de quoi alimenter
+l'écran de validation du §4.4 (ADM-01). Une recherche cliente doit en trouver
+treize, jamais quinze.
+
+`002` **s'arrête net** si des réservations portent sur ces salles :
+`bookings.venue_id` est en `RESTRICT`, et une réservation est une trace
+comptable. Il vous dit lesquelles et vous laisse décider.
+
+**Aucune de ces données ne doit apparaître dans le code Flutter.** Il ne
+connaît que des requêtes.
+
 ## Ce que lit le calendrier
 
 | Objet | Qui lit | Contenu |
