@@ -548,6 +548,98 @@ insert into public.venue_blackouts (venue_id, date, slot, reason) values
 on conflict (venue_id, date, slot) do update set reason = excluded.reason;
 
 -- -----------------------------------------------------------------------------
+-- Un créneau pris, l'autre libre — la démonstration du produit
+--
+-- Le bloc ci-dessus suffisait à ce que le calendrier ne soit pas vide, mais pas
+-- à ce qu'il DÉMONTRE quelque chose : avec une à quatre dates par salle sur
+-- dix-huit mois, basculer de Midi à Soir ne changeait presque rien à l'écran.
+-- Or c'est précisément ce basculement qui vend le produit. La maquette de
+-- l'écran 4 le dit en une phrase : « un 14 août libre le midi et pris le soir
+-- doit se lire d'un coup d'œil. »
+--
+-- D'où ce second bloc, presque entièrement fait de créneaux UNIQUES. Août 2027
+-- de la Salle El Bahia reprend la densité de la maquette ; le 14 août y est
+-- pris le soir et libre à midi. La Résidence Les Andalouses prend l'inverse le
+-- même jour — midi pris, soir libre — pour que comparer deux salles serve.
+--
+-- Le 12 août d'El Bahia reste bloqué sur SES DEUX LIGNES, midi et soir : c'est
+-- ainsi qu'une journée entière se bloque (§6.1), et il en faut au moins une
+-- pour que ce cas-là se voie aussi.
+--
+-- Ces dates tombent en juin, juillet et août : saison des mariages, et haute
+-- saison du §5.2. Le calendrier et la majoration se lisent donc ensemble.
+-- -----------------------------------------------------------------------------
+
+insert into public.venue_blackouts (venue_id, date, slot, reason) values
+  -- 1. Salle El Bahia — juillet, un créneau sur deux
+  ('5a11e000-0000-4000-a000-000000000001', date '2027-07-10', 'midi',   'Réservation prise par téléphone'),
+  ('5a11e000-0000-4000-a000-000000000001', date '2027-07-17', 'soir',   'Mariage de famille'),
+  ('5a11e000-0000-4000-a000-000000000001', date '2027-07-24', 'midi',   'Séminaire d''entreprise'),
+  -- 1. Salle El Bahia — août 2027, le mois de la maquette
+  ('5a11e000-0000-4000-a000-000000000001', date '2027-08-01', 'soir',   'Réservation prise par téléphone'),
+  ('5a11e000-0000-4000-a000-000000000001', date '2027-08-02', 'midi',   'Réservation prise par téléphone'),
+  ('5a11e000-0000-4000-a000-000000000001', date '2027-08-06', 'soir',   'Mariage de famille'),
+  ('5a11e000-0000-4000-a000-000000000001', date '2027-08-07', 'midi',   'Réservation prise par téléphone'),
+  ('5a11e000-0000-4000-a000-000000000001', date '2027-08-08', 'soir',   'Réservation prise par téléphone'),
+  ('5a11e000-0000-4000-a000-000000000001', date '2027-08-09', 'midi',   'Fiançailles'),
+  -- Journée entière : DEUX lignes, midi et soir (§6.1).
+  ('5a11e000-0000-4000-a000-000000000001', date '2027-08-12', 'midi',   'Fermeture — inventaire'),
+  ('5a11e000-0000-4000-a000-000000000001', date '2027-08-12', 'soir',   'Fermeture — inventaire'),
+  ('5a11e000-0000-4000-a000-000000000001', date '2027-08-13', 'soir',   'Réservation prise par téléphone'),
+  -- Le 14 août est déjà pris le soir plus haut : il reste libre à midi.
+  ('5a11e000-0000-4000-a000-000000000001', date '2027-08-15', 'midi',   'Réservation prise par téléphone'),
+  ('5a11e000-0000-4000-a000-000000000001', date '2027-08-20', 'soir',   'Mariage de famille'),
+  ('5a11e000-0000-4000-a000-000000000001', date '2027-08-21', 'midi',   'Réservation prise par téléphone'),
+  ('5a11e000-0000-4000-a000-000000000001', date '2027-08-22', 'soir',   'Réservation prise par téléphone'),
+  ('5a11e000-0000-4000-a000-000000000001', date '2027-08-28', 'midi',   'Réservation prise par téléphone'),
+  ('5a11e000-0000-4000-a000-000000000001', date '2027-08-29', 'soir',   'Mariage de famille'),
+
+  -- 2. Résidence Les Andalouses — le 14 août pris à MIDI, libre le soir :
+  --    l'inverse exact d'El Bahia.
+  ('5a11e000-0000-4000-a000-000000000002', date '2027-07-02', 'soir',   'Réservation prise par téléphone'),
+  ('5a11e000-0000-4000-a000-000000000002', date '2027-07-09', 'midi',   'Séminaire d''entreprise'),
+  ('5a11e000-0000-4000-a000-000000000002', date '2027-07-16', 'soir',   'Mariage de famille'),
+  ('5a11e000-0000-4000-a000-000000000002', date '2027-07-23', 'midi',   'Réservation prise par téléphone'),
+  ('5a11e000-0000-4000-a000-000000000002', date '2027-07-30', 'soir',   'Réservation prise par téléphone'),
+  ('5a11e000-0000-4000-a000-000000000002', date '2027-08-06', 'midi',   'Réservation prise par téléphone'),
+  ('5a11e000-0000-4000-a000-000000000002', date '2027-08-13', 'soir',   'Mariage de famille'),
+  ('5a11e000-0000-4000-a000-000000000002', date '2027-08-14', 'midi',   'Réservation prise par téléphone'),
+  ('5a11e000-0000-4000-a000-000000000002', date '2027-08-20', 'midi',   'Fiançailles'),
+  ('5a11e000-0000-4000-a000-000000000002', date '2027-08-27', 'soir',   'Réservation prise par téléphone'),
+
+  -- 3. Salle Ennour
+  ('5a11e000-0000-4000-a000-000000000003', date '2027-06-25', 'soir',   'Réservation prise par téléphone'),
+  ('5a11e000-0000-4000-a000-000000000003', date '2027-07-02', 'midi',   'Circoncision'),
+  ('5a11e000-0000-4000-a000-000000000003', date '2027-07-09', 'soir',   'Mariage de famille'),
+  ('5a11e000-0000-4000-a000-000000000003', date '2027-07-23', 'midi',   'Réservation prise par téléphone'),
+  ('5a11e000-0000-4000-a000-000000000003', date '2027-07-31', 'soir',   'Réservation prise par téléphone'),
+  ('5a11e000-0000-4000-a000-000000000003', date '2027-08-07', 'midi',   'Réservation prise par téléphone'),
+  ('5a11e000-0000-4000-a000-000000000003', date '2027-08-14', 'soir',   'Mariage de famille'),
+  ('5a11e000-0000-4000-a000-000000000003', date '2027-08-15', 'midi',   'Réservation prise par téléphone'),
+  ('5a11e000-0000-4000-a000-000000000003', date '2027-08-21', 'soir',   'Réservation prise par téléphone'),
+  ('5a11e000-0000-4000-a000-000000000003', date '2027-08-28', 'midi',   'Fiançailles'),
+
+  -- Les quatre salles qui n'avaient qu'une seule date bloquée : un calendrier
+  -- vide se lit comme un calendrier cassé.
+  -- 6. Espace Nour El Houda
+  ('5a11e000-0000-4000-a000-000000000006', date '2027-07-03', 'midi',   'Réservation prise par téléphone'),
+  ('5a11e000-0000-4000-a000-000000000006', date '2027-08-07', 'soir',   'Mariage de famille'),
+  ('5a11e000-0000-4000-a000-000000000006', date '2027-08-21', 'midi',   'Réservation prise par téléphone'),
+  -- 9. Salle Ibn Khaldoun
+  ('5a11e000-0000-4000-a000-000000000009', date '2027-07-10', 'midi',   'Séminaire d''entreprise'),
+  ('5a11e000-0000-4000-a000-000000000009', date '2027-07-31', 'soir',   'Réservation prise par téléphone'),
+  ('5a11e000-0000-4000-a000-000000000009', date '2027-08-27', 'midi',   'Réservation prise par téléphone'),
+  -- 12. Salle El Wiam
+  ('5a11e000-0000-4000-a000-000000000012', date '2027-07-17', 'midi',   'Réservation prise par téléphone'),
+  ('5a11e000-0000-4000-a000-000000000012', date '2027-08-08', 'soir',   'Mariage de famille'),
+  ('5a11e000-0000-4000-a000-000000000012', date '2027-08-22', 'midi',   'Circoncision'),
+  -- 15. Salle Rhumel
+  ('5a11e000-0000-4000-a000-000000000015', date '2027-06-26', 'midi',   'Réservation prise par téléphone'),
+  ('5a11e000-0000-4000-a000-000000000015', date '2027-07-24', 'soir',   'Mariage de famille'),
+  ('5a11e000-0000-4000-a000-000000000015', date '2027-08-18', 'midi',   'Réservation prise par téléphone')
+on conflict (venue_id, date, slot) do update set reason = excluded.reason;
+
+-- -----------------------------------------------------------------------------
 -- Types d'événement acceptés (§4.2, CLI-01)
 --
 -- Douze salles sur quinze acceptent tout ; trois refusent quelque chose, et
@@ -618,4 +710,4 @@ select
 
 
 -- Attendu : 15 salles, 13 publiées, 2 en attente, 45 lignes tarifaires,
---           71 photos, 86 équipements, 31 dates bloquées, 68 types d'événement.
+--           71 photos, 86 équipements, 81 dates bloquées, 68 types d'événement.
