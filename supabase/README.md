@@ -60,7 +60,8 @@ Le catalogue :
 Les réservations :
 
 `bookings`, `payments`, `reviews`, `notifications`, plus `venue_options` et
-`high_season_periods`, qui servent la formule de prix.
+`high_season_periods`, qui servent la formule de prix — ces deux dernières ont
+été ajoutées au §6 du cahier des charges, le document est à jour.
 
 Les tables `messages`, `venue_embeddings`, `kb_documents`, `ai_cache` et
 `ai_conversations` du §6 ne sont pas encore écrites.
@@ -150,18 +151,12 @@ la passer en `security_invoker = true` — elle ne renverrait plus rien.
 
 ## Points à reprendre plus tard
 
-- `profiles` n'est lisible que par son titulaire. Le téléphone passe désormais
-  par `booking_contact()` (§9), mais **l'affichage public du nom d'un
-  propriétaire sur une fiche salle n'a pas de chemin** : il faudra une seconde
-  fonction, qui ne renverra pas le numéro. Ne pas élargir `booking_contact()`.
-- La suppression d'un profil supprime ses salles en cascade, mais
-  `bookings.venue_id` et `bookings.client_id` sont en `RESTRICT` : la
-  suppression échoue désormais si des réservations existent. C'est le
-  comportement voulu, et c'est aussi un conflit avec la loi 18-07 (§9), qui
-  demande une suppression de compte. À trancher : anonymiser plutôt que
-  supprimer.
-- `venue_options` est un **ajout au modèle du §6**, qui ne listait pas de table
-  d'options alors que la formule du §5.2 en additionne le prix. À confirmer.
+- **Le nom public d'un propriétaire n'a pas encore de chemin.** `profiles` reste
+  lisible par son seul titulaire, et `booking_contact()` ne doit pas être
+  élargi pour ça — il porte le téléphone. Ce sera traité à l'étape de la fiche
+  salle, par une **vue distincte n'exposant que le prénom** des propriétaires
+  ayant au moins une salle publiée. Prénom seul, pas de nom de famille, pas
+  d'e-mail, pas de numéro.
 - `high_season_periods` arrive **vide**. Tant qu'elle l'est, seuls juin à
   septembre majorent ; les vacances scolaires du §5.2 doivent y être déposées
   année par année.
@@ -173,6 +168,27 @@ la passer en `security_invoker = true` — elle ne renverrait plus rien.
   d'événement » sans en fixer la liste. Un référentiel viendra.
 - Les libellés arabes du référentiel sont marqués `-- À RELIRE` dans
   `003_amenities.sql`, en attente d'une relecture.
+
+## Fermeture de compte : on anonymise, on ne supprime pas
+
+**Décision prise, pas encore écrite en SQL.**
+
+La loi 18-07 demande de pouvoir fermer un compte (§9). Mais une réservation
+passée est une **trace comptable** : elle ne peut pas s'évaporer, et l'autre
+partie a le droit de retrouver ce qu'elle a vendu ou acheté.
+
+Fermer un compte remplacera donc son `full_name`, son `email` et son `phone`
+par des valeurs neutres. Les `bookings`, `payments` et `reviews` restent en
+place, rattachés au même identifiant.
+
+C'est aussi pourquoi `bookings.client_id` et `bookings.venue_id` sont en
+`RESTRICT` et non en `CASCADE` : une suppression franche doit **échouer**
+plutôt que d'emporter l'historique en silence. Le `RESTRICT` n'est pas un
+obstacle à contourner le jour où l'on écrira la fermeture de compte — c'est le
+filet qui garantit qu'on l'écrira comme une anonymisation.
+
+Reste à décider au moment de l'écrire : ce que devient le `full_name` affiché
+sur un avis déjà publié.
 
 ## Tests
 

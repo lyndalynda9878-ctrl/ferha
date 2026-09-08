@@ -1,7 +1,7 @@
 # Ferha — règles du projet
 
 Application Flutter de réservation de salles des fêtes en Algérie.
-Références : docs/cahier-des-charges.html (produit, base de données,
+Références : docs/cahier-des-charges_1.html (produit, base de données,
 palette en §10.1) et docs/maquettes.html (écrans).
 
 ## Avant d'écrire du code
@@ -31,6 +31,23 @@ palette en §10.1) et docs/maquettes.html (écrans).
   sécurisées, jamais par le client.
 - Aucune donnée de salle écrite en dur dans le code.
 - Aucune clé ni secret dans le dépôt.
+- Le prix vient d'estimate_price(), et de nulle part ailleurs. Pas une
+  seconde formule, ni en Dart, ni en SQL.
+- Un compte fermé s'anonymise, il ne se supprime pas. Voir ci-dessous.
+
+## Fermer un compte, c'est anonymiser
+La loi 18-07 demande de pouvoir fermer un compte. Une réservation passée
+est une trace comptable : elle ne peut pas s'évaporer, et l'autre partie
+a le droit de retrouver ce qu'elle a vendu ou acheté.
+
+Fermer un compte remplace donc full_name, email et phone par des valeurs
+neutres. Les bookings, payments et reviews restent en place, rattachés au
+même identifiant.
+
+C'est pourquoi bookings.client_id et bookings.venue_id sont en RESTRICT :
+une suppression franche doit échouer plutôt que d'emporter l'historique
+en silence. Ne passe jamais ces clés en CASCADE pour faire passer une
+suppression — c'est le filet qui garantit qu'on écrira une anonymisation.
 
 ## Vues publiques sans RLS
 Une vue exposée publiquement — venue_availability aujourd'hui — est sans RLS
