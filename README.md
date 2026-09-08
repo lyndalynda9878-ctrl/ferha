@@ -97,6 +97,13 @@ Les critères voyagent dans l'URL (`/resultats?wilaya=31&date=…`) et non dans
 l'état : sur le web, une recherche se copie, se partage et survit à un
 rechargement.
 
+Le filtre **type d'événement** retire vraiment des salles : `venue_event_types`
+dit ce que chaque salle accepte. Trois salles de démonstration refusent quelque
+chose, pour que le filtre se voie à l'usage — le grand palais de Zéralda ne
+fait que mariages et fiançailles, la petite salle d'Ouled Yaïch ne fait pas de
+mariage. Une salle qui n'a **rien déclaré accepte tout** : le silence d'un
+propriétaire ne vaut pas refus.
+
 ### Ce qui ne s'affiche pas
 
 Une salle **sans avis n'a pas d'étoiles**. Pas « 0,0 (0) » : une salle neuve

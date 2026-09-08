@@ -25,6 +25,20 @@ palette en §10.1) et docs/maquettes.html (écrans).
   l'application est bilingue français / arabe.
 - Thème clair ET sombre pour chaque nouvel écran.
 
+## Maquettes et charte : qui dit quoi
+Les maquettes donnent la STRUCTURE — ce qu'il y a sur l'écran, dans quel
+ordre, quelle information à côté de quelle autre, quelle hiérarchie.
+La section 10.1 donne les VALEURS — couleurs et rayons.
+
+En cas de désaccord, la charte gagne. Les maquettes sont dessinées dans
+un cadre de 256 px de large pour un téléphone de 390 : leurs mesures
+remises à l'échelle ne retombent pas sur les valeurs de la charte, et
+c'est normal. Un rayon de carte de 13 px dans le mockup ne veut pas dire
+20 px dans l'application — il veut dire FerhaRadii.card.
+
+Les rayons passent donc par FerhaRadii, comme les couleurs par
+FerhaColors. Aucun rayon écrit à la main dans un écran.
+
 ## Règles métier non négociables
 - Les prix sont calculés en base de données, jamais en Dart.
 - Les changements d'état d'une réservation passent par des fonctions SQL

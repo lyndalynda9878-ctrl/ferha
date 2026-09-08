@@ -20,6 +20,7 @@ seulement :
 | 7 | `migrations/007_auth.sql` | Un compte créé, un profil créé | 001 |
 | 8 | `migrations/008_search.sql` | `search_venues()` — la recherche | 004, 005 |
 | 9 | `migrations/009_wilayas.sql` | Référentiel des 58 wilayas | 001 |
+| 10 | `migrations/010_event_types.sql` | Types d'événement — **redéfinit `search_venues()`** | 002, 008 |
 
 `002` a besoin des tables de `001`. `003` a besoin de la table `amenities` de
 `001`, mais pas de `002`. Appliquer `002` avant `003` reste le bon ordre : le
@@ -50,9 +51,10 @@ psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/006_rls_bookings.
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/007_auth.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/008_search.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/009_wilayas.sql
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/010_event_types.sql
 ```
 
-Les neuf fichiers sont **rejouables** : les relancer sur une base déjà à jour
+Les dix fichiers sont **rejouables** : les relancer sur une base déjà à jour
 ne produit ni erreur ni doublon. `003` va plus loin et met à jour les libellés
 existants — c'est le moyen prévu pour corriger une traduction.
 
@@ -114,6 +116,16 @@ appelle et d'où l'on part (§9).
   jamais le téléphone d'un propriétaire, jamais le motif d'un blocage, jamais
   rien de `bookings`. N'y ajoutez aucune colonne sans avoir vérifié qu'un
   inconnu a le droit de la lire.
+- **Le filtre « type d'événement » est vrai.** `venue_event_types` (010) dit ce
+  qu'une salle accepte, et `search_venues()` s'en sert. **Aucune ligne = la
+  salle accepte tout** : un propriétaire qui n'a pas encore répondu à la
+  question ne doit pas disparaître du catalogue. Traiter le vide comme un refus
+  aurait fait s'évanouir toutes les salles existantes le jour où la migration
+  s'applique.
+- **`search_venues()` vit dans `010`, pas dans `008`.** La version de `008` ne
+  pouvait pas filtrer sur une table qui n'existait pas encore. On ne réécrit
+  pas une migration déjà appliquée : `008` reste tel quel avec un renvoi en
+  tête, et c'est `010` qu'il faut modifier.
 - **Une salle sans avis n'a pas de note.** `search_venues()` renvoie `NULL`, pas
   `0.0` : l'écran n'affiche alors aucune étoile. « 0,0 (0) » ferait passer une
   salle neuve pour une salle mal notée.
@@ -200,7 +212,7 @@ les effacer et les relancer sans que le schéma bouge.
 
 | Fichier | Rôle |
 |---|---|
-| `seed/001_demo_venues.sql` | 4 propriétaires, 15 salles, 5 wilayas |
+| `seed/001_demo_venues.sql` | 4 propriétaires, 15 salles, 5 wilayas, types d'événement |
 | `seed/003_demo_accounts.sql` | 2 comptes qui se connectent — **après 001 et 007** |
 | `seed/002_reset_demo.sql` | efface tout cela, et rien d'autre |
 
@@ -293,13 +305,10 @@ la passer en `security_invoker = true` — elle ne renverrait plus rien.
   Chargily.
 - `bookings.event_type` n'a **pas de contrainte** : le §4.2 cite « type
   d'événement » sans en fixer la liste. Un référentiel viendra.
-- **`search_venues(p_event_type)` est accepté mais ne filtre pas.** Le §4.2
-  (CLI-01) liste le type d'événement parmi les filtres et les maquettes en
-  montrent les puces, mais **aucune table du §6 ne dit quels événements une
-  salle accueille**. Inventer une colonne et la laisser vide ferait un filtre
-  qui ne renvoie jamais rien — pire que pas de filtre. Le paramètre existe donc
-  déjà dans la signature : le jour où le modèle portera l'information, seul le
-  corps de la fonction changera.
+- **`bookings.event_type` n'a pas de clé étrangère vers `event_types`.** La
+  colonne est du texte libre depuis `004`, écrite avant que le référentiel
+  existe. L'ajouter demande d'abord de vérifier qu'aucune réservation ne porte
+  une valeur hors référentiel.
 - **`venues.wilaya_code` n'a pas de clé étrangère vers `wilayas`.** Le
   référentiel arrive en 009, la colonne existe depuis 001 : ajouter la
   contrainte demande de vérifier d'abord qu'aucune salle ne porte un code
