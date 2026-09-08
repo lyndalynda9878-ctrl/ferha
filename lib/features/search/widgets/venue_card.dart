@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/supabase/supabase_providers.dart';
+import '../../../core/widgets/photo_salle.dart';
 import '../../../core/theme/ferha_colors.dart';
 import '../../../core/theme/ferha_radii.dart';
 import '../search_filters.dart';
@@ -49,7 +49,10 @@ class VenueCard extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            _Photo(chemin: salle.photoCouverture, hauteur: dense ? 108 : 140),
+            PhotoSalle(
+              chemin: salle.photoCouverture,
+              hauteur: dense ? 108 : 140,
+            ),
             Padding(
               padding: const EdgeInsetsDirectional.all(12),
               child: Column(
@@ -93,71 +96,6 @@ class VenueCard extends ConsumerWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-/// La photo de couverture.
-///
-/// Applique la règle du dépôt : une valeur qui commence par `http` est une URL
-/// et s'affiche telle quelle — c'est le cas des salles de démonstration ;
-/// sinon c'est un chemin dans le bucket `venue-photos` et on le résout.
-class _Photo extends ConsumerWidget {
-  const _Photo({required this.chemin, required this.hauteur});
-
-  final String? chemin;
-  final double hauteur;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final colors = context.ferhaColors;
-
-    if (chemin == null || chemin!.isEmpty) {
-      return _Vide(hauteur: hauteur, couleur: colors.surfaceSecondary);
-    }
-
-    final url = chemin!.startsWith('http')
-        ? chemin!
-        : ref
-              .watch(supabaseClientProvider)
-              .storage
-              .from('venue-photos')
-              .getPublicUrl(chemin!);
-
-    return Image.network(
-      url,
-      height: hauteur,
-      width: double.infinity,
-      fit: BoxFit.cover,
-      // Une photo qui ne charge pas ne doit pas trouer la carte : on retombe
-      // sur le même bloc que l'absence de photo.
-      errorBuilder: (_, _, _) =>
-          _Vide(hauteur: hauteur, couleur: colors.surfaceSecondary),
-      loadingBuilder: (context, enfant, progression) => progression == null
-          ? enfant
-          : _Vide(hauteur: hauteur, couleur: colors.surfaceSecondary),
-    );
-  }
-}
-
-class _Vide extends StatelessWidget {
-  const _Vide({required this.hauteur, required this.couleur});
-
-  final double hauteur;
-  final Color couleur;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: hauteur,
-      width: double.infinity,
-      color: couleur,
-      alignment: AlignmentDirectional.center,
-      child: Icon(
-        Icons.image_outlined,
-        size: 28,
-        color: context.ferhaColors.inkTertiary,
       ),
     );
   }
