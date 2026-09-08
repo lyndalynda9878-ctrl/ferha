@@ -242,12 +242,15 @@ class _AccueilScreenState extends ConsumerState<AccueilScreen> {
               ),
           const SizedBox(height: 24),
 
-          FilledButton(
-            onPressed: _rechercher,
-            style: FilledButton.styleFrom(
-              padding: const EdgeInsetsDirectional.symmetric(vertical: 16),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: _rechercher,
+              style: FilledButton.styleFrom(
+                padding: const EdgeInsetsDirectional.symmetric(vertical: 16),
+              ),
+              child: const Text('Rechercher'),
             ),
-            child: const Text('Rechercher'),
           ),
           const SizedBox(height: 32),
 

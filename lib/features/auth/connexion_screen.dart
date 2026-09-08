@@ -171,11 +171,14 @@ class _ConnexionScreenState extends ConsumerState<ConnexionScreen> {
                     : null,
               ),
               const SizedBox(height: 24),
-              FilledButton(
-                onPressed: _enCours ? null : _soumettre,
-                child: _enCours
-                    ? const _Patiente()
-                    : const Text('Se connecter'),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: _enCours ? null : _soumettre,
+                  child: _enCours
+                      ? const _Patiente()
+                      : const Text('Se connecter'),
+                ),
               ),
             ],
           ),
@@ -240,12 +243,15 @@ class _BoutonDemo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FilledButton.tonalIcon(
-      onPressed: enCours ? null : onPressed,
-      icon: Icon(icone, size: 20),
-      label: Text(compte.libelle),
-      style: FilledButton.styleFrom(
-        padding: const EdgeInsetsDirectional.symmetric(vertical: 16),
+    return SizedBox(
+      width: double.infinity,
+      child: FilledButton.tonalIcon(
+        onPressed: enCours ? null : onPressed,
+        icon: Icon(icone, size: 20),
+        label: Text(compte.libelle),
+        style: FilledButton.styleFrom(
+          padding: const EdgeInsetsDirectional.symmetric(vertical: 16),
+        ),
       ),
     );
   }

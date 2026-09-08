@@ -61,11 +61,25 @@ abstract final class FerhaTheme {
         space: 1,
         thickness: 1,
       ),
+      // Size(0, 48) ET SURTOUT PAS Size.fromHeight(48).
+      //
+      // Les deux posent la meme hauteur minimale, mais `Size.fromHeight`
+      // vaut `Size(double.infinity, 48)` : elle impose aussi une largeur
+      // MINIMALE INFINIE. Dans une Column la largeur est bornee par le
+      // parent, le bouton la prend toute, et tout va bien - c'est ce qui
+      // rendait le piege invisible. Dans une Row, une Wrap ou les actions
+      // d'un AlertDialog, l'enfant recoit une largeur non bornee : le
+      // ConstrainedBox du bouton exige alors l'infini, et le rendu echoue
+      // sur « BoxConstraints forces an infinite width » - ecran blanc.
+      //
+      // La hauteur se pose donc ici, et la pleine largeur s'ecrit la ou on
+      // la veut, dans un SizedBox. Une largeur ne se decide pas depuis un
+      // theme : elle depend du parent, que le theme ne connait pas.
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           backgroundColor: colors.primary,
           foregroundColor: colors.onPrimary,
-          minimumSize: const Size.fromHeight(48),
+          minimumSize: const Size(0, 48),
           padding: const EdgeInsetsDirectional.symmetric(
             horizontal: 20,
             vertical: 12,
@@ -81,7 +95,8 @@ abstract final class FerhaTheme {
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: colors.primaryDeep,
-          minimumSize: const Size.fromHeight(48),
+          // Meme raison qu'au-dessus.
+          minimumSize: const Size(0, 48),
           side: BorderSide(color: colors.rule),
           shape: const RoundedRectangleBorder(
             borderRadius: FerhaRadii.cardBorder,

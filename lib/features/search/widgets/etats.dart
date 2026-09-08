@@ -196,10 +196,13 @@ class EtatErreur extends StatelessWidget {
                 style: text.bodyMedium?.copyWith(color: colors.inkSecondary),
               ),
               const SizedBox(height: 20),
-              FilledButton.icon(
-                onPressed: onReessayer,
-                icon: const Icon(Icons.refresh, size: 18),
-                label: const Text('Réessayer'),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: onReessayer,
+                  icon: const Icon(Icons.refresh, size: 18),
+                  label: const Text('Réessayer'),
+                ),
               ),
               const SizedBox(height: 16),
               // Le détail technique reste accessible sans encombrer : replié

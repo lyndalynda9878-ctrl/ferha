@@ -194,18 +194,21 @@ class _InscriptionScreenState extends ConsumerState<InscriptionScreen> {
                 },
               ),
               const SizedBox(height: 24),
-              FilledButton(
-                onPressed: _enCours ? null : _sInscrire,
-                child: _enCours
-                    ? SizedBox(
-                        height: 18,
-                        width: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Theme.of(context).colorScheme.onPrimary,
-                        ),
-                      )
-                    : const Text('Créer mon compte'),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: _enCours ? null : _sInscrire,
+                  child: _enCours
+                      ? SizedBox(
+                          height: 18,
+                          width: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Theme.of(context).colorScheme.onPrimary,
+                          ),
+                        )
+                      : const Text('Créer mon compte'),
+                ),
               ),
             ],
           ),

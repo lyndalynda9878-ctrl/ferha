@@ -88,14 +88,20 @@ class _ProfilVisiteur extends StatelessWidget {
                 style: text.bodyMedium?.copyWith(color: colors.inkSecondary),
               ),
               const SizedBox(height: 28),
-              FilledButton(
-                onPressed: () => context.push(FerhaRoutes.connexion),
-                child: const Text('Se connecter'),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: () => context.push(FerhaRoutes.connexion),
+                  child: const Text('Se connecter'),
+                ),
               ),
               const SizedBox(height: 10),
-              OutlinedButton(
-                onPressed: () => context.push(FerhaRoutes.inscription),
-                child: const Text('Créer un compte'),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: () => context.push(FerhaRoutes.inscription),
+                  child: const Text('Créer un compte'),
+                ),
               ),
             ],
           ),
@@ -206,10 +212,13 @@ class _ProfilConnecte extends ConsumerWidget {
             ),
 
             const SizedBox(height: 32),
-            OutlinedButton.icon(
-              onPressed: () => _deconnecter(context, ref),
-              icon: const Icon(Icons.logout, size: 18),
-              label: const Text('Se déconnecter'),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => _deconnecter(context, ref),
+                icon: const Icon(Icons.logout, size: 18),
+                label: const Text('Se déconnecter'),
+              ),
             ),
           ],
         );
@@ -335,9 +344,12 @@ class _ErreurProfil extends StatelessWidget {
               style: text.bodyMedium?.copyWith(color: colors.inkSecondary),
             ),
             const SizedBox(height: 20),
-            FilledButton.tonal(
-              onPressed: onReessayer,
-              child: const Text('Réessayer'),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.tonal(
+                onPressed: onReessayer,
+                child: const Text('Réessayer'),
+              ),
             ),
           ],
         ),
