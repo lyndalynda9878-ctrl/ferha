@@ -5,6 +5,9 @@ import 'package:go_router/go_router.dart';
 import '../../features/auth/connexion_screen.dart';
 import '../../features/auth/inscription_screen.dart';
 import '../../features/auth/profil_screen.dart';
+import '../../features/search/accueil_screen.dart';
+import '../../features/search/resultats_screen.dart';
+import '../../features/search/search_filters.dart';
 import '../theme/design_gallery_screen.dart';
 import 'home_shell.dart';
 import 'placeholder_screen.dart';
@@ -26,13 +29,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state, navigationShell) =>
             HomeShell(navigationShell: navigationShell),
         branches: <StatefulShellBranch>[
-          _branch(
-            FerhaRoutes.accueil,
-            const PlaceholderScreen(
-              title: 'Accueil',
-              icon: Icons.home_outlined,
-            ),
-          ),
+          _branch(FerhaRoutes.accueil, const AccueilScreen()),
           _branch(
             FerhaRoutes.assistant,
             const PlaceholderScreen(
@@ -59,8 +56,19 @@ final routerProvider = Provider<GoRouter>((ref) {
       // `exigerConnexion` (exiger_connexion.dart), depuis l'écran qui porte le
       // geste. Une `redirect` posée ici fermerait le catalogue.
       //
-      // Ces deux routes sont hors de la coque d'onglets : elles s'ouvrent
-      // par-dessus l'écran en cours, et se referment dessus.
+      // Les routes qui suivent sont hors de la coque d'onglets : elles
+      // s'ouvrent par-dessus l'écran en cours, et se referment dessus.
+
+      // Les résultats de recherche. Le bouton retour ramène à l'accueil avec
+      // ses critères intacts, et l'URL porte la recherche entière.
+      GoRoute(
+        path: FerhaRoutes.resultats,
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => ResultatsScreen(
+          filtres: SearchFilters.depuisParametres(state.uri.queryParameters),
+        ),
+      ),
+
       GoRoute(
         path: FerhaRoutes.connexion,
         parentNavigatorKey: _rootNavigatorKey,

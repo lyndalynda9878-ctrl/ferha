@@ -15,6 +15,16 @@ abstract final class FerhaRoutes {
   /// Onglet 4 — profil et réglages.
   static const String profil = '/profil';
 
+  /// Résultats de recherche.
+  ///
+  /// Hors de la barre d'onglets : les résultats s'ouvrent par-dessus l'accueil
+  /// et se referment dessus, avec les critères intacts.
+  ///
+  /// Les critères voyagent en paramètres de requête et non par `extra` :
+  /// sur le web, une recherche doit pouvoir se copier, se partager et survivre
+  /// à un rechargement de page.
+  static const String resultats = '/resultats';
+
   /// Connexion par e-mail et mot de passe.
   ///
   /// Hors de la barre d'onglets : on y entre par-dessus l'écran en cours, et
