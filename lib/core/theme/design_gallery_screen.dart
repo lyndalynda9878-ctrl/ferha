@@ -188,6 +188,23 @@ class _Swatches extends StatelessWidget {
         color: colors.slotUnavailableSoft,
         usage: 'Calendrier',
       ),
+      // Les trois seuls jetons identiques en clair et en sombre : une galerie
+      // plein écran est sombre dans les deux thèmes.
+      (
+        label: 'Fond de galerie',
+        color: colors.galleryBackdrop,
+        usage: 'Galerie plein écran',
+      ),
+      (
+        label: 'Encre sur galerie',
+        color: colors.onGallery,
+        usage: 'Galerie plein écran',
+      ),
+      (
+        label: 'Encre discrète sur galerie',
+        color: colors.onGalleryMuted,
+        usage: 'Galerie plein écran',
+      ),
     ];
 
     return Column(

@@ -34,6 +34,9 @@ class FerhaColors extends ThemeExtension<FerhaColors> {
     required this.slotBookedSoft,
     required this.slotUnavailable,
     required this.slotUnavailableSoft,
+    required this.galleryBackdrop,
+    required this.onGallery,
+    required this.onGalleryMuted,
   });
 
   /// Ambre. Boutons, onglet actif, en-têtes.
@@ -106,6 +109,23 @@ class FerhaColors extends ThemeExtension<FerhaColors> {
   /// Fond du créneau indisponible.
   final Color slotUnavailableSoft;
 
+  /// Fond de la galerie plein écran.
+  ///
+  /// LES TROIS JETONS QUI SUIVENT NE CHANGENT PAS AVEC LE THÈME, et c'est
+  /// voulu : une galerie plein écran est sombre dans les deux, comme partout
+  /// ailleurs. La photo est le sujet, le reste s'efface. En clair comme en
+  /// sombre, poser une photo sur de l'ivoire lui vole ses couleurs.
+  ///
+  /// Ils passent quand même par la palette : c'est ici qu'on écrit les
+  /// hexadécimales, et une exception non écrite finit par en appeler d'autres.
+  final Color galleryBackdrop;
+
+  /// Encre posée sur [galleryBackdrop] : titre, flèche de retour.
+  final Color onGallery;
+
+  /// Encre discrète sur [galleryBackdrop] : pastilles inactives, attente.
+  final Color onGalleryMuted;
+
   /// Palette du thème clair.
   static const FerhaColors light = FerhaColors(
     primary: Color(0xFFA06B22),
@@ -131,6 +151,9 @@ class FerhaColors extends ThemeExtension<FerhaColors> {
     slotBookedSoft: Color(0xFFF8E5E0),
     slotUnavailable: Color(0xFF968878),
     slotUnavailableSoft: Color(0xFFF8EDDD),
+    galleryBackdrop: Color(0xFF120E0A),
+    onGallery: Color(0xFFF6F1EA),
+    onGalleryMuted: Color(0xFF9A9088),
   );
 
   /// Palette du thème sombre.
@@ -158,6 +181,9 @@ class FerhaColors extends ThemeExtension<FerhaColors> {
     slotBookedSoft: Color(0xFF2E1D1A),
     slotUnavailable: Color(0xFF8F827C),
     slotUnavailableSoft: Color(0xFF2A231C),
+    galleryBackdrop: Color(0xFF120E0A),
+    onGallery: Color(0xFFF6F1EA),
+    onGalleryMuted: Color(0xFF9A9088),
   );
 
   @override
@@ -185,6 +211,9 @@ class FerhaColors extends ThemeExtension<FerhaColors> {
     Color? slotBookedSoft,
     Color? slotUnavailable,
     Color? slotUnavailableSoft,
+    Color? galleryBackdrop,
+    Color? onGallery,
+    Color? onGalleryMuted,
   }) {
     return FerhaColors(
       primary: primary ?? this.primary,
@@ -210,6 +239,9 @@ class FerhaColors extends ThemeExtension<FerhaColors> {
       slotBookedSoft: slotBookedSoft ?? this.slotBookedSoft,
       slotUnavailable: slotUnavailable ?? this.slotUnavailable,
       slotUnavailableSoft: slotUnavailableSoft ?? this.slotUnavailableSoft,
+      galleryBackdrop: galleryBackdrop ?? this.galleryBackdrop,
+      onGallery: onGallery ?? this.onGallery,
+      onGalleryMuted: onGalleryMuted ?? this.onGalleryMuted,
     );
   }
 
@@ -241,6 +273,9 @@ class FerhaColors extends ThemeExtension<FerhaColors> {
       slotBookedSoft: mix(slotBookedSoft, other.slotBookedSoft),
       slotUnavailable: mix(slotUnavailable, other.slotUnavailable),
       slotUnavailableSoft: mix(slotUnavailableSoft, other.slotUnavailableSoft),
+      galleryBackdrop: mix(galleryBackdrop, other.galleryBackdrop),
+      onGallery: mix(onGallery, other.onGallery),
+      onGalleryMuted: mix(onGalleryMuted, other.onGalleryMuted),
     );
   }
 }
