@@ -41,6 +41,9 @@ dependencies:
   flutter_riverpod: ^3.3.2
   # Navigation declarative (onglets + routes profondes).
   go_router: ^17.2.3
+  # Acces a PostgreSQL, au Storage et a l'authentification. La securite est
+  # portee par les politiques RLS, pas par ce paquet.
+  supabase_flutter: ^2.17.2
 
 dev_dependencies:
   flutter_test:

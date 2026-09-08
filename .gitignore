@@ -57,3 +57,7 @@ android/key.properties
 
 # Localisation générée depuis les fichiers ARB (recréée par `flutter pub get`)
 /lib/core/l10n/generated/
+
+# Configuration locale : URL et cle publique Supabase.
+# env.example.json, lui, est versionne et sert de modele.
+env.json
