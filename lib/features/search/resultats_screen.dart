@@ -39,6 +39,15 @@ class ResultatsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final resultat = ref.watch(resultatsProvider(filtres));
     final wilayas = ref.watch(wilayasProvider).value;
+    // Une puce montre un libellé, jamais un code : « Mariage », pas « mariage ».
+    final types = ref.watch(typesEvenementProvider).value;
+    final libelleType = filtres.typeEvenement == null
+        ? null
+        : types
+                  ?.where((t) => t.code == filtres.typeEvenement)
+                  .map((t) => t.libelle)
+                  .firstOrNull ??
+              filtres.typeEvenement;
     final nomWilaya = filtres.wilayaCode == null
         ? null
         : wilayas
@@ -61,6 +70,7 @@ class ResultatsScreen extends ConsumerWidget {
           _FiltresActifs(
             filtres: filtres,
             nomWilaya: nomWilaya,
+            libelleType: libelleType,
             onChanger: (nouveaux) => _remplacer(context, nouveaux),
           ),
           Expanded(
@@ -112,11 +122,13 @@ class _FiltresActifs extends StatelessWidget {
   const _FiltresActifs({
     required this.filtres,
     required this.nomWilaya,
+    required this.libelleType,
     required this.onChanger,
   });
 
   final SearchFilters filtres;
   final String? nomWilaya;
+  final String? libelleType;
   final ValueChanged<SearchFilters> onChanger;
 
   @override
@@ -150,9 +162,9 @@ class _FiltresActifs extends StatelessWidget {
           onRetirer: () =>
               onChanger(filtres.copyWith(effacer: const <String>{'budget'})),
         ),
-      if (filtres.typeEvenement != null)
+      if (libelleType != null)
         _Puce(
-          libelle: filtres.typeEvenement!,
+          libelle: libelleType!,
           onRetirer: () =>
               onChanger(filtres.copyWith(effacer: const <String>{'type'})),
         ),

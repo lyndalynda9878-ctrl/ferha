@@ -77,7 +77,11 @@ class _Barre extends StatelessWidget {
       height: hauteur,
       decoration: BoxDecoration(
         color: couleur,
-        borderRadius: BorderRadius.circular(hauteur / 2),
+        // Le rayon des puces plutôt qu'un calcul maison : sur une barre de
+        // moins de 40 px de haut, il est de toute façon rogné à la moitié de
+        // la hauteur, donc la capsule est la même — et aucun rayon n'est
+        // écrit à la main dans un écran.
+        borderRadius: FerhaRadii.chipBorder,
       ),
     );
   }

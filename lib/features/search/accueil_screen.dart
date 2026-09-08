@@ -212,23 +212,34 @@ class _AccueilScreenState extends ConsumerState<AccueilScreen> {
 
           const _Intitule('Type d’événement'),
           const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: typesEvenement
-                .map(
-                  (type) => ChoiceChip(
-                    label: Text(type),
-                    selected: _filtres.typeEvenement == type,
-                    onSelected: (choisi) => setState(() {
-                      _filtres = choisi
-                          ? _filtres.copyWith(typeEvenement: type)
-                          : _filtres.copyWith(effacer: const <String>{'type'});
-                    }),
-                  ),
-                )
-                .toList(growable: false),
-          ),
+          // Les puces viennent du référentiel event_types : le filtre envoie
+          // le code, l'écran affiche le libellé. Depuis 010, il filtre pour de
+          // bon — cocher « Mariage » retire vraiment des salles.
+          ref
+              .watch(typesEvenementProvider)
+              .when(
+                loading: () => const _PucesEnAttente(),
+                error: (_, _) => const SizedBox.shrink(),
+                data: (types) => Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: types
+                      .map(
+                        (type) => ChoiceChip(
+                          label: Text(type.libelle),
+                          selected: _filtres.typeEvenement == type.code,
+                          onSelected: (choisi) => setState(() {
+                            _filtres = choisi
+                                ? _filtres.copyWith(typeEvenement: type.code)
+                                : _filtres.copyWith(
+                                    effacer: const <String>{'type'},
+                                  );
+                          }),
+                        ),
+                      )
+                      .toList(growable: false),
+                ),
+              ),
           const SizedBox(height: 24),
 
           FilledButton(

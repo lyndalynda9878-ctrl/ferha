@@ -26,25 +26,6 @@ enum Creneau {
   );
 }
 
-/// Les types d'événement proposés à la recherche.
-///
-/// ATTENTION — cette liste n'a PAS de référentiel en base. Le §4.2 (CLI-01)
-/// cite « type d'événement » parmi les filtres et les maquettes en montrent les
-/// puces, mais aucune table du §6 ne dit quels événements une salle accueille.
-///
-/// Le critère voyage donc jusqu'à `search_venues()`, qui l'accepte et ne s'en
-/// sert pas encore — filtrer sur une donnée qui n'existe pas ne renverrait
-/// aucune salle, ce qui serait pire que ne pas filtrer. Le jour où le modèle
-/// portera cette information, ces libellés viendront d'une table, comme ceux
-/// des équipements.
-const List<String> typesEvenement = <String>[
-  'Mariage',
-  'Fiançailles',
-  'Henné',
-  'Circoncision',
-  'Anniversaire',
-];
-
 /// Les critères d'une recherche.
 ///
 /// Immuable et comparable : c'est la clé du fournisseur de résultats, et deux
@@ -87,7 +68,8 @@ class SearchFilters {
   /// Budget maximum, en dinars, comparé au prix réel de la date.
   final num? budgetMax;
 
-  /// Type d'événement. Voir [typesEvenement] : non filtrant pour l'instant.
+  /// Code du type d'événement — `mariage`, `henne`… Les libellés viennent du
+  /// référentiel `event_types`, jamais d'ici : un code ne se traduit pas.
   final String? typeEvenement;
 
   /// Codes d'équipements exigés — tous, pas l'un d'eux.

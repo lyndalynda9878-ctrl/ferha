@@ -111,3 +111,27 @@ final equipementsProvider = FutureProvider<Map<String, String>>((ref) async {
     for (final l in lignes) l['code'] as String: l['label_fr'] as String,
   };
 });
+
+/// Un type d'événement du référentiel.
+typedef TypeEvenement = ({String code, String libelle});
+
+/// Le référentiel des types d'événement (§4.2, CLI-01).
+///
+/// Les puces de l'écran d'accueil viennent d'ici, et le filtre envoie le
+/// `code` — jamais le libellé, qui dépend de la langue. C'est la même
+/// séparation que pour les équipements et les wilayas : le code est stable, le
+/// libellé se traduit.
+final typesEvenementProvider = FutureProvider<List<TypeEvenement>>((ref) async {
+  final client = ref.watch(supabaseClientProvider);
+
+  final lignes = await client
+      .from('event_types')
+      .select('code, label_fr')
+      .order('position');
+
+  return lignes
+      .map<TypeEvenement>(
+        (l) => (code: l['code'] as String, libelle: l['label_fr'] as String),
+      )
+      .toList(growable: false);
+});
