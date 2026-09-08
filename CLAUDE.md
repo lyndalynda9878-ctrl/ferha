@@ -64,5 +64,15 @@ Utilise la skill « verification ». Systématiquement, après toute
 modification.
 
 ## Lancer l'application
-flutter run -d chrome --print-dtd
+flutter run -d chrome --dart-define-from-file=env.json --print-dtd
 Page de contrôle visuel : /#/_design
+
+--dart-define-from-file n'est pas optionnel : SUPABASE_URL et
+SUPABASE_ANON_KEY sont lues par String.fromEnvironment, donc à la
+compilation. Sans lui, l'application s'arrête sur l'écran de
+configuration.
+
+env.json est à la racine et dans .gitignore. env.example.json, versionné,
+en est le modèle. Ne me demande jamais de coller une clé dans la
+conversation, et n'en écris aucune dans le dépôt — pas même en exemple.
+La clé service_role n'a rien à faire dans l'application Flutter.
