@@ -1,0 +1,36 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+import 'package:ferha/core/router/app_router.dart';
+import 'package:ferha/core/router/routes.dart';
+
+/// Les trois écrans de la salle se consultent sans compte (§3).
+///
+/// Ce test ne regarde pas ce qu'ils affichent : il vérifie que le routeur les
+/// atteint, sans redirection qui les renverrait vers l'accueil ou la connexion.
+/// C'est l'invariant qu'une `redirect` globale casserait sans bruit — l'écran
+/// deviendrait blanc et l'adresse retomberait sur `/accueil`.
+void main() {
+  late ProviderContainer conteneur;
+
+  setUp(() => conteneur = ProviderContainer());
+  tearDown(() => conteneur.dispose());
+
+  const id = '6f1a2b3c-0000-4000-8000-000000000001';
+
+  void verifie(String nom, String emplacement) {
+    test('$nom se résout sans redirection', () {
+      final trouve = conteneur
+          .read(routerProvider)
+          .configuration
+          .findMatch(Uri.parse(emplacement));
+
+      expect(trouve.error, isNull);
+      expect(trouve.uri.path, Uri.parse(emplacement).path);
+    });
+  }
+
+  verifie('la fiche', '${FerhaRoutes.salleDe(id)}?creneau=soir&invites=200');
+  verifie('la galerie', FerhaRoutes.galerieDe(id));
+  verifie('le calendrier', '${FerhaRoutes.calendrierDe(id)}?creneau=midi');
+}

@@ -294,31 +294,29 @@ class _Mois extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 6),
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 7,
-              mainAxisSpacing: 4,
-              crossAxisSpacing: 4,
-              childAspectRatio: 1,
-            ),
-            itemCount: decalage + nombreDeJours,
-            itemBuilder: (context, index) {
-              if (index < decalage) return const SizedBox.shrink();
-
-              final jour = DateTime(
-                mois.year,
-                mois.month,
-                index - decalage + 1,
-              );
-              return _Jour(
-                jour: jour,
-                etat: _etat(jour),
-                selectionne: selection != null && _memeJour(selection!, jour),
-                onTap: () => onJour(jour, _etat(jour)),
-              );
-            },
+          _Semaines(
+            cases: <Widget>[
+              // Les cases vides du début, jusqu'au premier lundi du mois.
+              for (var i = 0; i < decalage; i++) const SizedBox.shrink(),
+              for (
+                var jourDuMois = 1;
+                jourDuMois <= nombreDeJours;
+                jourDuMois++
+              )
+                Builder(
+                  builder: (context) {
+                    final jour = DateTime(mois.year, mois.month, jourDuMois);
+                    final etat = _etat(jour);
+                    return _Jour(
+                      jour: jour,
+                      etat: etat,
+                      selectionne:
+                          selection != null && _memeJour(selection!, jour),
+                      onTap: () => onJour(jour, etat),
+                    );
+                  },
+                ),
+            ],
           ),
         ],
       ),
@@ -522,26 +520,68 @@ class _CalendrierEnAttente extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 7,
-                mainAxisSpacing: 4,
-                crossAxisSpacing: 4,
-              ),
-              itemCount: 35,
-              itemBuilder: (context, _) => DecoratedBox(
-                decoration: BoxDecoration(
-                  color: colors.surfaceSecondary,
-                  borderRadius: FerhaRadii.imageBorder,
-                ),
-              ),
+            _Semaines(
+              cases: <Widget>[
+                for (var i = 0; i < 35; i++)
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: colors.surfaceSecondary,
+                      borderRadius: FerhaRadii.imageBorder,
+                    ),
+                  ),
+              ],
             ),
           ],
         ),
       ),
     );
+  }
+}
+
+/// Sept colonnes, autant de rangées qu'il faut, et AUCUN défilement.
+///
+/// SURTOUT PAS UN GridView. Imbriqué dans le ListView des mois, même en
+/// `NeverScrollableScrollPhysics`, un GridView reste un `Scrollable` : il
+/// s'inscrit auprès du système de pointeurs et capte la molette au lieu de la
+/// laisser remonter au parent. Le calendrier s'accroche alors sous le curseur,
+/// et le défilement ne repart qu'en sortant de la grille — c'est-à-dire
+/// presque nulle part, puisque la grille occupe l'écran.
+///
+/// Sept cases par rangée se posent très bien à la main, et une rangée n'est
+/// pas un `Scrollable`.
+class _Semaines extends StatelessWidget {
+  const _Semaines({required this.cases});
+
+  /// Les cases, dans l'ordre, la première rangée d'abord.
+  final List<Widget> cases;
+
+  /// Le même écart que celui qu'appliquait la grille.
+  static const double _ecart = 4;
+
+  @override
+  Widget build(BuildContext context) {
+    final rangees = <Widget>[];
+
+    for (var debut = 0; debut < cases.length; debut += 7) {
+      final fin = debut + 7 <= cases.length ? debut + 7 : cases.length;
+      final semaine = cases.sublist(debut, fin);
+
+      rangees.add(
+        Row(
+          spacing: _ecart,
+          children: <Widget>[
+            for (final c in semaine)
+              Expanded(child: AspectRatio(aspectRatio: 1, child: c)),
+            // La dernière rangée est rarement pleine : on la complète pour que
+            // ses cases gardent la largeur de celles du dessus.
+            for (var i = semaine.length; i < 7; i++)
+              const Expanded(child: SizedBox.shrink()),
+          ],
+        ),
+      );
+    }
+
+    return Column(spacing: _ecart, children: rangees);
   }
 }
 
