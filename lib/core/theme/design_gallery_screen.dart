@@ -205,6 +205,7 @@ class _Swatches extends StatelessWidget {
         color: colors.onGalleryMuted,
         usage: 'Galerie plein écran',
       ),
+      (label: 'Voile', color: colors.scrim, usage: 'Au-dessus des photos'),
     ];
 
     return Column(

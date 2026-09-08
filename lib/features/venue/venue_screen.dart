@@ -193,12 +193,12 @@ class _GalerieEnTete extends StatelessWidget {
             ),
             // Un dégradé sous la barre : la flèche de retour doit rester
             // lisible quelle que soit la photo.
-            const DecoratedBox(
+            DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.center,
-                  colors: <Color>[Color(0x66000000), Color(0x00000000)],
+                  begin: AlignmentDirectional.topCenter,
+                  end: AlignmentDirectional.center,
+                  colors: <Color>[colors.scrim, Colors.transparent],
                 ),
               ),
             ),

@@ -37,6 +37,7 @@ class FerhaColors extends ThemeExtension<FerhaColors> {
     required this.galleryBackdrop,
     required this.onGallery,
     required this.onGalleryMuted,
+    required this.scrim,
   });
 
   /// Ambre. Boutons, onglet actif, en-têtes.
@@ -126,6 +127,13 @@ class FerhaColors extends ThemeExtension<FerhaColors> {
   /// Encre discrète sur [galleryBackdrop] : pastilles inactives, attente.
   final Color onGalleryMuted;
 
+  /// Voile posé sur une photo pour garder lisible ce qui passe dessus —
+  /// la flèche de retour au-dessus de la galerie de la fiche.
+  ///
+  /// Comme les trois jetons ci-dessus, il ne change pas avec le thème : il ne
+  /// dépend pas du fond de la page mais de la photo, qu'on ne choisit pas.
+  final Color scrim;
+
   /// Palette du thème clair.
   static const FerhaColors light = FerhaColors(
     primary: Color(0xFFA06B22),
@@ -154,6 +162,7 @@ class FerhaColors extends ThemeExtension<FerhaColors> {
     galleryBackdrop: Color(0xFF120E0A),
     onGallery: Color(0xFFF6F1EA),
     onGalleryMuted: Color(0xFF9A9088),
+    scrim: Color(0x66000000),
   );
 
   /// Palette du thème sombre.
@@ -184,6 +193,7 @@ class FerhaColors extends ThemeExtension<FerhaColors> {
     galleryBackdrop: Color(0xFF120E0A),
     onGallery: Color(0xFFF6F1EA),
     onGalleryMuted: Color(0xFF9A9088),
+    scrim: Color(0x66000000),
   );
 
   @override
@@ -214,6 +224,7 @@ class FerhaColors extends ThemeExtension<FerhaColors> {
     Color? galleryBackdrop,
     Color? onGallery,
     Color? onGalleryMuted,
+    Color? scrim,
   }) {
     return FerhaColors(
       primary: primary ?? this.primary,
@@ -242,6 +253,7 @@ class FerhaColors extends ThemeExtension<FerhaColors> {
       galleryBackdrop: galleryBackdrop ?? this.galleryBackdrop,
       onGallery: onGallery ?? this.onGallery,
       onGalleryMuted: onGalleryMuted ?? this.onGalleryMuted,
+      scrim: scrim ?? this.scrim,
     );
   }
 
@@ -276,6 +288,7 @@ class FerhaColors extends ThemeExtension<FerhaColors> {
       galleryBackdrop: mix(galleryBackdrop, other.galleryBackdrop),
       onGallery: mix(onGallery, other.onGallery),
       onGalleryMuted: mix(onGalleryMuted, other.onGalleryMuted),
+      scrim: mix(scrim, other.scrim),
     );
   }
 }
