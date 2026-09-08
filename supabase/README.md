@@ -17,6 +17,7 @@ seulement :
 | 4 | `migrations/004_bookings.sql` | Réservations, paiements, avis, notifications | 001, 002 |
 | 5 | `migrations/005_pricing.sql` | `estimate_price()` et ses tables | 002, 004 |
 | 6 | `migrations/006_rls_bookings.sql` | RLS des réservations | 004 |
+| 7 | `migrations/007_auth.sql` | Un compte créé, un profil créé | 001 |
 
 `002` a besoin des tables de `001`. `003` a besoin de la table `amenities` de
 `001`, mais pas de `002`. Appliquer `002` avant `003` reste le bon ordre : le
@@ -44,9 +45,10 @@ psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/003_amenities.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/004_bookings.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/005_pricing.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/006_rls_bookings.sql
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/007_auth.sql
 ```
 
-Les six fichiers sont **rejouables** : les relancer sur une base déjà à jour
+Les sept fichiers sont **rejouables** : les relancer sur une base déjà à jour
 ne produit ni erreur ni doublon. `003` va plus loin et met à jour les libellés
 existants — c'est le moyen prévu pour corriger une traduction.
 
@@ -86,6 +88,14 @@ appelle et d'où l'on part (§9).
 
 ## Règles portées par la base
 
+- **Un compte créé, un profil créé.** Le déclencheur `on_auth_user_created`
+  (migration 007) écrit la ligne `profiles` dans la transaction de GoTrue.
+  L'application n'insère pas le profil elle-même : ce second appel pourrait se
+  perdre — réseau coupé, onglet fermé — et laisser un compte sans profil,
+  c'est-à-dire un utilisateur connecté à qui plus rien ne répond, puisque
+  toutes les clés étrangères du projet pointent vers `profiles`. La fonction
+  n'avale jamais ses erreurs : elle normalise ses valeurs pour ne pas pouvoir
+  échouer, plutôt que d'échouer en silence.
 - **Le prix se calcule dans `estimate_price()`, et nulle part ailleurs.** Ni en
   Dart, ni dans une seconde fonction SQL. Le trigger `bookings_set_price` jette
   le `quoted_amount` reçu à l'insertion et le remplace par celui
@@ -170,12 +180,18 @@ les effacer et les relancer sans que le schéma bouge.
 | Fichier | Rôle |
 |---|---|
 | `seed/001_demo_venues.sql` | 4 propriétaires, 15 salles, 5 wilayas |
+| `seed/003_demo_accounts.sql` | 2 comptes qui se connectent — **après 001 et 007** |
 | `seed/002_reset_demo.sql` | efface tout cela, et rien d'autre |
 
 ```bash
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/seed/001_demo_venues.sql
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/seed/003_demo_accounts.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/seed/002_reset_demo.sql   # pour tout retirer
 ```
+
+`003` vient après `001` — il donne un mot de passe au compte de Karim créé
+là-bas — et après la migration `007`, qui pose le déclencheur de profil. Il
+s'arrête avec un message clair si l'un des deux manque.
 
 `001` est **rejouable** : comptes et salles sont posés en `ON CONFLICT`, les
 tables filles sont effacées puis réécrites. Le relancer ne crée aucun doublon
@@ -198,8 +214,35 @@ treize, jamais quinze.
 `bookings.venue_id` est en `RESTRICT`, et une réservation est une trace
 comptable. Il vous dit lesquelles et vous laisse décider.
 
+### Les deux comptes de démonstration
+
+Le §4.1 (CORE-01) les exige : « Deux comptes de démonstration sont proposés en
+un tap sur l'écran de connexion. »
+
+| Compte | Adresse | Rôle |
+|---|---|---|
+| Amina Haddad | `amina@demo.ferha.dz` | cliente, aucune salle |
+| Karim Belhadj | `karim.belhadj@demo.ferha.dz` | propriétaire de **4 salles** |
+
+Mot de passe des deux : **`demo1234`**, en clair dans le fichier de seed et
+dans `lib/features/auth/demo_accounts.dart`. C'est assumé : ce sont des comptes
+publics, sur une base de démonstration, sans aucune donnée réelle. Les cacher
+ne protégerait rien.
+
+**Karim est le même compte que le propriétaire de `001`** — même UUID. En se
+connectant, il voit ses quatre salles, pas un espace vide. C'est pourquoi `003`
+*met à jour* son mot de passe au lieu de recréer le compte : une nouvelle ligne
+aurait un nouvel UUID, et les quatre salles se retrouveraient orphelines.
+
+`003` écrit dans `auth.users`, un schéma interne à Supabase dont les colonnes
+changent d'une version de GoTrue à l'autre. **C'est la partie la plus fragile du
+dépôt.** Une solution de repli, qui ne demande pas de déboguer GoTrue, est
+écrite en bas du fichier.
+
 **Aucune de ces données ne doit apparaître dans le code Flutter.** Il ne
-connaît que des requêtes.
+connaît que des requêtes — à la seule exception de `demo_accounts.dart`, qui
+porte les deux adresses parce que le cahier des charges demande un accès en un
+tap.
 
 ## Ce que lit le calendrier
 
