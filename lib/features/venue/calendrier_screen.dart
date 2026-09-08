@@ -83,7 +83,6 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen> {
             creneau: _creneau,
             onChange: (c) => setState(() => _creneau = c),
           ),
-          const _Legende(),
           Expanded(
             child: calendrier.when(
               loading: () => const _CalendrierEnAttente(),
@@ -101,6 +100,9 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen> {
               ),
             ),
           ),
+          // Sous la grille, comme sur la maquette : on lit d'abord le mois,
+          // la légende ne sert qu'au moment où une couleur intrigue.
+          const _Legende(),
         ],
       ),
       bottomNavigationBar: _selection == null
@@ -153,7 +155,7 @@ class _Legende extends StatelessWidget {
     final colors = context.ferhaColors;
 
     return Padding(
-      padding: const EdgeInsetsDirectional.fromSTEB(20, 0, 20, 12),
+      padding: const EdgeInsetsDirectional.fromSTEB(20, 12, 20, 12),
       child: Row(
         children: <Widget>[
           _Pastille(couleur: colors.slotFreeSoft, libelle: 'Libre'),
@@ -188,7 +190,8 @@ class _Pastille extends StatelessWidget {
           height: 12,
           decoration: BoxDecoration(
             color: couleur,
-            borderRadius: FerhaRadii.chipBorder,
+            // Ronde, comme les cases qu'elle explique.
+            shape: BoxShape.circle,
             border: Border.all(color: colors.ruleSoft),
           ),
         ),
@@ -249,14 +252,21 @@ class _Mois extends StatelessWidget {
   final DateTime? selection;
   final void Function(DateTime jour, EtatJour etat) onJour;
 
+  /// Dimanche d'abord.
+  ///
+  /// C'est la charte qui tranche, et deux fois plutôt qu'une : les maquettes
+  /// de l'écran 4 affichent « D L M M J V S », et le paragraphe sur le miroir
+  /// RTL précise que « le calendrier commence toujours par dimanche mais se lit
+  /// de droite à gauche ». Le miroir est donc affaire de direction du texte,
+  /// pas d'ordre des colonnes : cette liste ne change pas en arabe.
   static const List<String> _jours = <String>[
+    'D',
     'L',
     'M',
     'M',
     'J',
     'V',
     'S',
-    'D',
   ];
 
   @override
@@ -265,8 +275,7 @@ class _Mois extends StatelessWidget {
     final text = Theme.of(context).textTheme;
 
     final nombreDeJours = DateTime(mois.year, mois.month + 1, 0).day;
-    // La semaine commence le lundi : DateTime.weekday vaut 1 pour lundi.
-    final decalage = DateTime(mois.year, mois.month).weekday - 1;
+    final decalage = colonneDuJour(DateTime(mois.year, mois.month));
 
     return Padding(
       padding: const EdgeInsetsDirectional.only(bottom: 28),
@@ -296,7 +305,7 @@ class _Mois extends StatelessWidget {
           const SizedBox(height: 6),
           _Semaines(
             cases: <Widget>[
-              // Les cases vides du début, jusqu'au premier lundi du mois.
+              // Les cases vides du début, jusqu'au premier jour du mois.
               for (var i = 0; i < decalage; i++) const SizedBox.shrink(),
               for (
                 var jourDuMois = 1;
@@ -310,6 +319,7 @@ class _Mois extends StatelessWidget {
                     return _Jour(
                       jour: jour,
                       etat: etat,
+                      passe: _estPasse(jour),
                       selectionne:
                           selection != null && _memeJour(selection!, jour),
                       onTap: () => onJour(jour, etat),
@@ -329,30 +339,78 @@ class _Mois extends StatelessWidget {
   /// `request_booking()` le refuse — et cela reste dans les trois états annoncés
   /// plutôt que d'en inventer un quatrième.
   EtatJour _etat(DateTime jour) {
+    if (_estPasse(jour)) return EtatJour.indisponible;
+    return occupes[jour] ?? EtatJour.libre;
+  }
+
+  /// Une date passée ne se réserve pas — `request_booking()` la refuse.
+  ///
+  /// Elle compte donc comme indisponible, ce qui la garde dans les trois états
+  /// annoncés plutôt que d'en inventer un quatrième. Mais elle ne se DESSINE
+  /// pas comme un blocage : un cercle beige sur tout le mois écoulé ferait
+  /// croire que le propriétaire a fermé sa salle. Elle s'efface, sans cercle.
+  bool _estPasse(DateTime jour) {
     final maintenant = DateTime.now();
     final aujourdhui = DateTime(
       maintenant.year,
       maintenant.month,
       maintenant.day,
     );
-    if (jour.isBefore(aujourdhui)) return EtatJour.indisponible;
-    return occupes[jour] ?? EtatJour.libre;
+    return jour.isBefore(aujourdhui);
   }
 }
+
+/// La colonne d'un jour dans la grille, dimanche en tête.
+///
+/// `DateTime.weekday` vaut 1 pour lundi et 7 pour dimanche. Le reste modulo 7
+/// donne donc directement la colonne d'une semaine qui commence par dimanche :
+/// dimanche 0, lundi 1, samedi 6.
+///
+/// Dimanche est la règle du cahier des charges, énoncée deux fois : les
+/// maquettes de l'écran 4 affichent « D L M M J V S », et le paragraphe sur le
+/// miroir RTL précise que « le calendrier commence toujours par dimanche mais
+/// se lit de droite à gauche ». Le miroir est donc affaire de direction du
+/// texte, pas d'ordre des colonnes.
+///
+/// Ne pas lire les DATES de la maquette : ses cases portent des « contenus
+/// fictifs », elle y place le 14 août 2027 un jeudi quand c'est un samedi —
+/// que sa propre légende nomme d'ailleurs correctement. Elle donne la
+/// structure, pas le calendrier.
+@visibleForTesting
+int colonneDuJour(DateTime jour) => jour.weekday % 7;
 
 bool _memeJour(DateTime a, DateTime b) =>
     a.year == b.year && a.month == b.month && a.day == b.day;
 
+/// Un jour du calendrier : un cercle plein, et son numéro au centre.
+///
+/// LA COULEUR NE PORTE JAMAIS L'INFORMATION SEULE. Un daltonien distingue mal
+/// la sauge de la terracotta ; le numéro d'un jour réservé est donc BARRÉ, et
+/// c'est cette barre qui dit « pris », la couleur ne faisant que la confirmer.
+/// Chaque case porte en plus son état en toutes lettres pour les lecteurs
+/// d'écran.
+///
+/// Le fond du cercle est la variante douce du jeton, son numéro la variante
+/// franche : c'est exactement le découpage de la charte, qui donne à « Libre —
+/// sauge #5C7F5A » un « Fond : #E7EFE3 ». Le contraste reste donc lisible, et
+/// le jour sélectionné — seul cercle en aplat vif — se détache de tous.
+///
+/// Un jour passé n'a pas de cercle du tout : il s'efface.
 class _Jour extends StatelessWidget {
   const _Jour({
     required this.jour,
     required this.etat,
+    required this.passe,
     required this.selectionne,
     required this.onTap,
   });
 
   final DateTime jour;
   final EtatJour etat;
+
+  /// Vrai si la date est derrière nous.
+  final bool passe;
+
   final bool selectionne;
   final VoidCallback onTap;
 
@@ -361,43 +419,63 @@ class _Jour extends StatelessWidget {
     final colors = context.ferhaColors;
     final text = Theme.of(context).textTheme;
 
+    final numero = Text(
+      '${jour.day}',
+      style: text.bodyMedium?.copyWith(
+        color: colors.inkTertiary,
+        fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
+      ),
+    );
+
+    // Le passé : pas de cercle, pas de geste, très effacé.
+    if (passe) {
+      return Semantics(
+        label: '${jour.day} ${_nomMois(jour.month)}, date passée',
+        child: Opacity(opacity: 0.4, child: Center(child: numero)),
+      );
+    }
+
     // Les couleurs de créneau du thème existent exactement pour cet écran :
     // leur documentation dit « calendrier et états de réservation uniquement ».
-    final (Color fond, Color encre) = switch (etat) {
-      EtatJour.libre => (colors.slotFreeSoft, colors.slotFree),
-      EtatJour.reserve => (colors.slotBookedSoft, colors.slotBooked),
-      EtatJour.indisponible => (
-        colors.slotUnavailableSoft,
-        colors.slotUnavailable,
-      ),
-    };
+    final (Color fond, Color encre) = selectionne
+        ? (colors.primary, colors.onPrimary)
+        : switch (etat) {
+            EtatJour.libre => (colors.slotFreeSoft, colors.slotFree),
+            EtatJour.reserve => (colors.slotBookedSoft, colors.slotBooked),
+            EtatJour.indisponible => (
+              colors.slotUnavailableSoft,
+              colors.slotUnavailable,
+            ),
+          };
 
     return Semantics(
-      label: '${jour.day} ${_nomMois(jour.month)}, ${_libelle(etat)}',
+      label:
+          '${jour.day} ${_nomMois(jour.month)}, ${_libelle(etat)}'
+          '${selectionne ? ', sélectionné' : ''}',
       button: etat == EtatJour.libre,
       selected: selectionne,
       child: Material(
         color: fond,
-        borderRadius: FerhaRadii.imageBorder,
+        shape: const CircleBorder(),
+        clipBehavior: Clip.antiAlias,
         child: InkWell(
           // Un jour pris ne se sélectionne pas : le calendrier est en lecture
           // seule, et proposer de cliquer sur une date indisponible ne mènerait
           // nulle part.
           onTap: etat == EtatJour.libre ? onTap : null,
-          borderRadius: FerhaRadii.imageBorder,
-          child: Container(
-            alignment: AlignmentDirectional.center,
-            decoration: BoxDecoration(
-              borderRadius: FerhaRadii.imageBorder,
-              border: selectionne
-                  ? Border.all(color: colors.primary, width: 2)
-                  : null,
-            ),
+          customBorder: const CircleBorder(),
+          child: Center(
             child: Text(
               '${jour.day}',
               style: text.bodyMedium?.copyWith(
                 color: encre,
                 fontWeight: selectionne ? FontWeight.w700 : FontWeight.w500,
+                // La barre qui dit « pris » sans passer par la couleur.
+                decoration: etat == EtatJour.reserve
+                    ? TextDecoration.lineThrough
+                    : null,
+                decorationColor: encre,
+                decorationThickness: 2,
                 fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
               ),
             ),
@@ -526,7 +604,7 @@ class _CalendrierEnAttente extends StatelessWidget {
                   DecoratedBox(
                     decoration: BoxDecoration(
                       color: colors.surfaceSecondary,
-                      borderRadius: FerhaRadii.imageBorder,
+                      shape: BoxShape.circle,
                     ),
                   ),
               ],
@@ -555,8 +633,11 @@ class _Semaines extends StatelessWidget {
   /// Les cases, dans l'ordre, la première rangée d'abord.
   final List<Widget> cases;
 
-  /// Le même écart que celui qu'appliquait la grille.
-  static const double _ecart = 4;
+  /// L'écart entre deux cases.
+  ///
+  /// Les cercles occupent toute leur case : c'est donc cet écart, et lui seul,
+  /// qui les empêche de se toucher. À 4 ils se frôlaient.
+  static const double _ecart = 8;
 
   @override
   Widget build(BuildContext context) {
