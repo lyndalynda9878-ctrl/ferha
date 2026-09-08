@@ -2,9 +2,10 @@
 -- Ferha — seed/002_reset_demo.sql
 -- Efface les données de démonstration de 001_demo_venues.sql, et rien d'autre.
 --
--- CE QU'IL EFFACE : les quatre comptes de démonstration, leurs quinze salles,
--- et tout ce qui pend à ces salles — photos, équipements, tarifs, options,
--- dates bloquées.
+-- CE QU'IL EFFACE : les cinq comptes de démonstration — les quatre
+-- propriétaires de 001 et la cliente Amina de 003 — leurs identités GoTrue,
+-- leurs quinze salles, et tout ce qui pend à ces salles : photos, équipements,
+-- tarifs, options, dates bloquées.
 --
 -- CE QU'IL N'EFFACE PAS : le référentiel amenities (c'est du schéma, pas de la
 -- démonstration), high_season_periods, et absolument rien qui appartienne à un
@@ -87,6 +88,15 @@ delete from public.venue_options   where venue_id::text like '5a11e000-%';
 
 delete from public.venues   where id::text like '5a11e000-%';
 delete from public.profiles where id::text like 'd0000000-%';
+
+-- Les identités du fournisseur « email », posées par 003_demo_accounts.sql.
+-- La clé étrangère de GoTrue les emporterait avec le compte ; on les nomme
+-- pour que ce fichier reste la liste complète de ce qu'il touche.
+delete from auth.identities
+ where user_id::text like 'd0000000-%';
+
+-- Emporte les quatre propriétaires de 001 et la cliente Amina de 003 : tous
+-- portent le même préfixe.
 delete from auth.users      where id::text like 'd0000000-%';
 
 commit;
