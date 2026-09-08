@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../features/auth/auth_providers.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../l10n/locale_controller.dart';
 import '../supabase/supabase_providers.dart';
@@ -41,8 +42,17 @@ class DesignGalleryScreen extends ConsumerWidget {
           // TEMPORAIRE — retirer en J6
           const _Section(
             title: 'État de la connexion',
-            subtitle: 'Vérification du branchement sur Supabase',
-            child: _ConnexionCard(),
+            subtitle:
+                'Deux lignes, deux pannes distinctes : la base d’abord, '
+                'l’authentification ensuite',
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                _ConnexionCard(),
+                SizedBox(height: 10),
+                _SessionCard(),
+              ],
+            ),
           ),
           _Section(
             title: 'Couleurs',
@@ -154,6 +164,77 @@ class _ConnexionCard extends ConsumerWidget {
             : 'Première par ordre alphabétique : ${donnees.premiere}',
         onReessayer: () => ref.invalidate(_connexionProvider),
       ),
+    );
+  }
+}
+
+/// TEMPORAIRE — retirer en J6
+///
+/// La seconde ligne : l'authentification, séparée de la base.
+///
+/// Les deux tombent en panne pour des raisons différentes — une clé absente,
+/// une table fermée, un mot de passe faux, un profil manquant — et une seule
+/// ligne pour les deux obligerait à deviner laquelle. Ici, la ligne du dessus
+/// dit si la base répond ; celle-ci dit si quelqu'un est connecté et si son
+/// profil suit.
+class _SessionCard extends ConsumerWidget {
+  const _SessionCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final session = ref.watch(sessionProvider);
+
+    if (session == null) {
+      return const _ConnexionLigne(
+        icone: Icons.person_outline,
+        titre: 'Visiteur — aucune session',
+        detail:
+            'Normal tant qu’on ne s’est pas connecté : le catalogue se '
+            'consulte sans compte.',
+      );
+    }
+
+    final profil = ref.watch(profilProvider);
+
+    return profil.when(
+      loading: () => const _ConnexionLigne(
+        icone: Icons.hourglass_empty,
+        titre: 'Session ouverte, lecture du profil…',
+      ),
+      error: (erreur, _) => _ConnexionLigne(
+        icone: Icons.person_off_outlined,
+        titre: 'Session ouverte, mais le profil est illisible',
+        detail: erreur.toString(),
+        estErreur: true,
+        onReessayer: () => ref.invalidate(profilProvider),
+      ),
+      data: (donnees) {
+        if (donnees == null) {
+          return _ConnexionLigne(
+            icone: Icons.person_off_outlined,
+            titre: 'Compte sans profil',
+            detail:
+                'auth.users porte ${session.user.email}, mais aucune ligne '
+                'ne lui correspond dans profiles. La migration 007_auth.sql '
+                'n’est pas appliquée.',
+            estErreur: true,
+            onReessayer: () => ref.invalidate(profilProvider),
+          );
+        }
+
+        final nom = donnees['full_name'] as String? ?? '(sans nom)';
+        final proprietaire = (donnees['is_owner'] as bool?) ?? false;
+
+        return _ConnexionLigne(
+          icone: Icons.verified_user_outlined,
+          titre: 'Connecté — $nom',
+          detail:
+              '${session.user.email} · '
+              '${proprietaire ? 'propriétaire' : 'client'} · '
+              'profil lu dans la base',
+          onReessayer: () => ref.invalidate(profilProvider),
+        );
+      },
     );
   }
 }
