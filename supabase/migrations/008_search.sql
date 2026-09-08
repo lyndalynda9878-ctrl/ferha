@@ -11,6 +11,13 @@
 -- « Le prix affiché est déjà calculé pour la date choisie, majorations
 -- comprises — pas un "à partir de". » (maquettes, écran 2)
 --
+-- ⚠ LA VERSION COURANTE DE search_venues() EST DANS 010_event_types.sql.
+--
+-- Celle d'ici ne pouvait pas filtrer sur le type d'événement : la table qui
+-- porte cette information n'existait pas encore. Le fichier reste tel qu'il a
+-- été appliqué — on ne réécrit pas une migration passée — mais c'est 010 qui
+-- fait foi, et c'est lui qu'il faut modifier.
+--
 -- Rejouable : la fonction est remplacée.
 -- =============================================================================
 
@@ -248,22 +255,14 @@ grant execute on function public.search_venues(
 ) to anon, authenticated;
 
 -- =============================================================================
--- p_event_type : ACCEPTÉ, PAS ENCORE FILTRANT
+-- p_event_type : IL FILTRE, DEPUIS 010_event_types.sql
 --
--- Le §4.2 (CLI-01) liste le type d'événement parmi les filtres, et les
--- maquettes en montrent les puces sur l'écran d'accueil. Mais AUCUNE table du
--- §6 ne dit quels types d'événements une salle accueille : ni venues, ni
--- venue_amenities, ni le référentiel.
+-- À l'écriture de ce fichier, aucune table du §6 ne disait quels événements une
+-- salle accueille. Le paramètre était donc accepté sans servir : inventer une
+-- colonne et la laisser vide aurait fait un filtre qui ne renvoie jamais rien,
+-- ce qui est pire que pas de filtre.
 --
--- Deux mauvaises réponses, et une bonne :
---
---   * inventer une colonne et la laisser vide — le filtre ne renverrait alors
---     jamais rien, ce qui est pire que ne pas filtrer ;
---   * filtrer sur autre chose qui y ressemble — ce serait deviner une règle
---     métier, et le résultat serait faux sans être visible ;
---   * accepter le paramètre, ne pas s'en servir, et le dire.
---
--- C'est la troisième qui est retenue. La signature est donc déjà la bonne : le
--- jour où le modèle portera cette information, seul le corps de la fonction
--- changera, et aucun appel Dart ne bougera.
+-- La signature avait été écrite pour ce jour-là : 010_event_types.sql apporte
+-- venue_event_types, branche le filtre, et n'a eu à changer que le corps de la
+-- fonction. Aucun appel côté Flutter n'a bougé.
 -- =============================================================================
