@@ -5,11 +5,11 @@
 -- CE QU'IL EFFACE : les cinq comptes de démonstration — les quatre
 -- propriétaires de 001 et la cliente Amina de 003 — leurs identités GoTrue,
 -- leurs quinze salles, et tout ce qui pend à ces salles : photos, équipements,
--- tarifs, options, dates bloquées.
+-- tarifs, options, dates bloquées, types d'événement acceptés.
 --
--- CE QU'IL N'EFFACE PAS : le référentiel amenities (c'est du schéma, pas de la
--- démonstration), high_season_periods, et absolument rien qui appartienne à un
--- vrai utilisateur.
+-- CE QU'IL N'EFFACE PAS : les référentiels — amenities, event_types, wilayas —
+-- qui relèvent du schéma et non de la démonstration, high_season_periods, et
+-- absolument rien qui appartienne à un vrai utilisateur.
 --
 -- COMMENT IL RECONNAÎT SES DONNÉES : par le préfixe des identifiants, posé
 -- exprès dans 001 —
@@ -71,8 +71,9 @@ $$;
 delete from public.venue_photos    where venue_id::text like '5a11e000-%';
 delete from public.venue_amenities where venue_id::text like '5a11e000-%';
 delete from public.venue_pricing   where venue_id::text like '5a11e000-%';
-delete from public.venue_blackouts where venue_id::text like '5a11e000-%';
-delete from public.venue_options   where venue_id::text like '5a11e000-%';
+delete from public.venue_blackouts   where venue_id::text like '5a11e000-%';
+delete from public.venue_options     where venue_id::text like '5a11e000-%';
+delete from public.venue_event_types where venue_id::text like '5a11e000-%';
 
 -- -----------------------------------------------------------------------------
 -- Les salles, puis les comptes
@@ -111,5 +112,6 @@ select
   (select count(*) from public.venue_amenities where venue_id::text like '5a11e000-%') as equipements,
   (select count(*) from public.venue_pricing   where venue_id::text like '5a11e000-%') as tarifs,
   (select count(*) from public.venue_blackouts where venue_id::text like '5a11e000-%') as dates_bloquees,
+  (select count(*) from public.venue_event_types where venue_id::text like '5a11e000-%') as types_evenement,
   (select count(*) from public.profiles        where id::text       like 'd0000000-%') as profils,
   (select count(*) from auth.users             where id::text       like 'd0000000-%') as comptes;

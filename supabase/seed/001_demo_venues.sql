@@ -203,6 +203,7 @@ delete from public.venue_photos    where venue_id in (select id from public.venu
 delete from public.venue_amenities where venue_id in (select id from public.venues where id::text like '5a11e000-%');
 delete from public.venue_pricing   where venue_id in (select id from public.venues where id::text like '5a11e000-%');
 delete from public.venue_blackouts where venue_id in (select id from public.venues where id::text like '5a11e000-%');
+delete from public.venue_event_types where venue_id in (select id from public.venues where id::text like '5a11e000-%');
 
 -- -----------------------------------------------------------------------------
 -- Grilles tarifaires — en dinars, §6 et §5.2
@@ -546,6 +547,59 @@ insert into public.venue_blackouts (venue_id, date, slot, reason) values
   ('5a11e000-0000-4000-a000-000000000015', date '2027-08-04', 'soir',   'Réservation prise par téléphone')
 on conflict (venue_id, date, slot) do update set reason = excluded.reason;
 
+-- -----------------------------------------------------------------------------
+-- Types d'événement acceptés (§4.2, CLI-01)
+--
+-- Douze salles sur quinze acceptent tout ; trois refusent quelque chose, et
+-- c'est le point. Un filtre qui ne retire jamais rien ne se distingue pas d'un
+-- filtre cassé : il faut que cocher « Mariage » fasse visiblement disparaître
+-- des lignes.
+--
+--   Palais Dar El Feth   mariages et fiançailles seulement — grand palais
+--   Palais El Amir       ni circoncision ni anniversaire
+--   Salle Ibn Khaldoun   150 couverts : ni mariage, ni fiançailles
+--
+-- Rappel de la règle posée en 010 : une salle SANS AUCUNE LIGNE ici accepte
+-- tout. Ces quinze-là déclarent donc explicitement, y compris quand elles
+-- acceptent les cinq types — sinon on ne testerait jamais le cas déclaré.
+-- -----------------------------------------------------------------------------
+
+insert into public.venue_event_types (venue_id, event_type)
+select v.venue_id, t.code
+from (values
+  -- 1. Salle El Bahia
+  ('5a11e000-0000-4000-a000-000000000001'::uuid, array['mariage', 'fiancailles', 'henne', 'circoncision', 'anniversaire']),
+  -- 2. Résidence Les Andalouses
+  ('5a11e000-0000-4000-a000-000000000002'::uuid, array['mariage', 'fiancailles', 'henne', 'circoncision', 'anniversaire']),
+  -- 3. Salle Ennour
+  ('5a11e000-0000-4000-a000-000000000003'::uuid, array['mariage', 'fiancailles', 'henne', 'circoncision', 'anniversaire']),
+  -- 4. Palais Dar El Feth  — grand palais, uniquement mariages et fiançailles
+  ('5a11e000-0000-4000-a000-000000000004'::uuid, array['mariage', 'fiancailles']),
+  -- 5. Salle Ryad El Djazaïr
+  ('5a11e000-0000-4000-a000-000000000005'::uuid, array['mariage', 'fiancailles', 'henne', 'circoncision', 'anniversaire']),
+  -- 6. Espace Nour El Houda
+  ('5a11e000-0000-4000-a000-000000000006'::uuid, array['mariage', 'fiancailles', 'henne', 'circoncision', 'anniversaire']),
+  -- 7. Salle El Feth
+  ('5a11e000-0000-4000-a000-000000000007'::uuid, array['mariage', 'fiancailles', 'henne', 'circoncision', 'anniversaire']),
+  -- 8. Complexe Chréa
+  ('5a11e000-0000-4000-a000-000000000008'::uuid, array['mariage', 'fiancailles', 'henne', 'circoncision', 'anniversaire']),
+  -- 9. Salle Ibn Khaldoun  — 150 couverts : trop petite pour un mariage
+  ('5a11e000-0000-4000-a000-000000000009'::uuid, array['henne', 'circoncision', 'anniversaire']),
+  -- 10. Palais El Amir  — pas de circoncision ni d’anniversaire
+  ('5a11e000-0000-4000-a000-000000000010'::uuid, array['mariage', 'fiancailles', 'henne']),
+  -- 11. Salle Aïn Fouara
+  ('5a11e000-0000-4000-a000-000000000011'::uuid, array['mariage', 'fiancailles', 'henne', 'circoncision', 'anniversaire']),
+  -- 12. Salle El Wiam
+  ('5a11e000-0000-4000-a000-000000000012'::uuid, array['mariage', 'fiancailles', 'henne', 'circoncision', 'anniversaire']),
+  -- 13. Salle Les Ponts
+  ('5a11e000-0000-4000-a000-000000000013'::uuid, array['mariage', 'fiancailles', 'henne', 'circoncision', 'anniversaire']),
+  -- 14. Résidence Bab El Kantara
+  ('5a11e000-0000-4000-a000-000000000014'::uuid, array['mariage', 'fiancailles', 'henne', 'circoncision', 'anniversaire']),
+  -- 15. Salle Rhumel
+  ('5a11e000-0000-4000-a000-000000000015'::uuid, array['mariage', 'fiancailles', 'henne', 'circoncision', 'anniversaire'])
+) as v(venue_id, codes),
+lateral unnest(v.codes) as t(code);
+
 commit;
 
 -- -----------------------------------------------------------------------------
@@ -559,8 +613,9 @@ select
   (select count(*) from public.venue_pricing   where venue_id::text like '5a11e000-%')                  as lignes_tarifaires,
   (select count(*) from public.venue_photos    where venue_id::text like '5a11e000-%')                  as photos,
   (select count(*) from public.venue_amenities where venue_id::text like '5a11e000-%')                  as equipements,
-  (select count(*) from public.venue_blackouts where venue_id::text like '5a11e000-%')                  as dates_bloquees;
+  (select count(*) from public.venue_blackouts where venue_id::text like '5a11e000-%')                  as dates_bloquees,
+  (select count(*) from public.venue_event_types where venue_id::text like '5a11e000-%')                as types_evenement;
 
 
 -- Attendu : 15 salles, 13 publiées, 2 en attente, 45 lignes tarifaires,
---           71 photos, 86 équipements, 31 dates bloquées.
+--           71 photos, 86 équipements, 31 dates bloquées, 68 types d'événement.
