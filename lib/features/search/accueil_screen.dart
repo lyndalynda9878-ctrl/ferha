@@ -323,7 +323,16 @@ class _MieuxNotees extends ConsumerWidget {
             _Intitule(nomWilaya == null ? titre : '$titre à $nomWilaya'),
             const SizedBox(height: 12),
             for (final salle in donnees.salles.take(3)) ...<Widget>[
-              VenueCard(salle: salle, dense: true),
+              VenueCard(
+                salle: salle,
+                dense: true,
+                onTap: () => context.push(
+                  Uri(
+                    path: FerhaRoutes.salleDe(salle.id),
+                    queryParameters: vitrine.versParametres(),
+                  ).toString(),
+                ),
+              ),
               const SizedBox(height: 12),
             ],
           ],

@@ -25,6 +25,28 @@ abstract final class FerhaRoutes {
   /// à un rechargement de page.
   static const String resultats = '/resultats';
 
+  /// Fiche d'une salle. `/salle/:id`
+  ///
+  /// Les critères de recherche la suivent en paramètres de requête — date,
+  /// créneau, invités — parce que c'est d'eux que dépend le prix affiché en bas
+  /// de l'écran. Une fiche ouverte sans critères tarife pour aujourd'hui.
+  static const String salle = '/salle/:id';
+
+  /// Chemin de la fiche d'une salle donnée.
+  static String salleDe(String id) => '/salle/$id';
+
+  /// Galerie plein écran d'une salle. `/salle/:id/galerie`
+  static const String galerie = '/salle/:id/galerie';
+
+  /// Chemin de la galerie d'une salle donnée.
+  static String galerieDe(String id) => '/salle/$id/galerie';
+
+  /// Calendrier de disponibilité d'une salle. `/salle/:id/calendrier`
+  static const String calendrier = '/salle/:id/calendrier';
+
+  /// Chemin du calendrier d'une salle donnée.
+  static String calendrierDe(String id) => '/salle/$id/calendrier';
+
   /// Connexion par e-mail et mot de passe.
   ///
   /// Hors de la barre d'onglets : on y entre par-dessus l'écran en cours, et

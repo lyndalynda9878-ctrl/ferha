@@ -8,6 +8,9 @@ import '../../features/auth/profil_screen.dart';
 import '../../features/search/accueil_screen.dart';
 import '../../features/search/resultats_screen.dart';
 import '../../features/search/search_filters.dart';
+import '../../features/venue/calendrier_screen.dart';
+import '../../features/venue/galerie_screen.dart';
+import '../../features/venue/venue_screen.dart';
 import '../theme/design_gallery_screen.dart';
 import 'home_shell.dart';
 import 'placeholder_screen.dart';
@@ -67,6 +70,46 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => ResultatsScreen(
           filtres: SearchFilters.depuisParametres(state.uri.queryParameters),
         ),
+      ),
+
+      // La fiche salle, sa galerie et son calendrier. Aucune redirection : ce
+      // sont les étapes 2 du parcours du §3, et elles se font sans compte.
+      // Le bouton « Disponibilité » ne demande donc rien non plus.
+      GoRoute(
+        path: FerhaRoutes.salle,
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) {
+          final p = state.uri.queryParameters;
+          return VenueScreen(
+            venueId: state.pathParameters['id']!,
+            date: DateTime.tryParse(p['date'] ?? ''),
+            invites: int.tryParse(p['invites'] ?? ''),
+            creneau: Creneau.depuisCode(p['creneau']),
+          );
+        },
+      ),
+      GoRoute(
+        path: FerhaRoutes.galerie,
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => GalerieScreen(
+          venueId: state.pathParameters['id']!,
+          // Passées par la fiche, qui les a déjà chargées ; relues si l'on
+          // entre par un lien profond.
+          photos: (state.extra as List<String>?),
+        ),
+      ),
+      GoRoute(
+        path: FerhaRoutes.calendrier,
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) {
+          final p = state.uri.queryParameters;
+          return CalendrierScreen(
+            venueId: state.pathParameters['id']!,
+            creneau: Creneau.depuisCode(p['creneau']),
+            date: DateTime.tryParse(p['date'] ?? ''),
+            invites: int.tryParse(p['invites'] ?? ''),
+          );
+        },
       ),
 
       GoRoute(

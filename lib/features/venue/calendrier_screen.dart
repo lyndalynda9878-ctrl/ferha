@@ -1,0 +1,563 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../core/theme/ferha_colors.dart';
+import '../../core/theme/ferha_radii.dart';
+import '../search/search_filters.dart';
+import '../search/widgets/etats.dart';
+import 'venue_detail.dart';
+import 'venue_providers.dart';
+
+/// Écran 4 des maquettes — le calendrier de disponibilité (§4.2, CLI-04).
+///
+/// Dix-huit mois, EN LECTURE SEULE. On ne réserve pas depuis ici : on regarde.
+///
+/// TROIS ÉTATS, ET LE CRÉNEAU SE CHOISIT AVANT LE JOUR. C'est la remarque des
+/// maquettes, et elle commande toute la structure de l'écran : « un 14 août
+/// libre le midi et pris le soir doit se lire d'un coup d'œil ». Un calendrier
+/// qui mélangerait les créneaux ne saurait pas colorer ce jour-là, et devrait
+/// inventer un quatrième état — « partiellement pris » — que personne ne sait
+/// interpréter. Les puces de créneau sont donc au-dessus de la grille, et
+/// changer de créneau relit le calendrier.
+///
+/// LE MOTIF D'UN BLOCAGE N'APPARAÎT NULLE PART. `venue_calendar()` ne le
+/// renvoie pas : « fête de famille » ou « travaux » sont des notes internes du
+/// propriétaire (§9). L'écran ne peut donc pas les afficher, même par erreur.
+///
+/// Consultable sans compte, comme la fiche.
+class CalendrierScreen extends ConsumerStatefulWidget {
+  /// Crée le calendrier.
+  const CalendrierScreen({
+    required this.venueId,
+    this.creneau = Creneau.soir,
+    this.date,
+    this.invites,
+    super.key,
+  });
+
+  /// La salle.
+  final String venueId;
+
+  /// Le créneau regardé au départ.
+  final Creneau creneau;
+
+  /// La date cherchée, mise en évidence si elle est visible.
+  final DateTime? date;
+
+  /// Le nombre d'invités, repris pour l'estimation.
+  final int? invites;
+
+  @override
+  ConsumerState<CalendrierScreen> createState() => _CalendrierScreenState();
+}
+
+class _CalendrierScreenState extends ConsumerState<CalendrierScreen> {
+  late Creneau _creneau = widget.creneau;
+  late DateTime? _selection = widget.date;
+
+  /// Dix-huit mois à partir du mois courant (§4.2, CLI-04).
+  static const int _nombreDeMois = 18;
+
+  @override
+  Widget build(BuildContext context) {
+    final demande = DemandeCalendrier(
+      venueId: widget.venueId,
+      creneau: _creneau,
+    );
+    final calendrier = ref.watch(calendrierProvider(demande));
+    final fiche = ref.watch(
+      ficheProvider(
+        DemandeFiche(
+          venueId: widget.venueId,
+          date: _selection,
+          invites: widget.invites,
+        ),
+      ),
+    );
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Disponibilité')),
+      body: Column(
+        children: <Widget>[
+          _ChoixCreneau(
+            creneau: _creneau,
+            onChange: (c) => setState(() => _creneau = c),
+          ),
+          const _Legende(),
+          Expanded(
+            child: calendrier.when(
+              loading: () => const _CalendrierEnAttente(),
+              error: (erreur, _) => EtatErreur(
+                erreur: erreur,
+                onReessayer: () => ref.invalidate(calendrierProvider(demande)),
+              ),
+              data: (occupes) => _Grille(
+                occupes: occupes,
+                nombreDeMois: _nombreDeMois,
+                selection: _selection,
+                onJour: (jour, etat) => setState(
+                  () => _selection = etat == EtatJour.libre ? jour : null,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+      bottomNavigationBar: _selection == null
+          ? null
+          : _Resume(
+              jour: _selection!,
+              creneau: _creneau,
+              tarif: fiche.value?.tarifPour(_creneau.code),
+            ),
+    );
+  }
+}
+
+/// Les trois puces de créneau, au-dessus de la grille.
+class _ChoixCreneau extends StatelessWidget {
+  const _ChoixCreneau({required this.creneau, required this.onChange});
+
+  final Creneau creneau;
+  final ValueChanged<Creneau> onChange;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsetsDirectional.fromSTEB(20, 8, 20, 12),
+      child: SegmentedButton<Creneau>(
+        segments: Creneau.values
+            .map(
+              (c) => ButtonSegment<Creneau>(
+                value: c,
+                label: Text(
+                  c == Creneau.journee ? 'Journée entière' : c.libelle,
+                ),
+              ),
+            )
+            .toList(growable: false),
+        selected: <Creneau>{creneau},
+        onSelectionChanged: (choix) => onChange(choix.first),
+        showSelectedIcon: false,
+      ),
+    );
+  }
+}
+
+/// La légende des trois états.
+class _Legende extends StatelessWidget {
+  const _Legende();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.ferhaColors;
+
+    return Padding(
+      padding: const EdgeInsetsDirectional.fromSTEB(20, 0, 20, 12),
+      child: Row(
+        children: <Widget>[
+          _Pastille(couleur: colors.slotFreeSoft, libelle: 'Libre'),
+          const SizedBox(width: 16),
+          _Pastille(couleur: colors.slotBookedSoft, libelle: 'Réservé'),
+          const SizedBox(width: 16),
+          _Pastille(
+            couleur: colors.slotUnavailableSoft,
+            libelle: 'Indisponible',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Pastille extends StatelessWidget {
+  const _Pastille({required this.couleur, required this.libelle});
+
+  final Color couleur;
+  final String libelle;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.ferhaColors;
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(
+            color: couleur,
+            borderRadius: FerhaRadii.chipBorder,
+            border: Border.all(color: colors.ruleSoft),
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          libelle,
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: colors.inkSecondary),
+        ),
+      ],
+    );
+  }
+}
+
+/// Les dix-huit mois, à la file.
+class _Grille extends StatelessWidget {
+  const _Grille({
+    required this.occupes,
+    required this.nombreDeMois,
+    required this.selection,
+    required this.onJour,
+  });
+
+  final Map<DateTime, EtatJour> occupes;
+  final int nombreDeMois;
+  final DateTime? selection;
+  final void Function(DateTime jour, EtatJour etat) onJour;
+
+  @override
+  Widget build(BuildContext context) {
+    final maintenant = DateTime.now();
+    final premierMois = DateTime(maintenant.year, maintenant.month);
+
+    return ListView.builder(
+      padding: const EdgeInsetsDirectional.fromSTEB(20, 0, 20, 32),
+      itemCount: nombreDeMois,
+      itemBuilder: (context, i) => _Mois(
+        mois: DateTime(premierMois.year, premierMois.month + i),
+        occupes: occupes,
+        selection: selection,
+        onJour: onJour,
+      ),
+    );
+  }
+}
+
+class _Mois extends StatelessWidget {
+  const _Mois({
+    required this.mois,
+    required this.occupes,
+    required this.selection,
+    required this.onJour,
+  });
+
+  final DateTime mois;
+  final Map<DateTime, EtatJour> occupes;
+  final DateTime? selection;
+  final void Function(DateTime jour, EtatJour etat) onJour;
+
+  static const List<String> _jours = <String>[
+    'L',
+    'M',
+    'M',
+    'J',
+    'V',
+    'S',
+    'D',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.ferhaColors;
+    final text = Theme.of(context).textTheme;
+
+    final nombreDeJours = DateTime(mois.year, mois.month + 1, 0).day;
+    // La semaine commence le lundi : DateTime.weekday vaut 1 pour lundi.
+    final decalage = DateTime(mois.year, mois.month).weekday - 1;
+
+    return Padding(
+      padding: const EdgeInsetsDirectional.only(bottom: 28),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            '${_nomMois(mois.month)} ${mois.year}',
+            style: text.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: <Widget>[
+              for (final j in _jours)
+                Expanded(
+                  child: Center(
+                    child: Text(
+                      j,
+                      style: text.labelSmall?.copyWith(
+                        color: colors.inkTertiary,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 7,
+              mainAxisSpacing: 4,
+              crossAxisSpacing: 4,
+              childAspectRatio: 1,
+            ),
+            itemCount: decalage + nombreDeJours,
+            itemBuilder: (context, index) {
+              if (index < decalage) return const SizedBox.shrink();
+
+              final jour = DateTime(
+                mois.year,
+                mois.month,
+                index - decalage + 1,
+              );
+              return _Jour(
+                jour: jour,
+                etat: _etat(jour),
+                selectionne: selection != null && _memeJour(selection!, jour),
+                onTap: () => onJour(jour, _etat(jour)),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// L'état d'un jour.
+  ///
+  /// Le passé compte comme indisponible : on ne réserve pas une date passée —
+  /// `request_booking()` le refuse — et cela reste dans les trois états annoncés
+  /// plutôt que d'en inventer un quatrième.
+  EtatJour _etat(DateTime jour) {
+    final maintenant = DateTime.now();
+    final aujourdhui = DateTime(
+      maintenant.year,
+      maintenant.month,
+      maintenant.day,
+    );
+    if (jour.isBefore(aujourdhui)) return EtatJour.indisponible;
+    return occupes[jour] ?? EtatJour.libre;
+  }
+}
+
+bool _memeJour(DateTime a, DateTime b) =>
+    a.year == b.year && a.month == b.month && a.day == b.day;
+
+class _Jour extends StatelessWidget {
+  const _Jour({
+    required this.jour,
+    required this.etat,
+    required this.selectionne,
+    required this.onTap,
+  });
+
+  final DateTime jour;
+  final EtatJour etat;
+  final bool selectionne;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.ferhaColors;
+    final text = Theme.of(context).textTheme;
+
+    // Les couleurs de créneau du thème existent exactement pour cet écran :
+    // leur documentation dit « calendrier et états de réservation uniquement ».
+    final (Color fond, Color encre) = switch (etat) {
+      EtatJour.libre => (colors.slotFreeSoft, colors.slotFree),
+      EtatJour.reserve => (colors.slotBookedSoft, colors.slotBooked),
+      EtatJour.indisponible => (
+        colors.slotUnavailableSoft,
+        colors.slotUnavailable,
+      ),
+    };
+
+    return Semantics(
+      label: '${jour.day} ${_nomMois(jour.month)}, ${_libelle(etat)}',
+      button: etat == EtatJour.libre,
+      selected: selectionne,
+      child: Material(
+        color: fond,
+        borderRadius: FerhaRadii.imageBorder,
+        child: InkWell(
+          // Un jour pris ne se sélectionne pas : le calendrier est en lecture
+          // seule, et proposer de cliquer sur une date indisponible ne mènerait
+          // nulle part.
+          onTap: etat == EtatJour.libre ? onTap : null,
+          borderRadius: FerhaRadii.imageBorder,
+          child: Container(
+            alignment: AlignmentDirectional.center,
+            decoration: BoxDecoration(
+              borderRadius: FerhaRadii.imageBorder,
+              border: selectionne
+                  ? Border.all(color: colors.primary, width: 2)
+                  : null,
+            ),
+            child: Text(
+              '${jour.day}',
+              style: text.bodyMedium?.copyWith(
+                color: encre,
+                fontWeight: selectionne ? FontWeight.w700 : FontWeight.w500,
+                fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+String _libelle(EtatJour etat) => switch (etat) {
+  EtatJour.libre => 'libre',
+  EtatJour.reserve => 'réservé',
+  EtatJour.indisponible => 'indisponible',
+};
+
+/// Le bandeau du bas quand un jour libre est choisi.
+///
+/// Il reprend le prix de ce jour-là, majorations comprises — c'est la remarque
+/// de la maquette : « Samedi 14 août — soirée. Haute saison, majoration +30 %
+/// appliquée. »
+class _Resume extends StatelessWidget {
+  const _Resume({
+    required this.jour,
+    required this.creneau,
+    required this.tarif,
+  });
+
+  final DateTime jour;
+  final Creneau creneau;
+  final LigneTarif? tarif;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.ferhaColors;
+    final text = Theme.of(context).textTheme;
+
+    final majorations = <String>[
+      if (tarif?.jourMajore ?? false) 'jour majoré',
+      if (tarif?.saisonMajoree ?? false) 'haute saison',
+    ];
+
+    return SafeArea(
+      top: false,
+      child: Container(
+        padding: const EdgeInsetsDirectional.fromSTEB(20, 12, 20, 12),
+        decoration: BoxDecoration(
+          color: colors.surface,
+          border: Border(top: BorderSide(color: colors.rule)),
+        ),
+        child: Row(
+          children: <Widget>[
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Text(
+                    '${dateEnFrancais(jour)} · '
+                    '${creneau == Creneau.journee ? 'journée entière' : creneau.libelle.toLowerCase()}',
+                    style: text.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    tarif == null
+                        ? 'Créneau non proposé par cette salle'
+                        : '${montantEnDinars(tarif!.total)} DA'
+                              '${majorations.isEmpty ? '' : ' · ${majorations.join(', ')}'}',
+                    maxLines: 2,
+                    style: text.bodySmall?.copyWith(color: colors.inkSecondary),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            // La demande de réservation arrive à l'étape suivante. Le bouton
+            // existe déjà pour que la barre ait sa forme définitive, et il dit
+            // franchement qu'il ne fait rien plutôt que de faire semblant.
+            FilledButton(
+              onPressed: null,
+              style: FilledButton.styleFrom(
+                padding: const EdgeInsetsDirectional.symmetric(
+                  horizontal: 20,
+                  vertical: 16,
+                ),
+              ),
+              child: const Text('Continuer'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Squelette du calendrier, pendant le chargement.
+class _CalendrierEnAttente extends StatelessWidget {
+  const _CalendrierEnAttente();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.ferhaColors;
+
+    return ListView.builder(
+      padding: const EdgeInsetsDirectional.fromSTEB(20, 0, 20, 32),
+      itemCount: 2,
+      itemBuilder: (context, i) => Padding(
+        padding: const EdgeInsetsDirectional.only(bottom: 28),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Container(
+              width: 130,
+              height: 18,
+              decoration: BoxDecoration(
+                color: colors.surfaceSecondary,
+                borderRadius: FerhaRadii.chipBorder,
+              ),
+            ),
+            const SizedBox(height: 16),
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 7,
+                mainAxisSpacing: 4,
+                crossAxisSpacing: 4,
+              ),
+              itemCount: 35,
+              itemBuilder: (context, _) => DecoratedBox(
+                decoration: BoxDecoration(
+                  color: colors.surfaceSecondary,
+                  borderRadius: FerhaRadii.imageBorder,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+const List<String> _moisFr = <String>[
+  'Janvier',
+  'Février',
+  'Mars',
+  'Avril',
+  'Mai',
+  'Juin',
+  'Juillet',
+  'Août',
+  'Septembre',
+  'Octobre',
+  'Novembre',
+  'Décembre',
+];
+
+String _nomMois(int mois) => _moisFr[mois - 1];

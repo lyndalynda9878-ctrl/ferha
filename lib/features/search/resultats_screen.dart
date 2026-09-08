@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/router/routes.dart';
 import '../../core/theme/ferha_colors.dart';
 import 'search_filters.dart';
 import 'search_providers.dart';
@@ -97,7 +98,15 @@ class ResultatsScreen extends ConsumerWidget {
                   padding: const EdgeInsetsDirectional.fromSTEB(20, 16, 20, 32),
                   itemCount: donnees.salles.length,
                   separatorBuilder: (_, _) => const SizedBox(height: 16),
-                  itemBuilder: (_, i) => VenueCard(salle: donnees.salles[i]),
+                  itemBuilder: (_, i) => VenueCard(
+                    salle: donnees.salles[i],
+                    onTap: () => context.push(
+                      Uri(
+                        path: FerhaRoutes.salleDe(donnees.salles[i].id),
+                        queryParameters: filtres.versParametres(),
+                      ).toString(),
+                    ),
+                  ),
                 );
               },
             ),
