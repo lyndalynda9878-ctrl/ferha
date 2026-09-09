@@ -33,25 +33,22 @@
 -- -----------------------------------------------------------------------------
 -- 25 %, et d'où vient ce chiffre
 --
--- Le cahier des charges ne le fixe pas : son §5.3 donne le barème de
--- REMBOURSEMENT (100 / 50 / 0 % selon la date), pas la part à verser. Ce sont
--- les maquettes qui le donnent, et deux fois plutôt qu'une — l'écran 5 écrit
--- « Acompte à verser (25 %) · 51 250 DA » sous une estimation de 205 000 DA,
--- et l'écran 6 reprend « Acompte (25 %) · 51 250 DA ». 51 250 = 205 000 × 0,25 :
--- les deux écrans sont d'accord entre eux, et avec ce taux.
+-- Le §5.3 borne l'acompte à 20–30 % du montant convenu, et fixe à 25 % le taux
+-- que la plateforme propose. Les maquettes disent la même chose, et deux fois
+-- plutôt qu'une : l'écran 5 écrit « Acompte à verser (25 %) · 51 250 DA » sous
+-- une estimation de 205 000 DA, et l'écran 6 reprend « Acompte (25 %) ».
+-- 51 250 = 205 000 × 0,25 — le cahier des charges et les maquettes tombent
+-- d'accord, et c'est ce taux-là.
 --
--- C'EST DONC UNE VALEUR À CONFIRMER, comme l'était venue_options en 005 : les
--- maquettes donnent la structure, et le cahier des charges les valeurs. Ici le
--- cahier se tait, on prend donc les maquettes — mais on l'écrit.
---
--- CE MONTANT N'EST QU'UNE INDICATION À CE STADE. L'acompte réellement dû est
--- fixé par le propriétaire quand il accepte la demande (accept_booking, 004,
--- paramètre p_deposit_amount), et le §5.2 lui laisse expressément le droit de
--- s'écarter de l'estimation. Ce que l'écran 5 affiche est ce que le client
--- versera si le propriétaire suit le taux de la plateforme.
+-- CE MONTANT N'EST QU'UNE INDICATION À CE STADE, et le §5.3 le dit aussi.
+-- L'acompte réellement dû est fixé par le propriétaire quand il accepte la
+-- demande (accept_booking, 004, paramètre p_deposit_amount), dans les bornes du
+-- §5.3. Ce que l'écran 5 affiche est ce que le client versera si le
+-- propriétaire suit le taux de la plateforme.
 --
 -- Une fonction plutôt qu'une constante en dur répétée : le jour où le taux
--- change, ou devient propre à chaque salle, il y a UN endroit à ouvrir.
+-- bouge dans ses bornes, ou devient propre à chaque salle, il y a UN endroit à
+-- ouvrir.
 -- -----------------------------------------------------------------------------
 
 create or replace function public.deposit_rate()
@@ -63,9 +60,9 @@ as $$
 $$;
 
 comment on function public.deposit_rate() is
-  'Part du devis demandée en acompte (maquettes, écrans 5 et 6). '
-  'Valeur à confirmer : le cahier des charges ne la fixe pas. '
-  'Indicative seulement — accept_booking() laisse le propriétaire fixer le montant réel (§5.2).';
+  'Part du devis demandée en acompte : 25 %, le taux que la plateforme propose (§5.3). '
+  'Le §5.3 borne l''acompte à 20-30 % du montant convenu. '
+  'Indicatif — accept_booking() laisse le propriétaire fixer le montant réel dans ces bornes.';
 
 grant execute on function public.deposit_rate() to anon, authenticated;
 

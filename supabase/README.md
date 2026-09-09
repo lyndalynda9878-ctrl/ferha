@@ -158,12 +158,12 @@ appelle et d'où l'on part (§9).
   ligne de formule. Elle y ajoute l'acompte, qui n'est pas un prix mais une
   fraction du devis, et cette fraction vit dans `deposit_rate()` — **une
   fonction d'une ligne, et le seul endroit où le taux est écrit.**
-- **Le taux d'acompte est de 25 %, et c'est une valeur à confirmer.** Le cahier
-  des charges ne la fixe pas : son §5.3 donne le barème de *remboursement*, pas
-  la part à verser. Ce sont les maquettes qui la donnent, deux fois — écrans 5
-  et 6, où 51 250 DA valent bien 25 % de 205 000 DA. Elle n'est de toute façon
-  qu'**indicative** : c'est `accept_booking()` qui fixe l'acompte réellement dû,
-  et le §5.2 laisse expressément le propriétaire s'écarter de l'estimation.
+- **Le taux d'acompte est de 25 %** (§5.3), et il vit dans `deposit_rate()`. Le
+  §5.3 borne l'acompte à **20–30 %** du montant convenu et fixe à 25 % le taux
+  que la plateforme propose ; les maquettes disent la même chose, écrans 5 et 6,
+  où 51 250 DA valent bien 25 % de 205 000 DA. Ce montant reste
+  **indicatif** : c'est `accept_booking()` qui fixe l'acompte réellement dû, et
+  le §5.2 laisse expressément le propriétaire s'écarter de l'estimation.
 - **Les refus de `request_booking()` portent un code Ferha dans leur `hint`**
   (012) : `FE001` créneau déjà pris, `FE002` bloqué, `FE003` date passée,
   `FE004` salle fermée, `FE005` sa propre salle, `FE006` non connecté. Leur
@@ -333,8 +333,10 @@ la passer en `security_invoker = true` — elle ne renverrait plus rien.
   salle, par une **vue distincte n'exposant que le prénom** des propriétaires
   ayant au moins une salle publiée. Prénom seul, pas de nom de famille, pas
   d'e-mail, pas de numéro.
-- **Le taux d'acompte de `deposit_rate()` vient des maquettes, pas du cahier des
-  charges.** 25 % : à confirmer, comme l'était `venue_options`.
+- **`accept_booking()` ne vérifie pas les bornes de 20–30 % du §5.3.** Elle
+  n'exige aujourd'hui qu'un acompte compris entre 0 et le montant du devis. Le
+  §5.3 est plus étroit depuis qu'il fixe la fourchette ; resserrer la contrainte
+  demande d'abord de vérifier qu'aucune réservation acceptée n'en sort.
 - `high_season_periods` arrive **vide**. Tant qu'elle l'est, seuls juin à
   septembre majorent ; les vacances scolaires du §5.2 doivent y être déposées
   année par année.
