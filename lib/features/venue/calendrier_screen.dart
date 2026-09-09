@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../core/router/routes.dart';
 import '../../core/theme/ferha_colors.dart';
 import '../../core/theme/ferha_radii.dart';
 import '../search/search_filters.dart';
@@ -114,9 +116,11 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen> {
       bottomNavigationBar: _selection == null
           ? null
           : _Resume(
+              venueId: widget.venueId,
               jour: _selection!,
               creneau: _creneau,
               tarif: fiche.value?.tarifPour(_creneau.code),
+              invites: widget.invites,
             ),
     );
   }
@@ -556,14 +560,22 @@ String _libelle(EtatJour etat) => switch (etat) {
 /// appliquée. »
 class _Resume extends StatelessWidget {
   const _Resume({
+    required this.venueId,
     required this.jour,
     required this.creneau,
     required this.tarif,
+    required this.invites,
   });
+
+  /// La salle, pour le lien vers la demande.
+  final String venueId;
 
   final DateTime jour;
   final Creneau creneau;
   final LigneTarif? tarif;
+
+  /// Le nombre d'invités venu de la recherche, transmis à la demande.
+  final int? invites;
 
   @override
   Widget build(BuildContext context) {
@@ -610,11 +622,25 @@ class _Resume extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 12),
-            // La demande de réservation arrive à l'étape suivante. Le bouton
-            // existe déjà pour que la barre ait sa forme définitive, et il dit
-            // franchement qu'il ne fait rien plutôt que de faire semblant.
+            // Vers l'écran de demande (§3, étape 3). Le bouton reste éteint
+            // quand la salle ne vend pas ce créneau : il n'y aurait aucun prix
+            // à composer, et estimate_price() refuserait de tarifer.
+            //
+            // AUCUNE CONNEXION N'EST DEMANDÉE ICI. C'est l'écran suivant qui
+            // la réclamera, au moment d'envoyer — et lui seul.
             FilledButton(
-              onPressed: null,
+              onPressed: tarif == null
+                  ? null
+                  : () => context.push(
+                      Uri(
+                        path: FerhaRoutes.demandeDe(venueId),
+                        queryParameters: <String, String>{
+                          'creneau': creneau.code,
+                          'date': dateVersIso(jour),
+                          if (invites != null) 'invites': '$invites',
+                        },
+                      ).toString(),
+                    ),
               style: FilledButton.styleFrom(
                 padding: const EdgeInsetsDirectional.symmetric(
                   horizontal: 20,

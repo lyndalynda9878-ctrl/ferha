@@ -71,6 +71,52 @@ typedef EquipementSalle = ({
   String categorie,
 });
 
+/// Un type d'événement accueilli par la salle.
+///
+/// Le code voyage, le libellé s'affiche. C'est le code que porte une
+/// réservation : un libellé dépend de la langue, et « Mariage » ne se compare
+/// pas à « زفاف ».
+typedef TypeEvenement = ({String code, String libelle});
+
+/// Une option payante de la salle — le « Σ options_choisies » du §5.2.
+///
+/// UN PRIX À ZÉRO N'EST PAS UNE OPTION GRATUITE À MOITIÉ : c'est une option
+/// INCLUSE, et l'écran l'écrit en toutes lettres. C'est le « ☑ Chambre de la
+/// mariée · Incluse » de la maquette.
+@immutable
+class OptionSalle {
+  /// Crée une option.
+  const OptionSalle({
+    required this.id,
+    required this.code,
+    required this.libelle,
+    required this.prix,
+  });
+
+  /// Construit depuis le JSON de `venue_detail()` ou de `booking_quote()`.
+  factory OptionSalle.depuisJson(Map<String, dynamic> j) => OptionSalle(
+    id: j['id'] as String,
+    code: j['code'] as String,
+    libelle: j['label'] as String,
+    prix: j['price'] as num,
+  );
+
+  /// Identifiant, celui qu'attendent `booking_quote()` et `request_booking()`.
+  final String id;
+
+  /// Code stable propre à la salle.
+  final String code;
+
+  /// Libellé affiché, déjà dans la langue de la fiche.
+  final String libelle;
+
+  /// Forfait en dinars pour la réservation entière.
+  final num prix;
+
+  /// Vrai quand l'option est comprise dans le prix de la salle.
+  bool get incluse => prix == 0;
+}
+
 /// La fiche complète d'une salle, telle que la renvoie `venue_detail()`.
 ///
 /// Ce que ce type NE PORTE PAS, et ne doit jamais porter : rien du
@@ -88,6 +134,7 @@ class VenueDetail {
     required this.photos,
     required this.equipements,
     required this.tarifs,
+    required this.options,
     required this.dateEstimation,
     this.wilayaNom,
     this.superficie,
@@ -95,7 +142,7 @@ class VenueDetail {
     this.description,
     this.note,
     this.nombreAvis = 0,
-    this.typesEvenement = const <String>[],
+    this.typesEvenement = const <TypeEvenement>[],
     this.invites,
   });
 
@@ -130,7 +177,13 @@ class VenueDetail {
           .toList(growable: false),
       typesEvenement: (j['event_types'] as List<dynamic>)
           .cast<Map<String, dynamic>>()
-          .map((t) => t['label'] as String)
+          .map<TypeEvenement>(
+            (t) => (code: t['code'] as String, libelle: t['label'] as String),
+          )
+          .toList(growable: false),
+      options: (j['options'] as List<dynamic>)
+          .cast<Map<String, dynamic>>()
+          .map(OptionSalle.depuisJson)
           .toList(growable: false),
       tarifs: (j['pricing'] as List<dynamic>)
           .cast<Map<String, dynamic>>()
@@ -180,11 +233,19 @@ class VenueDetail {
   /// Équipements, déjà traduits.
   final List<EquipementSalle> equipements;
 
-  /// Types d'événement acceptés. Vide = la salle accepte tout.
-  final List<String> typesEvenement;
+  /// Types d'événement accueillis.
+  ///
+  /// Jamais vide en pratique : `venue_detail()` applique la règle de 010 —
+  /// aucune ligne déclarée veut dire « la salle accueille tout », et c'est
+  /// alors le référentiel entier qui arrive.
+  final List<TypeEvenement> typesEvenement;
 
   /// La grille tarifaire, un créneau par ligne.
   final List<LigneTarif> tarifs;
+
+  /// Les options payantes proposées à l'écran de demande, dans leur ordre
+  /// d'affichage. Seules les actives arrivent ici.
+  final List<OptionSalle> options;
 
   /// La date pour laquelle les prix ont été calculés.
   final DateTime dateEstimation;

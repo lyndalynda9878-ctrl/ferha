@@ -152,7 +152,7 @@ class _Contenu extends StatelessWidget {
                 const _Intitule('Événements accueillis'),
                 const SizedBox(height: 10),
                 Text(
-                  salle.typesEvenement.join(' · '),
+                  salle.typesEvenement.map((t) => t.libelle).join(' · '),
                   style: text.bodyMedium?.copyWith(color: colors.inkSecondary),
                 ),
               ],

@@ -33,4 +33,19 @@ void main() {
   verifie('la fiche', '${FerhaRoutes.salleDe(id)}?creneau=soir&invites=200');
   verifie('la galerie', FerhaRoutes.galerieDe(id));
   verifie('le calendrier', '${FerhaRoutes.calendrierDe(id)}?creneau=midi');
+
+  // L'écran de demande aussi : c'est LUI qui réclame la connexion, au moment
+  // d'envoyer, et pas le routeur avant d'y entrer. Un visiteur non connecté
+  // doit pouvoir composer sa demande de bout en bout — choisir son type
+  // d'événement, ses invités, ses options, voir le devis se recalculer — et
+  // n'être arrêté qu'au bouton « Envoyer ». Une `redirect` posée sur cette
+  // route lui ferait tout perdre avant d'avoir vu un seul prix.
+  verifie(
+    'la demande',
+    '${FerhaRoutes.demandeDe(id)}?creneau=soir&date=2027-08-14&invites=320',
+  );
+  verifie(
+    'la confirmation',
+    '${FerhaRoutes.demandeEnvoyee}?ref=3f2a1b4c-0000-4000-8000-000000000001',
+  );
 }

@@ -47,6 +47,29 @@ abstract final class FerhaRoutes {
   /// Chemin du calendrier d'une salle donnée.
   static String calendrierDe(String id) => '/salle/$id/calendrier';
 
+  /// Demande de réservation d'une salle. `/salle/:id/demande`
+  ///
+  /// On y arrive depuis le bouton du calendrier, une date et un créneau
+  /// choisis. Les deux voyagent en paramètres de requête, comme partout
+  /// ailleurs : c'est de la date et du créneau que dépend le devis, et une
+  /// demande en cours doit survivre à un rechargement de page sur le web.
+  ///
+  /// Ce qui NE voyage PAS dans l'adresse : les options cochées et le type
+  /// d'événement. Ils sont l'état de l'écran, et cet écran ne se quitte que
+  /// d'une seule façon — l'écran de connexion, qui s'ouvre PAR-DESSUS et se
+  /// referme dessus sans le démonter.
+  static const String demande = '/salle/:id/demande';
+
+  /// Chemin de la demande pour une salle donnée.
+  static String demandeDe(String id) => '/salle/$id/demande';
+
+  /// Confirmation d'une demande envoyée. `/demande-envoyee`
+  ///
+  /// Hors de l'arborescence de la salle : on n'y revient pas, on en sort. Le
+  /// récapitulatif voyage par `extra` ; l'adresse ne porte que la référence du
+  /// groupe, seul survivant d'un rechargement de page.
+  static const String demandeEnvoyee = '/demande-envoyee';
+
   /// Connexion par e-mail et mot de passe.
   ///
   /// Hors de la barre d'onglets : on y entre par-dessus l'écran en cours, et

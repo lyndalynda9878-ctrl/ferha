@@ -5,6 +5,9 @@ import 'package:go_router/go_router.dart';
 import '../../features/auth/connexion_screen.dart';
 import '../../features/auth/inscription_screen.dart';
 import '../../features/auth/profil_screen.dart';
+import '../../features/booking/booking_providers.dart';
+import '../../features/booking/demande_envoyee_screen.dart';
+import '../../features/booking/demande_screen.dart';
 import '../../features/search/accueil_screen.dart';
 import '../../features/search/resultats_screen.dart';
 import '../../features/search/search_filters.dart';
@@ -110,6 +113,41 @@ final routerProvider = Provider<GoRouter>((ref) {
             invites: int.tryParse(p['invites'] ?? ''),
           );
         },
+      ),
+
+      // La demande de réservation. AUCUNE REDIRECTION NON PLUS, et c'est le
+      // point de l'étape : un visiteur non connecté compose sa demande
+      // entièrement, et la connexion ne lui est réclamée qu'au moment où il
+      // appuie sur « Envoyer », depuis l'écran lui-même. Une `redirect` posée
+      // ici le renverrait à la connexion avant qu'il ait vu un seul prix.
+      GoRoute(
+        path: FerhaRoutes.demande,
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) {
+          final p = state.uri.queryParameters;
+          return DemandeScreen(
+            venueId: state.pathParameters['id']!,
+            // Une demande sans date n'a pas de prix : on retombe sur
+            // aujourd'hui plutôt que d'afficher un écran vide. En pratique le
+            // calendrier passe toujours la date qu'il a fait choisir.
+            date: DateTime.tryParse(p['date'] ?? '') ?? DateTime.now(),
+            creneau: Creneau.depuisCode(p['creneau']),
+            invites: int.tryParse(p['invites'] ?? ''),
+          );
+        },
+      ),
+
+      // La confirmation. `extra` porte le récapitulatif ; sur un rechargement
+      // de page il est perdu, et l'écran se replie sur la seule référence que
+      // l'adresse ait conservée — plutôt que d'inventer un détail qu'il n'a
+      // plus.
+      GoRoute(
+        path: FerhaRoutes.demandeEnvoyee,
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => DemandeEnvoyeeScreen(
+          demande: state.extra as DemandeEnvoyee?,
+          reference: state.uri.queryParameters['ref'],
+        ),
       ),
 
       GoRoute(
