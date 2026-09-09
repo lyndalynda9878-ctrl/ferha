@@ -8,6 +8,7 @@ import '../../features/auth/profil_screen.dart';
 import '../../features/booking/booking_providers.dart';
 import '../../features/booking/demande_envoyee_screen.dart';
 import '../../features/booking/demande_screen.dart';
+import '../../features/booking/mes_reservations_screen.dart';
 import '../../features/search/accueil_screen.dart';
 import '../../features/search/resultats_screen.dart';
 import '../../features/search/search_filters.dart';
@@ -148,6 +149,16 @@ final routerProvider = Provider<GoRouter>((ref) {
           demande: state.extra as DemandeEnvoyee?,
           reference: state.uri.queryParameters['ref'],
         ),
+      ),
+
+      // Le suivi des réservations. Pas de redirection ici non plus : c'est le
+      // profil qui n'offre l'entrée qu'à un compte connecté, et
+      // `client_bookings()` qui refuse un appel sans session. Une `redirect`
+      // ferait un troisième gardien pour la même règle.
+      GoRoute(
+        path: FerhaRoutes.mesReservations,
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const MesReservationsScreen(),
       ),
 
       GoRoute(

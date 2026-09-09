@@ -48,4 +48,10 @@ void main() {
     'la confirmation',
     '${FerhaRoutes.demandeEnvoyee}?ref=3f2a1b4c-0000-4000-8000-000000000001',
   );
+
+  // Le suivi des réservations non plus n'a pas de redirection : c'est le profil
+  // qui n'offre l'entrée qu'à un compte connecté, et `client_bookings()` qui
+  // refuse un appel sans session. Une `redirect` ferait un troisième gardien
+  // pour la même règle, et c'est celui qu'on oublierait de retirer.
+  verifie('le suivi des réservations', FerhaRoutes.mesReservations);
 }

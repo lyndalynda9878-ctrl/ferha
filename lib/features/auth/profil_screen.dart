@@ -195,7 +195,23 @@ class _ProfilConnecte extends ConsumerWidget {
                 ],
               ),
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 28),
+
+            // Le suivi des demandes, avant les informations du compte : c'est
+            // ce qu'on vient chercher ici une fois la première demande partie.
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.tonalIcon(
+                onPressed: () => context.push(FerhaRoutes.mesReservations),
+                icon: const Icon(Icons.event_note_outlined, size: 18),
+                label: const Text('Mes réservations'),
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsetsDirectional.symmetric(vertical: 14),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 24),
 
             _Ligne(
               icone: Icons.phone_outlined,

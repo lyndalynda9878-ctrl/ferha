@@ -87,7 +87,7 @@ class _Barre extends StatelessWidget {
   }
 }
 
-/// Ce qu'on affiche quand la recherche n'a rien trouvé.
+/// Ce qu'on affiche quand il n'y a rien à montrer.
 ///
 /// Un « Aucun résultat » sec laisse le client devant un mur : il ne sait pas si
 /// l'application est cassée, si sa date est mauvaise ou s'il a mis un budget
@@ -97,9 +97,18 @@ class EtatVide extends StatelessWidget {
   const EtatVide({
     required this.titre,
     required this.explication,
+    this.icone = Icons.search_off,
     this.pistes = const <Widget>[],
     super.key,
   });
+
+  /// L'icône du vide.
+  ///
+  /// Une loupe barrée par défaut, parce que c'est la recherche qui a inauguré
+  /// ce widget. Elle se change : « vous n'avez pas encore de demande » n'est
+  /// pas une recherche infructueuse, et une loupe y ferait croire à une erreur
+  /// de critères.
+  final IconData icone;
 
   /// Ce qui s'est passé, en une ligne.
   final String titre;
@@ -123,7 +132,7 @@ class EtatVide extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              Icon(Icons.search_off, size: 44, color: colors.inkTertiary),
+              Icon(icone, size: 44, color: colors.inkTertiary),
               const SizedBox(height: 16),
               Text(titre, textAlign: TextAlign.center, style: text.titleLarge),
               const SizedBox(height: 8),
@@ -159,8 +168,16 @@ class EtatErreur extends StatelessWidget {
   const EtatErreur({
     required this.erreur,
     required this.onReessayer,
+    this.titre = 'La recherche n’a pas abouti',
     super.key,
   });
+
+  /// Ce qui n'a pas abouti.
+  ///
+  /// La recherche par défaut, parce que c'est elle qui a inauguré ce widget.
+  /// Ailleurs, le dire juste évite d'annoncer une recherche à quelqu'un qui
+  /// consultait ses réservations.
+  final String titre;
 
   /// L'erreur remontée, telle quelle.
   final Object erreur;
@@ -184,11 +201,7 @@ class EtatErreur extends StatelessWidget {
             children: <Widget>[
               Icon(Icons.cloud_off_outlined, size: 44, color: rouge),
               const SizedBox(height: 16),
-              Text(
-                'La recherche n’a pas abouti',
-                textAlign: TextAlign.center,
-                style: text.titleLarge,
-              ),
+              Text(titre, textAlign: TextAlign.center, style: text.titleLarge),
               const SizedBox(height: 8),
               Text(
                 messageErreurAuth(erreur),

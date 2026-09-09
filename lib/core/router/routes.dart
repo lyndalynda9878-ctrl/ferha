@@ -70,6 +70,14 @@ abstract final class FerhaRoutes {
   /// groupe, seul survivant d'un rechargement de page.
   static const String demandeEnvoyee = '/demande-envoyee';
 
+  /// Suivi des réservations du client. `/mes-reservations`
+  ///
+  /// Hors de la barre d'onglets : on y entre depuis le profil et on en revient
+  /// dessus. Aucun paramètre — la liste est celle de l'utilisateur connecté, et
+  /// personne d'autre ne peut la demander : `client_bookings()` ne connaît que
+  /// `auth.uid()`.
+  static const String mesReservations = '/mes-reservations';
+
   /// Connexion par e-mail et mot de passe.
   ///
   /// Hors de la barre d'onglets : on y entre par-dessus l'écran en cours, et
