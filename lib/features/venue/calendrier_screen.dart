@@ -58,6 +58,23 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen> {
   /// Dix-huit mois à partir du mois courant (§4.2, CLI-04).
   static const int _nombreDeMois = 18;
 
+  /// Les derniers états reçus, gardés le temps qu'un autre créneau arrive.
+  ///
+  /// CHANGER DE CRÉNEAU NE REPEINT QUE LES JOURS, IL NE REFAIT PAS LA LISTE.
+  /// Chaque créneau a son propre provider dans la famille : passer de midi à
+  /// soir en vise un autre, qui commence forcément par `AsyncLoading` sans
+  /// valeur précédente. Rendre le squelette à ce moment-là DÉMONTE le
+  /// `ListView` des mois, et un `ListView` démonté emporte sa position de
+  /// défilement — celui qui prend sa place repart du premier mois. Quelqu'un
+  /// qui regardait mars 2027 se retrouvait en haut de la liste à chaque puce
+  /// touchée, et devait redescendre dix-huit mois.
+  ///
+  /// On garde donc la même grille à l'écran d'un bout à l'autre, avec les états
+  /// qu'on avait, et seules les couleurs changent quand la réponse arrive. Le
+  /// squelette ne sert plus qu'à la toute première ouverture, quand il n'y a
+  /// encore rien à garder.
+  Map<DateTime, EtatJour>? _etats;
+
   @override
   Widget build(BuildContext context) {
     final demande = DemandeCalendrier(
@@ -65,6 +82,11 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen> {
       creneau: _creneau,
     );
     final calendrier = ref.watch(calendrierProvider(demande));
+
+    // Riverpod 3 a renommé `valueOrNull` en `value` : elle ne lève pas, et vaut
+    // null tant que CE créneau-ci n'a rien renvoyé.
+    final recus = calendrier.value;
+    if (recus != null) _etats = recus;
     final fiche = ref.watch(
       ficheProvider(
         DemandeFiche(
@@ -83,23 +105,7 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen> {
             creneau: _creneau,
             onChange: (c) => setState(() => _creneau = c),
           ),
-          Expanded(
-            child: calendrier.when(
-              loading: () => const _CalendrierEnAttente(),
-              error: (erreur, _) => EtatErreur(
-                erreur: erreur,
-                onReessayer: () => ref.invalidate(calendrierProvider(demande)),
-              ),
-              data: (occupes) => _Grille(
-                occupes: occupes,
-                nombreDeMois: _nombreDeMois,
-                selection: _selection,
-                onJour: (jour, etat) => setState(
-                  () => _selection = etat == EtatJour.libre ? jour : null,
-                ),
-              ),
-            ),
-          ),
+          Expanded(child: _corps(calendrier, demande)),
           // Sous la grille, comme sur la maquette : on lit d'abord le mois,
           // la légende ne sert qu'au moment où une couleur intrigue.
           const _Legende(),
@@ -112,6 +118,39 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen> {
               creneau: _creneau,
               tarif: fiche.value?.tarifPour(_creneau.code),
             ),
+    );
+  }
+
+  /// La grille dès qu'on a des états, le squelette tant qu'on n'en a aucun.
+  ///
+  /// La grille est le MÊME widget dans les deux cas — chargement compris — pour
+  /// que son élément soit mis à jour et non recréé : c'est ce qui garde la
+  /// position de défilement d'un créneau à l'autre.
+  Widget _corps(
+    AsyncValue<Map<DateTime, EtatJour>> calendrier,
+    DemandeCalendrier demande,
+  ) {
+    // L'erreur passe devant les états gardés : montrer la grille du créneau
+    // précédent sous une puce qui en annonce un autre raconterait des
+    // disponibilités fausses. On perd le défilement, mais on ne ment pas.
+    if (calendrier case AsyncError(:final error)) {
+      return EtatErreur(
+        erreur: error,
+        onReessayer: () => ref.invalidate(calendrierProvider(demande)),
+      );
+    }
+
+    final etats = _etats;
+    if (etats == null) return const _CalendrierEnAttente();
+
+    return _Grille(
+      occupes: etats,
+      // Le temps de la réponse, les cercles sont encore ceux du créneau d'avant.
+      enAttente: calendrier.isLoading,
+      nombreDeMois: _nombreDeMois,
+      selection: _selection,
+      onJour: (jour, etat) =>
+          setState(() => _selection = etat == EtatJour.libre ? jour : null),
     );
   }
 }
@@ -208,15 +247,25 @@ class _Pastille extends StatelessWidget {
 }
 
 /// Les dix-huit mois, à la file.
+///
+/// Cette liste reste montée du début à la fin de l'écran : elle est le seul
+/// endroit qui connaisse la position de défilement, et on ne la remplace ni
+/// pendant qu'un créneau se charge, ni au moment où ses états changent.
 class _Grille extends StatelessWidget {
   const _Grille({
     required this.occupes,
+    required this.enAttente,
     required this.nombreDeMois,
     required this.selection,
     required this.onJour,
   });
 
   final Map<DateTime, EtatJour> occupes;
+
+  /// Vrai pendant qu'un autre créneau se charge : les états affichés sont
+  /// encore ceux du créneau précédent.
+  final bool enAttente;
+
   final int nombreDeMois;
   final DateTime? selection;
   final void Function(DateTime jour, EtatJour etat) onJour;
@@ -226,14 +275,22 @@ class _Grille extends StatelessWidget {
     final maintenant = DateTime.now();
     final premierMois = DateTime(maintenant.year, maintenant.month);
 
-    return ListView.builder(
-      padding: const EdgeInsetsDirectional.fromSTEB(20, 0, 20, 32),
-      itemCount: nombreDeMois,
-      itemBuilder: (context, i) => _Mois(
-        mois: DateTime(premierMois.year, premierMois.month + i),
-        occupes: occupes,
-        selection: selection,
-        onJour: onJour,
+    // Le voile de l'attente. Il dit « ces couleurs ne sont pas encore les
+    // bonnes » sans rien déplacer — un squelette, lui, remettrait la liste en
+    // haut. Ce n'est pas une couleur, donc rien à prendre dans la palette ; et
+    // à 1 le rendu se contente de peindre l'enfant, sans couche ni coût.
+    return AnimatedOpacity(
+      opacity: enAttente ? 0.4 : 1,
+      duration: const Duration(milliseconds: 150),
+      child: ListView.builder(
+        padding: const EdgeInsetsDirectional.fromSTEB(20, 0, 20, 32),
+        itemCount: nombreDeMois,
+        itemBuilder: (context, i) => _Mois(
+          mois: DateTime(premierMois.year, premierMois.month + i),
+          occupes: occupes,
+          selection: selection,
+          onJour: onJour,
+        ),
       ),
     );
   }
