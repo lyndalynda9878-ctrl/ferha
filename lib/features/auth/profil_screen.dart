@@ -211,6 +211,31 @@ class _ProfilConnecte extends ConsumerWidget {
               ),
             ),
 
+            // L'espace propriétaire, pour qui en est un.
+            //
+            // Le bouton n'apparaît qu'avec `is_owner`, et ce n'est PAS ce qui
+            // protège le tableau de bord : les fonctions de 014 refusent d'une
+            // part un appel sans session, d'autre part une salle qui n'est pas
+            // la vôtre. Le cacher évite seulement de proposer à une cliente une
+            // porte qui ne s'ouvrirait sur rien.
+            if (estProprietaire) ...<Widget>[
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.tonalIcon(
+                  onPressed: () =>
+                      context.push(FerhaRoutes.proprietaireTableau),
+                  icon: const Icon(Icons.storefront_outlined, size: 18),
+                  label: const Text('Mes salles'),
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsetsDirectional.symmetric(
+                      vertical: 14,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+
             const SizedBox(height: 24),
 
             _Ligne(

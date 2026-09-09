@@ -220,6 +220,13 @@ String dateEnFrancais(DateTime d) => '${d.day} ${_mois[d.month - 1]} ${d.year}';
 /// « 14 août », sans l'année — pour les puces, où la place manque.
 String dateCourteEnFrancais(DateTime d) => '${d.day} ${_mois[d.month - 1]}';
 
+/// « août » — le mois seul, pour un titre qui porte déjà son contexte.
+///
+/// « Prévisionnel août » sur un tableau de bord ouvert en août n'a pas besoin
+/// de l'année : c'est le mois en cours, et l'écrire en entier ferait croire à
+/// un choix qu'on n'offre pas encore.
+String moisEnFrancais(DateTime d) => _mois[d.month - 1];
+
 /// « 180 000 » — séparateur d'espace fine insécable, comme en typographie
 /// française. Les prix sont en dinars et toujours entiers à l'affichage.
 String montantEnDinars(num montant) {

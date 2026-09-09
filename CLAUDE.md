@@ -43,6 +43,24 @@ c'est normal. Un rayon de carte de 13 px dans le mockup ne veut pas dire
 Les rayons passent donc par FerhaRadii, comme les couleurs par
 FerhaColors. Aucun rayon écrit à la main dans un écran.
 
+## L'espace propriétaire et sa barre d'onglets
+
+La maquette de l'écran 9 dessine une barre d'onglets propre au propriétaire —
+Tableau, Agenda, Messages, Ma salle. Elle n'existe pas encore, et c'est
+délibéré : au J10 un seul de ses quatre onglets mène quelque part, et trois
+onglets morts disent que l'application est inachevée bien plus fort que leur
+absence.
+
+Elle arrivera le jour où un DEUXIÈME écran propriétaire existera, et elle
+enveloppera `/proprietaire/*` — sans doute par un second `StatefulShellRoute`,
+à côté de celui du client. C'est pour cela que le tableau de bord est déjà
+rangé sous ce préfixe (`/proprietaire/tableau`) alors qu'il est seul : ce
+jour-là, la barre sera un emballage à poser autour, pas un déménagement de
+routes et de liens.
+
+Tout l'espace propriétaire vit donc dans `lib/features/owner/`, et les routes
+qu'on lui ajoute commencent par `/proprietaire/`.
+
 ## Règles métier non négociables
 - Les prix sont calculés en base de données, jamais en Dart.
 - Les changements d'état d'une réservation passent par des fonctions SQL

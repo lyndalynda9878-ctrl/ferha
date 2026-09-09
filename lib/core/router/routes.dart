@@ -78,6 +78,26 @@ abstract final class FerhaRoutes {
   /// `auth.uid()`.
   static const String mesReservations = '/mes-reservations';
 
+  /// Tableau de bord du propriétaire. `/proprietaire/tableau`
+  ///
+  /// SOUS UN PRÉFIXE DÈS AUJOURD'HUI, ALORS QU'IL N'Y A QU'UN ÉCRAN. C'est le
+  /// seul travail que cette étape fait pour la suivante : l'espace propriétaire
+  /// aura sa propre barre d'onglets — Tableau, Agenda, Messages, Ma salle
+  /// (écran 9) —, et elle enveloppera `/proprietaire/*`. Poser cet écran à la
+  /// racine aujourd'hui obligerait à le déménager ce jour-là, avec les liens
+  /// qui pointent dessus et les adresses que Karim aura mises en favori. Le
+  /// préfixe coûte huit caractères maintenant et évite tout cela.
+  ///
+  /// LA BARRE, ELLE, N'ARRIVE PAS TOUT DE SUITE, et c'est délibéré : trois
+  /// onglets morts sur quatre disent au propriétaire que l'application est
+  /// inachevée bien plus fort que leur absence.
+  ///
+  /// Aucun paramètre : la salle regardée n'est pas dans l'adresse, elle est
+  /// dans les préférences de l'appareil. Un tableau de bord n'est ni partageable
+  /// ni copiable — le contraire d'une recherche, dont les critères voyagent
+  /// justement pour cela.
+  static const String proprietaireTableau = '/proprietaire/tableau';
+
   /// Connexion par e-mail et mot de passe.
   ///
   /// Hors de la barre d'onglets : on y entre par-dessus l'écran en cours, et

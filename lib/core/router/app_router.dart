@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/auth/auth_providers.dart';
 import '../../features/auth/connexion_screen.dart';
 import '../../features/auth/inscription_screen.dart';
 import '../../features/auth/profil_screen.dart';
@@ -9,6 +10,7 @@ import '../../features/booking/booking_providers.dart';
 import '../../features/booking/demande_envoyee_screen.dart';
 import '../../features/booking/demande_screen.dart';
 import '../../features/booking/mes_reservations_screen.dart';
+import '../../features/owner/tableau_de_bord_screen.dart';
 import '../../features/search/accueil_screen.dart';
 import '../../features/search/resultats_screen.dart';
 import '../../features/search/search_filters.dart';
@@ -55,13 +57,17 @@ final routerProvider = Provider<GoRouter>((ref) {
         ],
       ),
 
-      // AUCUNE REDIRECTION VERS LA CONNEXION, ICI NI AILLEURS.
+      // AUCUNE REDIRECTION VERS LA CONNEXION SUR LES ROUTES DE CONSULTATION.
       //
       // Un visiteur non connecté doit pouvoir chercher une salle et consulter
       // une fiche : c'est le parcours du §3, dont les deux premières étapes se
       // font sans compte. La connexion se demande au moment d'agir, par
       // `exigerConnexion` (exiger_connexion.dart), depuis l'écran qui porte le
       // geste. Une `redirect` posée ici fermerait le catalogue.
+      //
+      // Le tableau de bord du propriétaire, plus bas, est la seule exception —
+      // et il n'est pas une route de consultation. Sa `redirect` porte sa propre
+      // justification.
       //
       // Les routes qui suivent sont hors de la coque d'onglets : elles
       // s'ouvrent par-dessus l'écran en cours, et se referment dessus.
@@ -159,6 +165,37 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: FerhaRoutes.mesReservations,
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) => const MesReservationsScreen(),
+      ),
+
+      // LE TABLEAU DE BORD DU PROPRIÉTAIRE, ET LA SEULE REDIRECTION DU ROUTEUR.
+      //
+      // Elle ne contredit pas la règle écrite plus haut, elle en marque la
+      // frontière : cette règle protège la CONSULTATION — chercher une salle,
+      // ouvrir une fiche, lire des avis se font sans compte, et une redirection
+      // posée là fermerait le catalogue. Un tableau de bord n'est pas une
+      // vitrine. Il n'a rien à montrer à qui n'est pas connecté, et il n'a même
+      // pas de quoi le dire proprement : sans session, `owner_venues()` rend une
+      // liste vide, que l'écran lirait comme « vous n'avez aucune salle ».
+      // Répondre « connectez-vous » est la seule phrase juste.
+      //
+      // Elle est posée sur cette route et sur elle seule, et elle ne remplace
+      // aucun garde-fou : les trois fonctions de 014 refusent d'elles-mêmes un
+      // appel sans session, et une salle qui n'est pas la vôtre.
+      //
+      // `matchedLocation` et non `uri` : la salle regardée ne voyage pas dans
+      // l'adresse, il n'y a donc pas de paramètre à préserver au retour.
+      GoRoute(
+        path: FerhaRoutes.proprietaireTableau,
+        parentNavigatorKey: _rootNavigatorKey,
+        redirect: (context, state) => ref.read(estConnecteProvider)
+            ? null
+            : Uri(
+                path: FerhaRoutes.connexion,
+                queryParameters: <String, String>{
+                  FerhaRoutes.parametreRetour: state.matchedLocation,
+                },
+              ).toString(),
+        builder: (context, state) => const TableauDeBordScreen(),
       ),
 
       GoRoute(
