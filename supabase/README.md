@@ -23,6 +23,7 @@ seulement :
 | 10 | `migrations/010_event_types.sql` | Types d'événement — **redéfinit `search_venues()`** | 002, 008 |
 | 11 | `migrations/011_venue_detail.sql` | `venue_detail()` et `venue_calendar()` — la fiche et le calendrier | 002, 005, 010 |
 | 12 | `migrations/012_booking_request.sql` | La demande de réservation — **redéfinit `venue_detail()` et `request_booking()`** | 005, 010, 011 |
+| 13 | `migrations/013_mes_reservations.sql` | `client_bookings()` et `bookings` en temps réel | 004, 006 |
 
 `002` a besoin des tables de `001`. `003` a besoin de la table `amenities` de
 `001`, mais pas de `002`. Appliquer `002` avant `003` reste le bon ordre : le
@@ -56,9 +57,10 @@ psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/009_wilayas.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/010_event_types.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/011_venue_detail.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/012_booking_request.sql
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/013_mes_reservations.sql
 ```
 
-Les douze fichiers sont **rejouables** : les relancer sur une base déjà à jour
+Les treize fichiers sont **rejouables** : les relancer sur une base déjà à jour
 ne produit ni erreur ni doublon. `003` va plus loin et met à jour les libellés
 existants — c'est le moyen prévu pour corriger une traduction.
 
@@ -87,6 +89,7 @@ Les fonctions appelées en RPC depuis Flutter :
 | `venue_calendar()` (011) | calendrier | `SECURITY DEFINER` |
 | `booking_quote()` (012) | demande — le devis | droits de l'appelant, ouvert à `anon` |
 | `request_booking()` (**012**) | demande — l'envoi | `SECURITY DEFINER`, fermée à `anon` |
+| `client_bookings()` (013) | mes réservations | `SECURITY DEFINER`, fermée à `anon` |
 
 `booking_quote()` est ouverte aux visiteurs et `request_booking()` ne l'est pas :
 c'est toute la règle du parcours (§3). On montre un prix à qui le demande ; on ne
@@ -197,6 +200,23 @@ appelle et d'où l'on part (§9).
   fermée à son seul titulaire ; `booking_contact()` est le seul chemin vers le
   numéro d'un tiers, et il ne s'ouvre pas avant. « sinon la plateforme se fait
   contourner dès la première recherche. »
+  **`client_bookings()` (013) ne recopie pas cette règle, elle l'appelle** :
+  une jointure latérale sur `booking_contact()`, ligne par ligne. Écrire un
+  second `case when status in (…)` aurait fait deux endroits à tenir d'accord,
+  et c'est ainsi qu'un numéro finit par fuiter — pas par une faille, par une
+  divergence. Si un jour l'écran du propriétaire a besoin de la même liste, il
+  passera par la même fonction.
+- **`bookings` est publiée en temps réel** (013), et c'est sa politique RLS qui
+  la protège : Realtime évalue `bookings_select_parties` pour chaque abonné
+  avant de lui livrer une ligne. Ouvrir la publication n'ouvre donc pas la
+  table, et si la politique de `SELECT` s'élargit un jour, elle s'élargit ici
+  aussi — un seul endroit à surveiller. Le filtre `client_id=eq.<uid>` posé par
+  Flutter ne remplace pas la politique : il évite seulement au serveur
+  d'examiner des lignes qui ne partiraient pas.
+  Le service Realtime **démarre à froid** quand le projet a dormi : un
+  changement survenu pendant ces deux secondes-là n'est annoncé à personne.
+  C'est pourquoi l'écran charge aussi la liste à l'ouverture, et ne se contente
+  jamais des événements.
 - **Le propriétaire ne se publie pas lui-même.** Il mène sa salle de `draft` à
   `pending` ; `published` et `suspended` relèvent de l'administration. La règle
   est portée par le trigger `venues_guard_status`, et non par une politique RLS :
@@ -333,6 +353,12 @@ la passer en `security_invoker = true` — elle ne renverrait plus rien.
   salle, par une **vue distincte n'exposant que le prénom** des propriétaires
   ayant au moins une salle publiée. Prénom seul, pas de nom de famille, pas
   d'e-mail, pas de numéro.
+- **`bookings` a la `REPLICA IDENTITY` par défaut**, c'est-à-dire la clé
+  primaire. Les événements Realtime portent donc la nouvelle ligne entière mais
+  un `old_record` réduit à l'identifiant. Cela suffit ici — l'écran recharge par
+  `client_bookings()` et ne lit pas l'ancienne ligne. Passer la table en
+  `REPLICA IDENTITY FULL` serait à faire seulement si un écran avait besoin de
+  savoir *ce qui a changé*, et cela grossirait chaque enregistrement WAL.
 - **`accept_booking()` ne vérifie pas les bornes de 20–30 % du §5.3.** Elle
   n'exige aujourd'hui qu'un acompte compris entre 0 et le montant du devis. Le
   §5.3 est plus étroit depuis qu'il fixe la fourchette ; resserrer la contrainte
