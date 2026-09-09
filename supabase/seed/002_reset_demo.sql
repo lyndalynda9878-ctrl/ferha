@@ -19,8 +19,13 @@
 -- propriétaire peut s'appeler Karim et tenir une salle à Oran. L'identifiant,
 -- lui, ne se produit pas par hasard.
 --
--- SI CE FICHIER ÉCHOUE sur une violation de clé étrangère : c'est que des
--- réservations ont été prises sur une salle de démonstration.
+-- LES RÉSERVATIONS DE DÉMONSTRATION de 004_demo_bookings.sql partent aussi :
+-- elles portent le préfixe b0000000-, elles se recréent en relançant le
+-- fichier, et leurs avis avec elles.
+--
+-- SI CE FICHIER ÉCHOUE sur une violation de clé étrangère : c'est que d'AUTRES
+-- réservations ont été prises sur une salle de démonstration — depuis
+-- l'application, par exemple, ce qui leur donne un identifiant tiré au sort.
 -- bookings.venue_id est en RESTRICT, et c'est voulu — une réservation est une
 -- trace comptable, elle ne s'efface pas dans le dos de son client. Le dernier
 -- bloc de ce fichier vous dira lesquelles. À vous de décider ; ce script ne le
@@ -32,11 +37,22 @@
 begin;
 
 -- -----------------------------------------------------------------------------
--- Avant d'effacer : y a-t-il des réservations sur ces salles ?
+-- D'abord les réservations de démonstration, et leurs avis
 --
--- On regarde d'abord et on s'arrête net, avec un message lisible, plutôt que
--- de laisser sortir une erreur de clé étrangère que personne n'aura envie de
--- déchiffrer.
+-- Elles viennent de 004_demo_bookings.sql, elles portent son préfixe, et elles
+-- se recréent en une commande. Les avis passent devant : reviews.booking_id est
+-- en RESTRICT, un avis publié ne s'efface pas en supprimant sa réservation.
+-- -----------------------------------------------------------------------------
+
+delete from public.reviews  where booking_id::text like 'b0000000-%';
+delete from public.bookings where id::text         like 'b0000000-%';
+
+-- -----------------------------------------------------------------------------
+-- Ensuite seulement : reste-t-il des réservations sur ces salles ?
+--
+-- Celles-là ne viennent pas d'un fichier de seed. On regarde et on s'arrête
+-- net, avec un message lisible, plutôt que de laisser sortir une erreur de clé
+-- étrangère que personne n'aura envie de déchiffrer.
 -- -----------------------------------------------------------------------------
 
 do $$
@@ -114,4 +130,6 @@ select
   (select count(*) from public.venue_blackouts where venue_id::text like '5a11e000-%') as dates_bloquees,
   (select count(*) from public.venue_event_types where venue_id::text like '5a11e000-%') as types_evenement,
   (select count(*) from public.profiles        where id::text       like 'd0000000-%') as profils,
-  (select count(*) from auth.users             where id::text       like 'd0000000-%') as comptes;
+  (select count(*) from auth.users             where id::text       like 'd0000000-%') as comptes,
+  (select count(*) from public.bookings        where id::text       like 'b0000000-%') as reservations,
+  (select count(*) from public.reviews         where booking_id::text like 'b0000000-%') as avis;
