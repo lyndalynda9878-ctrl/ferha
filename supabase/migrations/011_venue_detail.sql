@@ -22,6 +22,15 @@
 --   * quoi que ce soit d'une réservation : ni qui, ni combien, ni pour quoi.
 --     Le calendrier dit qu'un créneau est pris. Pas par qui.
 --
+-- ⚠ LA VERSION COURANTE DE venue_detail() EST DANS 012_booking_request.sql.
+--
+-- Celle d'ici ne renvoyait ni les options de la salle — l'écran 5 n'existait
+-- pas encore — ni le référentiel des types d'événement quand le propriétaire
+-- n'en a déclaré aucun. Le fichier reste tel qu'il a été appliqué — on ne
+-- réécrit pas une migration passée — mais c'est 012 qui fait foi pour
+-- venue_detail(), et c'est lui qu'il faut modifier. venue_calendar(), elle,
+-- est toujours celle d'ici.
+--
 -- Rejouable : les fonctions sont remplacées.
 -- =============================================================================
 

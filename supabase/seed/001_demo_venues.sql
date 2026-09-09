@@ -203,6 +203,7 @@ delete from public.venue_photos    where venue_id in (select id from public.venu
 delete from public.venue_amenities where venue_id in (select id from public.venues where id::text like '5a11e000-%');
 delete from public.venue_pricing   where venue_id in (select id from public.venues where id::text like '5a11e000-%');
 delete from public.venue_blackouts where venue_id in (select id from public.venues where id::text like '5a11e000-%');
+delete from public.venue_options   where venue_id in (select id from public.venues where id::text like '5a11e000-%');
 delete from public.venue_event_types where venue_id in (select id from public.venues where id::text like '5a11e000-%');
 
 -- -----------------------------------------------------------------------------
@@ -282,6 +283,116 @@ insert into public.venue_pricing (venue_id, slot, base_price, weekend_coef,
   ('5a11e000-0000-4000-a000-000000000015', 'midi',    85000, 1.20, 1.15, 170,  700),
   ('5a11e000-0000-4000-a000-000000000015', 'soir',   120000, 1.20, 1.15, 170,  700),
   ('5a11e000-0000-4000-a000-000000000015', 'journee', 185000, 1.20, 1.15, 170,  700);
+
+-- -----------------------------------------------------------------------------
+-- Options payantes — le « Σ options_choisies » du §5.2, écran 5 des maquettes
+--
+-- Deux tables de valeurs, et c'est volontaire : les LIBELLÉS sont écrits une
+-- seule fois, les PRIX une fois par salle. Répéter « Décoration florale » et sa
+-- traduction arabe quinze fois serait quinze occasions de les écrire
+-- différemment.
+--
+-- UN PRIX À ZÉRO VEUT DIRE « INCLUSE », et c'est le « ☑ Chambre de la mariée ·
+-- Incluse » de la maquette. Seules les sept salles qui portent réellement
+-- l'équipement `chambre_mariee` la proposent : annoncer une chambre incluse
+-- dans une salle qui n'en a pas contredirait sa propre fiche.
+--
+-- « DJ et animation » plutôt que le « Sono & DJ » de la maquette : les quinze
+-- salles ont l'équipement `sono`, la sonorisation est donc déjà comprise. Ce
+-- qui se facture en plus, c'est l'animateur — pas les enceintes.
+--
+-- Les montants suivent le standing, comme les grilles tarifaires : 9 000 DA la
+-- décoration florale à Ouled Yaïch, 60 000 DA au palais de Zéralda.
+--
+-- Ces montants sont des DONNÉES. La formule qui les additionne vit dans
+-- estimate_price() (005), et nulle part ailleurs.
+--
+-- Libellés arabes marqués « À RELIRE », comme partout ailleurs.
+-- -----------------------------------------------------------------------------
+
+insert into public.venue_options (venue_id, code, label_fr, label_ar, price, "position")
+select p.venue_id, c.code, c.label_fr, c.label_ar, p.price, c."position"
+from (values
+  ('chambre_mariee',     'Chambre de la mariée',        'غرفة العروس',            10),  -- À RELIRE
+  ('decoration_florale', 'Décoration florale',          'تزيين بالورود',           20),  -- À RELIRE
+  ('kosha',              'Trône des mariés (kosha)',    'كوشة العروسين',          30),  -- À RELIRE
+  ('dj_animation',       'DJ et animation musicale',    'دي جي وتنشيط موسيقي',    40),  -- À RELIRE
+  ('photo_video',        'Photographe et vidéaste',     'تصوير فوتوغرافي وفيديو', 50),  -- À RELIRE
+  ('zaffa',              'Troupe de zaffa',             'فرقة الزفة',              60),  -- À RELIRE
+  ('feux_froids',        'Feux d''artifice froids',     'ألعاب نارية باردة',       70)   -- À RELIRE
+) as c(code, label_fr, label_ar, "position"),
+lateral (values
+  -- 1. Salle El Bahia (Oran)
+  ('5a11e000-0000-4000-a000-000000000001'::uuid, 'chambre_mariee',         0),
+  ('5a11e000-0000-4000-a000-000000000001'::uuid, 'decoration_florale', 25000),
+  ('5a11e000-0000-4000-a000-000000000001'::uuid, 'kosha',              35000),
+  ('5a11e000-0000-4000-a000-000000000001'::uuid, 'dj_animation',       18000),
+  ('5a11e000-0000-4000-a000-000000000001'::uuid, 'photo_video',        45000),
+  -- 2. Résidence Les Andalouses (Aïn El Turck)
+  ('5a11e000-0000-4000-a000-000000000002'::uuid, 'chambre_mariee',         0),
+  ('5a11e000-0000-4000-a000-000000000002'::uuid, 'decoration_florale', 20000),
+  ('5a11e000-0000-4000-a000-000000000002'::uuid, 'dj_animation',       16000),
+  ('5a11e000-0000-4000-a000-000000000002'::uuid, 'photo_video',        38000),
+  -- 3. Salle Ennour (Bir El Djir) — petite salle, deux options
+  ('5a11e000-0000-4000-a000-000000000003'::uuid, 'decoration_florale', 12000),
+  ('5a11e000-0000-4000-a000-000000000003'::uuid, 'dj_animation',       10000),
+  -- 4. Palais Dar El Feth (Zéralda) — le catalogue complet
+  ('5a11e000-0000-4000-a000-000000000004'::uuid, 'chambre_mariee',         0),
+  ('5a11e000-0000-4000-a000-000000000004'::uuid, 'decoration_florale', 60000),
+  ('5a11e000-0000-4000-a000-000000000004'::uuid, 'kosha',              80000),
+  ('5a11e000-0000-4000-a000-000000000004'::uuid, 'dj_animation',       40000),
+  ('5a11e000-0000-4000-a000-000000000004'::uuid, 'photo_video',        90000),
+  ('5a11e000-0000-4000-a000-000000000004'::uuid, 'feux_froids',        35000),
+  -- 5. Salle Ryad El Djazaïr (Chéraga)
+  ('5a11e000-0000-4000-a000-000000000005'::uuid, 'chambre_mariee',         0),
+  ('5a11e000-0000-4000-a000-000000000005'::uuid, 'decoration_florale', 32000),
+  ('5a11e000-0000-4000-a000-000000000005'::uuid, 'kosha',              45000),
+  ('5a11e000-0000-4000-a000-000000000005'::uuid, 'dj_animation',       25000),
+  ('5a11e000-0000-4000-a000-000000000005'::uuid, 'zaffa',              30000),
+  -- 6. Espace Nour El Houda (Birtouta)
+  ('5a11e000-0000-4000-a000-000000000006'::uuid, 'decoration_florale', 18000),
+  ('5a11e000-0000-4000-a000-000000000006'::uuid, 'dj_animation',       14000),
+  -- 7. Salle El Feth (Boufarik)
+  ('5a11e000-0000-4000-a000-000000000007'::uuid, 'decoration_florale', 18000),
+  ('5a11e000-0000-4000-a000-000000000007'::uuid, 'kosha',              25000),
+  ('5a11e000-0000-4000-a000-000000000007'::uuid, 'dj_animation',       15000),
+  -- 8. Complexe Chréa (Blida)
+  ('5a11e000-0000-4000-a000-000000000008'::uuid, 'decoration_florale', 14000),
+  ('5a11e000-0000-4000-a000-000000000008'::uuid, 'dj_animation',       12000),
+  ('5a11e000-0000-4000-a000-000000000008'::uuid, 'photo_video',        28000),
+  -- 9. Salle Ibn Khaldoun (Ouled Yaïch) — la plus petite du jeu
+  ('5a11e000-0000-4000-a000-000000000009'::uuid, 'decoration_florale',  9000),
+  ('5a11e000-0000-4000-a000-000000000009'::uuid, 'dj_animation',        8000),
+  -- 10. Palais El Amir (Sétif)
+  ('5a11e000-0000-4000-a000-000000000010'::uuid, 'chambre_mariee',         0),
+  ('5a11e000-0000-4000-a000-000000000010'::uuid, 'decoration_florale', 40000),
+  ('5a11e000-0000-4000-a000-000000000010'::uuid, 'kosha',              55000),
+  ('5a11e000-0000-4000-a000-000000000010'::uuid, 'dj_animation',       28000),
+  ('5a11e000-0000-4000-a000-000000000010'::uuid, 'photo_video',        60000),
+  -- 11. Salle Aïn Fouara (Sétif)
+  ('5a11e000-0000-4000-a000-000000000011'::uuid, 'decoration_florale', 16000),
+  ('5a11e000-0000-4000-a000-000000000011'::uuid, 'dj_animation',       14000),
+  ('5a11e000-0000-4000-a000-000000000011'::uuid, 'zaffa',              20000),
+  -- 12. Salle El Wiam (El Eulma)
+  ('5a11e000-0000-4000-a000-000000000012'::uuid, 'decoration_florale', 11000),
+  ('5a11e000-0000-4000-a000-000000000012'::uuid, 'dj_animation',        9000),
+  -- 13. Salle Les Ponts (Constantine)
+  ('5a11e000-0000-4000-a000-000000000013'::uuid, 'chambre_mariee',         0),
+  ('5a11e000-0000-4000-a000-000000000013'::uuid, 'decoration_florale', 22000),
+  ('5a11e000-0000-4000-a000-000000000013'::uuid, 'kosha',              30000),
+  ('5a11e000-0000-4000-a000-000000000013'::uuid, 'dj_animation',       17000),
+  -- 14. Résidence Bab El Kantara (El Khroub)
+  ('5a11e000-0000-4000-a000-000000000014'::uuid, 'chambre_mariee',         0),
+  ('5a11e000-0000-4000-a000-000000000014'::uuid, 'decoration_florale', 24000),
+  ('5a11e000-0000-4000-a000-000000000014'::uuid, 'kosha',              32000),
+  ('5a11e000-0000-4000-a000-000000000014'::uuid, 'dj_animation',       19000),
+  ('5a11e000-0000-4000-a000-000000000014'::uuid, 'photo_video',        42000),
+  -- 15. Salle Rhumel (Aïn Smara)
+  ('5a11e000-0000-4000-a000-000000000015'::uuid, 'decoration_florale', 13000),
+  ('5a11e000-0000-4000-a000-000000000015'::uuid, 'dj_animation',       11000),
+  ('5a11e000-0000-4000-a000-000000000015'::uuid, 'zaffa',              16000)
+) as p(venue_id, code, price)
+where p.code = c.code;
 
 -- -----------------------------------------------------------------------------
 -- Équipements — 4 à 8 par salle, pris dans le référentiel de 003
@@ -706,8 +817,10 @@ select
   (select count(*) from public.venue_photos    where venue_id::text like '5a11e000-%')                  as photos,
   (select count(*) from public.venue_amenities where venue_id::text like '5a11e000-%')                  as equipements,
   (select count(*) from public.venue_blackouts where venue_id::text like '5a11e000-%')                  as dates_bloquees,
-  (select count(*) from public.venue_event_types where venue_id::text like '5a11e000-%')                as types_evenement;
+  (select count(*) from public.venue_event_types where venue_id::text like '5a11e000-%')                as types_evenement,
+  (select count(*) from public.venue_options   where venue_id::text like '5a11e000-%')                  as options;
 
 
 -- Attendu : 15 salles, 13 publiées, 2 en attente, 45 lignes tarifaires,
---           71 photos, 86 équipements, 81 dates bloquées, 68 types d'événement.
+--           71 photos, 86 équipements, 81 dates bloquées, 68 types d'événement,
+--           54 options.

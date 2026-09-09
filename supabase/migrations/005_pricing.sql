@@ -17,6 +17,15 @@
 -- (high_season_periods, venue_options) : le prix se lit d'un seul endroit, y
 -- compris quand on cherche qui a le droit de le lire.
 --
+-- ⚠ LA VERSION COURANTE DE request_booking() EST DANS 012_booking_request.sql.
+--
+-- Celle d'ici rendait quatre refus différents sous le même code 23514, que
+-- l'application ne pouvait distinguer qu'en lisant un message français. La
+-- version de 012 donne à chacun un code Ferha. Le fichier reste tel qu'il a été
+-- appliqué — on ne réécrit pas une migration passée — mais c'est 012 qui fait
+-- foi, et c'est lui qu'il faut modifier. estimate_price(), en revanche, est
+-- toujours celle d'ici : elle n'a pas bougé, et ne doit pas bouger.
+--
 -- Rejouable : chaque objet est créé sous condition d'absence.
 -- =============================================================================
 

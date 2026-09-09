@@ -21,6 +21,8 @@ seulement :
 | 8 | `migrations/008_search.sql` | `search_venues()` — la recherche | 004, 005 |
 | 9 | `migrations/009_wilayas.sql` | Référentiel des 58 wilayas | 001 |
 | 10 | `migrations/010_event_types.sql` | Types d'événement — **redéfinit `search_venues()`** | 002, 008 |
+| 11 | `migrations/011_venue_detail.sql` | `venue_detail()` et `venue_calendar()` — la fiche et le calendrier | 002, 005, 010 |
+| 12 | `migrations/012_booking_request.sql` | La demande de réservation — **redéfinit `venue_detail()` et `request_booking()`** | 005, 010, 011 |
 
 `002` a besoin des tables de `001`. `003` a besoin de la table `amenities` de
 `001`, mais pas de `002`. Appliquer `002` avant `003` reste le bon ordre : le
@@ -52,9 +54,11 @@ psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/007_auth.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/008_search.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/009_wilayas.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/010_event_types.sql
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/011_venue_detail.sql
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/012_booking_request.sql
 ```
 
-Les dix fichiers sont **rejouables** : les relancer sur une base déjà à jour
+Les douze fichiers sont **rejouables** : les relancer sur une base déjà à jour
 ne produit ni erreur ni doublon. `003` va plus loin et met à jour les libellés
 existants — c'est le moyen prévu pour corriger une traduction.
 
@@ -73,6 +77,20 @@ Les réservations :
 
 Les tables `messages`, `venue_embeddings`, `kb_documents`, `ai_cache` et
 `ai_conversations` du §6 ne sont pas encore écrites.
+
+Les fonctions appelées en RPC depuis Flutter :
+
+| Fonction | Écran | Droits |
+|---|---|---|
+| `search_venues()` (010) | résultats de recherche | `SECURITY DEFINER` |
+| `venue_detail()` (**012**) | fiche salle, et demande | droits de l'appelant |
+| `venue_calendar()` (011) | calendrier | `SECURITY DEFINER` |
+| `booking_quote()` (012) | demande — le devis | droits de l'appelant, ouvert à `anon` |
+| `request_booking()` (**012**) | demande — l'envoi | `SECURITY DEFINER`, fermée à `anon` |
+
+`booking_quote()` est ouverte aux visiteurs et `request_booking()` ne l'est pas :
+c'est toute la règle du parcours (§3). On montre un prix à qui le demande ; on ne
+demande son identité qu'à celui qui engage quelque chose.
 
 ## Le cycle de vie d'une réservation
 
@@ -135,6 +153,25 @@ appelle et d'où l'on part (§9).
   d'`estimate_price()` : le chemin d'écriture n'a plus d'importance. La seule
   valeur qui peut s'en écarter est la contre-proposition du propriétaire au
   moment d'accepter (§5.2), qui est une décision humaine et non un calcul.
+- **Le devis de l'écran de demande ne calcule rien non plus.** `booking_quote()`
+  (012) appelle `estimate_price()` et rhabille son résultat : elle n'a pas une
+  ligne de formule. Elle y ajoute l'acompte, qui n'est pas un prix mais une
+  fraction du devis, et cette fraction vit dans `deposit_rate()` — **une
+  fonction d'une ligne, et le seul endroit où le taux est écrit.**
+- **Le taux d'acompte est de 25 %, et c'est une valeur à confirmer.** Le cahier
+  des charges ne la fixe pas : son §5.3 donne le barème de *remboursement*, pas
+  la part à verser. Ce sont les maquettes qui la donnent, deux fois — écrans 5
+  et 6, où 51 250 DA valent bien 25 % de 205 000 DA. Elle n'est de toute façon
+  qu'**indicative** : c'est `accept_booking()` qui fixe l'acompte réellement dû,
+  et le §5.2 laisse expressément le propriétaire s'écarter de l'estimation.
+- **Les refus de `request_booking()` portent un code Ferha dans leur `hint`**
+  (012) : `FE001` créneau déjà pris, `FE002` bloqué, `FE003` date passée,
+  `FE004` salle fermée, `FE005` sa propre salle, `FE006` non connecté. Leur
+  SQLSTATE, lui, est un `PTxxx` : chez PostgREST le SQLSTATE ne nomme pas
+  l'erreur, il **choisit le code HTTP**. Un code inventé retomberait sur un 500,
+  et « ce créneau vient d'être pris » n'est pas une panne de serveur — c'est un
+  409. Le Dart lit le `hint` (`lib/features/booking/booking_messages.dart`) et
+  n'a donc jamais à comparer un message français.
 - **La double réservation est refusée par la base.** `uniq_booking_slot`, index
   unique partiel sur `(venue_id, event_date, slot) WHERE status IN ('confirmed',
   'completed')` (§6.1). Il est partiel exprès : une demande `pending` ne bloque
@@ -212,7 +249,7 @@ les effacer et les relancer sans que le schéma bouge.
 
 | Fichier | Rôle |
 |---|---|
-| `seed/001_demo_venues.sql` | 4 propriétaires, 15 salles, 5 wilayas, types d'événement |
+| `seed/001_demo_venues.sql` | 4 propriétaires, 15 salles, 5 wilayas, types d'événement, options payantes |
 | `seed/003_demo_accounts.sql` | 2 comptes qui se connectent — **après 001 et 007** |
 | `seed/002_reset_demo.sql` | efface tout cela, et rien d'autre |
 
@@ -296,6 +333,8 @@ la passer en `security_invoker = true` — elle ne renverrait plus rien.
   salle, par une **vue distincte n'exposant que le prénom** des propriétaires
   ayant au moins une salle publiée. Prénom seul, pas de nom de famille, pas
   d'e-mail, pas de numéro.
+- **Le taux d'acompte de `deposit_rate()` vient des maquettes, pas du cahier des
+  charges.** 25 % : à confirmer, comme l'était `venue_options`.
 - `high_season_periods` arrive **vide**. Tant qu'elle l'est, seuls juin à
   septembre majorent ; les vacances scolaires du §5.2 doivent y être déposées
   année par année.
@@ -340,6 +379,15 @@ Reste à décider au moment de l'écrire : ce que devient le `full_name` affich�
 sur un avis déjà publié.
 
 ## Tests
+
+Deux fichiers, qui se collent tels quels dans l'éditeur SQL de Supabase et
+annulent tout par un `ROLLBACK` final. Une erreur rouge commençant par « ÉCHEC »
+signale la règle qui ne tient plus.
+
+| Fichier | Ce qu'il vérifie |
+|---|---|
+| `tests/001_double_booking.sql` | le prix vient d'`estimate_price()`, et la base refuse la seconde réservation confirmée sur un créneau pris |
+| `tests/002_devis_demande.sql` | `booking_quote()` ne s'écarte jamais d'`estimate_price()`, l'acompte vient de `deposit_rate()`, et chaque refus de `request_booking()` porte son code Ferha |
 
 `supabase/tests/001_double_booking.sql` se colle tel quel dans l'éditeur SQL de
 Supabase. Il crée ses propres données, vérifie que la base refuse la seconde
