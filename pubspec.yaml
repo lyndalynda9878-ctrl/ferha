@@ -48,6 +48,12 @@ dependencies:
   # acceptee. Deja resolu comme dependance transitive de supabase_flutter :
   # cette ligne ne telecharge rien, elle rend l'import legitime.
   url_launcher: ^6.3.2
+  # Retenir les PREFERENCES D'AFFICHAGE d'un appareil a l'autre demarrage : la
+  # salle choisie dans l'espace proprietaire, la langue. Rien d'autre n'y entre
+  # -- ni donnee metier, ni jeton, ni identifiant sensible (voir CLAUDE.md).
+  # Deja resolu comme dependance transitive de supabase_flutter, qui s'en sert
+  # pour garder la session : cette ligne ne telecharge rien non plus.
+  shared_preferences: ^2.5.5
 
 dev_dependencies:
   flutter_test:
