@@ -48,6 +48,10 @@ FerhaColors. Aucun rayon écrit à la main dans un écran.
 - Le prix vient d'estimate_price(), et de nulle part ailleurs. Pas une
   seconde formule, ni en Dart, ni en SQL.
 - Un compte fermé s'anonymise, il ne se supprime pas. Voir ci-dessous.
+- L'agent a un accès en ÉCRITURE à la base Supabase. C'est un choix assumé
+  pendant le développement, parce que toutes les migrations sont
+  versionnées et les données de démonstration recréables. Le jour où de
+  vrais utilisateurs existeront, ce droit repasse en lecture seule.
 
 ## Fermer un compte, c'est anonymiser
 La loi 18-07 demande de pouvoir fermer un compte. Une réservation passée
