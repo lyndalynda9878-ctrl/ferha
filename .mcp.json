@@ -3,10 +3,6 @@
     "dart": {
       "command": "dart",
       "args": ["mcp-server"]
-    },
-    "context7": {
-      "command": "cmd",
-      "args": ["/c", "npx", "-y", "@upstash/context7-mcp"]
     }
   }
 }

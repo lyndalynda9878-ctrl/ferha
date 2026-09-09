@@ -7,15 +7,19 @@ palette en §10.1) et docs/maquettes.html (écrans).
 ## Avant d'écrire du code
 - Relis la section concernée du cahier des charges. Ne devine jamais une
   règle métier.
-- Consulte context7 dans ces trois cas, sans exception :
+- Ne devine JAMAIS une API. Va lire la source du paquet installé, dans le
+  cache pub — c'est la version que le projet compile, pas celle dont tu te
+  souviens. Sur cette machine :
+  `~/AppData/Local/Pub/Cache/hosted/pub.dev/<paquet>-<version>/lib/`,
+  et pubspec.lock donne la version exacte.
+  Dans ces trois cas, sans exception :
   * avant d'utiliser une fonction d'une librairie que tu n'as pas déjà
     utilisée dans ce projet ;
-  * dès qu'une erreur de compilation mentionne une librairie — ta mémoire
-    est probablement en retard sur sa version actuelle ;
-  * avant de proposer une nouvelle dépendance, pour vérifier qu'elle est
-    toujours maintenue.
-  Ne devine jamais une API. Si context7 ne répond pas, dis-le-moi plutôt
-  que d'inventer.
+  * dès qu'une erreur de compilation mentionne une librairie ;
+  * avant de proposer une nouvelle dépendance.
+  (context7 remplissait ce rôle jusqu'à l'étape J9 ; il expirait à chaque
+  connexion et a été retiré de .mcp.json. La source installée dit de toute
+  façon la vérité de plus près : elle est ce qui compile.)
 - Demande-moi avant d'ajouter une dépendance.
 
 ## Couleurs et mise en page
