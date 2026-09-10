@@ -4,6 +4,11 @@ import 'package:ferha/core/validation/telephone.dart';
 
 /// La règle du numéro de téléphone, côté Flutter.
 ///
+/// LA RÈGLE : mobile 0 + 5/6/7 + 8 chiffres (10 en tout), fixe 0 + 2/3/4 + 7
+/// chiffres (9 en tout). Le deuxième chiffre fait tout le travail — c'est lui
+/// qui refuse un mobile amputé d'un chiffre, lequel a sinon la longueur exacte
+/// d'un fixe.
+///
 /// CE FICHIER ET `supabase/tests/007_adresse_et_telephone.sql` PORTENT LES MÊMES
 /// NUMÉROS, et c'est tout leur intérêt. La règle est écrite deux fois — une fois
 /// ici, une fois dans `telephone_valide()` (migration 020) — parce qu'elle sert
@@ -21,6 +26,7 @@ void main() {
       '0770 11 22 33', // le même, comme on l'écrit sur une carte de visite
       ' 0661445566 ', // des blancs autour
       '041234567', // fixe, Oran
+      '031234567', // fixe, Constantine
       '021 23 45 67', // fixe, Alger
     ];
 
@@ -36,6 +42,14 @@ void main() {
     const mauvais = <String>[
       '', // vide
       '   ', // des blancs
+      // LE CAS QUI A FAIT RESSERRER LA RÈGLE : un mobile amputé d'un chiffre.
+      // Neuf chiffres, donc la longueur d'un fixe — mais un fixe ne commence
+      // pas par 7. Une règle qui accepterait « 0 + 8 chiffres » l'aurait rangé
+      // sans broncher, et personne n'aurait jamais rappelé ce numéro-là.
+      '077011223',
+      '051234567', // neuf chiffres sous un deuxième chiffre de mobile
+      '0212345678', // dix chiffres sous un deuxième chiffre de fixe
+      '091234567', // 09 n'est ni un mobile ni un fixe
       '07701122', // huit chiffres : ni un mobile, ni un fixe
       '07701122334', // un chiffre de trop
       '1770112233', // ne commence pas par zéro

@@ -19,11 +19,13 @@
 --      (FE007). Manquant ET mal formé, parce que les deux arrivent : le premier
 --      est un écran mal branché, le second est un doigt qui glisse.
 --
---   4. LA RÈGLE EST BIEN CELLE QU'ON A DITE. Mobile 05/06/07 + 8 chiffres,
---      fixe 0 + 8 chiffres, espaces tolérés à la saisie, chiffres seuls en
---      base. Ce test est le seul endroit qui compare la règle SQL à des numéros
---      écrits à la main — c'est lui qui empêche
---      lib/core/validation/telephone.dart de mentir.
+--   4. LA RÈGLE EST BIEN CELLE QU'ON A DITE. Mobile 0 + 5/6/7 + 8 chiffres,
+--      fixe 0 + 2/3/4 + 7 chiffres, espaces tolérés à la saisie, chiffres seuls
+--      en base. Ce test est le seul endroit qui compare la règle SQL à des
+--      numéros écrits à la main — c'est lui qui empêche
+--      lib/core/validation/telephone.dart de mentir. Il porte en particulier
+--      « 077011223 », le mobile amputé d'un chiffre : c'est lui qui a fait
+--      resserrer la règle, une version large l'ayant pris pour un fixe.
 --
 --   5. `phone_verified` RETOMBE QUAND LE NUMÉRO CHANGE, et ne retombe pas quand
 --      on repose le même numéro autrement écrit.
@@ -160,17 +162,21 @@ begin
     end if;
   end;
 
-  -- MAL FORMÉ, ET DE QUATRE FAÇONS DIFFÉRENTES. Trop court pour être quoi que
-  -- ce soit, dix chiffres sous un préfixe qui n'est pas un mobile (04 n'en est
-  -- pas un), un indicatif international, et un numéro avec des lettres.
+  -- MAL FORMÉ, ET DE CINQ FAÇONS DIFFÉRENTES.
   --
-  -- « 0770 11 22 3 » N'EST PAS DANS CETTE LISTE, et c'est instructif : neuf
-  -- chiffres commençant par zéro, c'est la forme d'un FIXE, et la règle du J12
-  -- ne va pas plus loin — elle ne connaît pas la liste des indicatifs de
-  -- wilaya. Un mobile amputé d'un chiffre passe donc pour un fixe. Le jour où
-  -- l'on voudra le refuser, il faudra écrire cette liste (021, 041, …), et ce
-  -- sera dans telephone_valide(), à un seul endroit.
-  foreach v_texte in array array['0770 11 2', '0470112233', '+213770112233', '0770 AB 22 33']
+  --   0770 11 22 3    UN MOBILE AMPUTÉ D'UN CHIFFRE, et c'est le cas qui compte.
+  --                   Neuf chiffres : la longueur d'un fixe. Une règle qui
+  --                   accepterait « 0 + 8 chiffres » le prendrait pour un fixe
+  --                   et le rangerait sans broncher — le propriétaire ne
+  --                   l'apprendrait que le jour où personne ne le rappelle.
+  --                   C'est le deuxième chiffre qui le refuse : un fixe
+  --                   commence par 2, 3 ou 4, jamais par 7.
+  --   0770 11 2       trop court pour être quoi que ce soit
+  --   0470112233      dix chiffres sous un deuxième chiffre de fixe
+  --   +213770112233   l'indicatif international n'est pas de la mise en forme
+  --   0770 AB 22 33   des lettres
+  foreach v_texte in array array['0770 11 22 3', '0770 11 2', '0470112233',
+                                 '+213770112233', '0770 AB 22 33']
   loop
     begin
       perform * from public.envoyer_salle_en_validation(v_salle, v_texte);
@@ -518,6 +524,7 @@ begin
     '0770 11 22 33',   -- le même, comme on l'écrit
     ' 0661445566 ',    -- des blancs autour
     '041234567',       -- fixe, Oran
+    '031234567',       -- fixe, Constantine
     '021 23 45 67'     -- fixe, Alger
   ]
   loop
@@ -529,6 +536,11 @@ begin
   foreach v_faux in array array[
     '',                  -- vide
     '   ',               -- des blancs
+    '077011223',         -- LE CAS DU J12 : un mobile amputé d'un chiffre. Neuf
+                         -- chiffres, mais un fixe ne commence pas par 7.
+    '051234567',         -- neuf chiffres sous un deuxième chiffre de mobile
+    '0212345678',        -- dix chiffres sous un deuxième chiffre de fixe
+    '091234567',         -- 09 n'est ni un mobile ni un fixe
     '07701122',          -- huit chiffres : ni un mobile, ni un fixe
     '07701122334',       -- un chiffre de plus
     '1770112233',        -- ne commence pas par zéro

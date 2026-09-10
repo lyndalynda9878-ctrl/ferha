@@ -20,8 +20,8 @@
 ///
 /// LA RÈGLE
 ///
-///   * mobile : 05, 06 ou 07, puis 8 chiffres — 0770112233
-///   * fixe   : 0, puis 8 chiffres            — 041234567
+///   * mobile : 0, puis 5, 6 ou 7, puis 8 chiffres — 0770112233 (10 chiffres)
+///   * fixe   : 0, puis 2, 3 ou 4, puis 7 chiffres — 041234567  (9 chiffres)
 ///   * les espaces sont tolérés à la saisie ; la base ne garde que les chiffres.
 library;
 
@@ -60,13 +60,20 @@ abstract final class TelephoneAlgerien {
     return null;
   }
 
-  /// Mobile — 05, 06, 07 et huit chiffres — ou fixe — un 0 et huit chiffres.
+  /// Mobile — 0, puis 5, 6 ou 7, puis huit chiffres — ou fixe — 0, puis 2, 3
+  /// ou 4, puis sept chiffres.
   ///
-  /// La règle ne connaît pas la liste des indicatifs de wilaya (021 Alger,
-  /// 041 Oran…), et ne cherche pas à la connaître : un mobile amputé d'un
-  /// chiffre a donc la forme d'un fixe et passe. La refuser demanderait
-  /// d'écrire les 58 indicatifs, ici ET en SQL — deux listes à tenir à jour
-  /// pour attraper une faute de frappe que le propriétaire verra lui-même
-  /// quand personne ne le rappellera.
-  static final RegExp _forme = RegExp(r'^(0[567][0-9]{8}|0[0-9]{8})$');
+  /// LE DEUXIÈME CHIFFRE FAIT TOUT LE TRAVAIL, et c'est pour lui que la règle
+  /// distingue deux formes plutôt que d'accepter « 0 et huit chiffres ». Cette
+  /// version-là laissait passer « 077011223 » — un mobile auquel il manque un
+  /// chiffre, qui a exactement la longueur d'un fixe. Il serait entré en base
+  /// sans que rien ne bronche, et le propriétaire l'aurait découvert le jour où
+  /// personne ne l'aurait rappelé.
+  ///
+  /// ON NE VA PAS PLUS LOIN : pas de liste des indicatifs de wilaya. « 049 »
+  /// n'est attribué à personne, et cette règle l'accepte — la refuser
+  /// demanderait de tenir les 58 indicatifs à jour ici ET en SQL, pour attraper
+  /// une faute de frappe que le propriétaire verra lui-même. On borne la FORME,
+  /// pas l'annuaire.
+  static final RegExp _forme = RegExp(r'^(0[567][0-9]{8}|0[234][0-9]{7})$');
 }

@@ -217,8 +217,13 @@ appelle et d'où l'on part (§9).
   invisible tant qu'on ne l'aura pas ajoutée à cette liste : c'est un oubli qui
   se voit, plutôt qu'un oubli qui ne se voit jamais.
 - **Le numéro de téléphone suit UNE règle, écrite une fois** (020) :
-  `telephone_valide()` — mobile 05/06/07 + 8 chiffres, ou fixe 0 + 8 chiffres,
-  espaces tolérés à la saisie, chiffres seuls en base. La contrainte de table,
+  `telephone_valide()` — mobile 0 + 5/6/7 + 8 chiffres (10 en tout), ou fixe
+  0 + 2/3/4 + 7 chiffres (9 en tout), espaces tolérés à la saisie, chiffres
+  seuls en base. **C'est le deuxième chiffre qui fait le travail** : une règle
+  plus large — « 0 et huit chiffres » pour un fixe — prenait un mobile amputé
+  d'un chiffre (`077011223`) pour un fixe et le rangeait sans broncher. Elle
+  borne la forme, pas l'annuaire : aucune liste d'indicatifs de wilaya, ici
+  comme côté Flutter. La contrainte de table,
   le trigger de normalisation et les deux fonctions RPC l'appellent tous ; côté
   Flutter, `lib/core/validation/telephone.dart` en porte le seul autre
   exemplaire, et `tests/007` compare les deux listes d'exemples.

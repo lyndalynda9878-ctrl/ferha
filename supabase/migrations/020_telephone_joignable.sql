@@ -31,8 +31,8 @@
 --
 -- LA RÈGLE, EN TOUTES LETTRES
 --
---   * mobile : 05, 06 ou 07, puis 8 chiffres        → 0770112233
---   * fixe   : 0, puis 8 chiffres                   → 041234567
+--   * mobile : 0, puis 5, 6 ou 7, puis 8 chiffres  → 0770112233  (10 chiffres)
+--   * fixe   : 0, puis 2, 3 ou 4, puis 7 chiffres  → 041234567   (9 chiffres)
 --   * les espaces sont tolérés À LA SAISIE ; la base ne garde que les chiffres.
 --   * si le numéro change, `phone_verified` retombe à faux.
 --
@@ -112,8 +112,23 @@ grant execute on function public.telephone_normalise(text) to anon, authenticate
 -- -----------------------------------------------------------------------------
 -- telephone_valide — LA règle, et le seul endroit où elle est écrite en SQL
 --
--- Mobile : 05, 06, 07 suivis de huit chiffres — les trois opérateurs.
--- Fixe   : un 0 suivi de huit chiffres — 041 pour Oran, 021 pour Alger.
+-- Mobile : 0, puis 5, 6 ou 7, puis huit chiffres — les trois opérateurs.
+-- Fixe   : 0, puis 2, 3 ou 4, puis sept chiffres — 021 pour Alger, 041 pour
+--          Oran, 031 pour Constantine.
+--
+-- LE DEUXIÈME CHIFFRE FAIT TOUT LE TRAVAIL, et c'est pour lui que la règle
+-- distingue deux formes plutôt que d'accepter « 0 et huit chiffres ». La
+-- version large laissait passer « 077011223 » — un mobile auquel il manque un
+-- chiffre, qui a exactement la longueur d'un fixe. Le propriétaire l'aurait
+-- enregistré sans rien voir, et l'aurait découvert le jour où personne ne
+-- l'aurait rappelé. Un mobile commence par 5, 6 ou 7 ; un fixe par 2, 3 ou 4 ;
+-- amputé d'un chiffre, un mobile ne ressemble donc plus à rien.
+--
+-- ON NE VA PAS PLUS LOIN : pas de liste des indicatifs de wilaya. « 049 » n'est
+-- attribué à personne, et cette fonction l'accepte — la refuser demanderait de
+-- tenir les 58 indicatifs à jour ici ET côté Flutter, pour attraper une faute
+-- de frappe que le propriétaire verra lui-même. On borne la FORME, pas
+-- l'annuaire.
 --
 -- Un numéro absent n'est pas un numéro invalide : la fonction rend `false` sur
 -- NULL, et c'est à l'appelant de dire si l'absence est permise. La contrainte
@@ -128,13 +143,15 @@ immutable
 set search_path = public
 as $$
   select coalesce(
-    public.telephone_normalise(p_phone) ~ '^(0[567][0-9]{8}|0[0-9]{8})$',
+    public.telephone_normalise(p_phone) ~ '^(0[567][0-9]{8}|0[234][0-9]{7})$',
     false
   );
 $$;
 
 comment on function public.telephone_valide(text) is
-  'Vrai pour un numéro algérien : mobile 05/06/07 + 8 chiffres, ou fixe 0 + 8 chiffres. '
+  'Vrai pour un numéro algérien : mobile 0 + 5/6/7 + 8 chiffres (10 en tout), '
+  'ou fixe 0 + 2/3/4 + 7 chiffres (9 en tout). Borne la forme, pas l''annuaire : '
+  'aucune liste d''indicatifs de wilaya. '
   'Les espaces sont tolérés. Faux sur NULL — l''absence se juge chez l''appelant. '
   'SEULE écriture SQL de la règle : contrainte, trigger et fonctions RPC passent toutes par ici.';
 
@@ -171,8 +188,8 @@ begin
 
   if v_mauvais > 0 then
     raise exception
-      '% profil(s) portent un numéro qui ne suit pas la règle (mobile 05/06/07 + 8 '
-      'chiffres, ou fixe 0 + 8 chiffres). Corrigez-les avant d''appliquer cette '
+      '% profil(s) portent un numéro qui ne suit pas la règle (mobile 0 + 5/6/7 + 8 '
+      'chiffres, ou fixe 0 + 2/3/4 + 7 chiffres). Corrigez-les avant d''appliquer cette '
       'migration : les effacer ici ferait perdre le seul moyen de joindre ces '
       'personnes.', v_mauvais;
   end if;
@@ -190,7 +207,7 @@ alter table public.profiles
   check (phone is null or public.telephone_valide(phone));
 
 comment on column public.profiles.phone is
-  'Numéro algérien, chiffres seuls : mobile 05/06/07 + 8 chiffres, ou fixe 0 + 8 chiffres. '
+  'Numéro algérien, chiffres seuls : mobile 0 + 5/6/7 + 8 chiffres, ou fixe 0 + 2/3/4 + 7 chiffres. '
   'Écrit par envoyer_salle_en_validation() et request_booking(), au moment où il servira. '
   'Ne sort que par booking_contact(), à partir de « accepted » (§9).';
 
@@ -361,7 +378,7 @@ begin
   if not public.telephone_valide(v_phone) then
     raise exception
       'Un numéro de téléphone valide est nécessaire : mobile 05, 06 ou 07 suivi de '
-      '8 chiffres, ou fixe 0 suivi de 8 chiffres.'
+      '8 chiffres, ou fixe 02, 03 ou 04 suivi de 7 chiffres.'
       using errcode = 'PT400', hint = 'FE037',
             detail  = 'ADM-01 demande un propriétaire joignable avant toute publication.';
   end if;
@@ -469,7 +486,7 @@ begin
   if not public.telephone_valide(v_phone) then
     raise exception
       'Un numéro de téléphone valide est nécessaire : mobile 05, 06 ou 07 suivi de '
-      '8 chiffres, ou fixe 0 suivi de 8 chiffres.'
+      '8 chiffres, ou fixe 02, 03 ou 04 suivi de 7 chiffres.'
       using errcode = 'PT400', hint = 'FE007',
             detail  = 'C''est par ce numéro que la salle rappelle après acceptation (§9).';
   end if;
