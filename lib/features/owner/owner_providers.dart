@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/preferences/preferences_affichage.dart';
 import '../auth/auth_providers.dart';
+import 'demande_detail.dart';
 import 'demande_en_attente.dart';
 import 'indicateurs_salle.dart';
 import 'owner_repository.dart';
@@ -111,6 +112,45 @@ class EspaceProprietaireNotifier extends AsyncNotifier<EspaceProprietaire> {
     state = const AsyncLoading<EspaceProprietaire>();
     state = await AsyncValue.guard(build);
   }
+
+  /// Relit les salles SANS repasser par un état de chargement.
+  ///
+  /// Appelée après une réponse à une demande : le compte du sélecteur — « Salle
+  /// El Bahia · 3 » — vient d'`owner_venues()`, et il devient faux à la seconde
+  /// où le propriétaire accepte ou refuse.
+  ///
+  /// POURQUOI PAS `ref.invalidate()`. Un fournisseur invalidé repasse par
+  /// `AsyncLoading`, et le tableau de bord retomberait sur son squelette une
+  /// demi-seconde après chaque réponse — nom de la salle compris, puisqu'il est
+  /// le titre. On recharge donc les données sans toucher à l'enveloppe, comme
+  /// le suivi client le fait à chaque événement Realtime.
+  ///
+  /// Un échec ici ne casse rien et ne se dit pas : les chiffres qui comptent
+  /// sont ailleurs, et le compteur sera juste à la prochaine ouverture.
+  Future<void> rafraichir() async {
+    final actuel = state.value;
+    if (actuel == null || actuel.salles.isEmpty) return;
+
+    try {
+      final salles = await ref.read(ownerRepositoryProvider).salles();
+      if (!ref.mounted) return;
+
+      // La salle regardée ne change pas parce qu'on a répondu à une demande —
+      // sauf si elle vient de disparaître de la liste, auquel cas on retombe
+      // sur la première, comme au démarrage.
+      final couranteExiste = salles.any((s) => s.id == actuel.salleCouranteId);
+      state = AsyncData<EspaceProprietaire>(
+        EspaceProprietaire(
+          salles: salles,
+          salleCouranteId: couranteExiste
+              ? actuel.salleCouranteId
+              : (salles.isEmpty ? null : salles.first.id),
+        ),
+      );
+    } on Object catch (_) {
+      // Volontairement muet, voir ci-dessus.
+    }
+  }
 }
 
 /// Les salles du propriétaire connecté, et celle qu'il regarde.
@@ -130,6 +170,15 @@ final indicateursProvider = FutureProvider.autoDispose
       (ref, venueId) => ref.watch(ownerRepositoryProvider).indicateurs(venueId),
     );
 
+/// Le détail d'une demande (§4.3, OWN-05).
+///
+/// Indexé sur la demande et non sur la salle : on en ouvre une à la fois, et
+/// `autoDispose` referme celle qu'on vient de quitter.
+final detailDemandeProvider = FutureProvider.autoDispose
+    .family<DemandeDetail, String>(
+      (ref, bookingId) => ref.watch(ownerRepositoryProvider).detail(bookingId),
+    );
+
 /// Les demandes en attente d'une salle (§4.3, OWN-05).
 ///
 /// PAS D'ABONNEMENT TEMPS RÉEL ICI, à la différence du suivi côté client. Là-bas
@@ -143,3 +192,57 @@ final demandesEnAttenteProvider = FutureProvider.autoDispose
       (ref, venueId) =>
           ref.watch(ownerRepositoryProvider).demandesEnAttente(venueId),
     );
+
+/// Répondre à une demande, et remettre d'aplomb tout ce que la réponse fausse.
+///
+/// LE POINT DE CETTE CLASSE EST LA SECONDE MOITIÉ. Appeler `accepter_demande()`
+/// est une ligne ; ce qui se casse ensuite si l'on s'arrête là est moins
+/// visible. Une demande acceptée quitte la file, mais le compte du sélecteur
+/// vient d'`owner_venues()`, la file elle-même de `owner_pending_requests()`,
+/// et la part acceptée du mois d'`owner_dashboard()` — trois lectures qui
+/// ignorent tout de ce qui vient de se passer. Le propriétaire, lui, verrait
+/// « 3 demandes » sur un tableau qui n'en montre plus que deux, et croirait
+/// qu'il en a perdu une.
+///
+/// AUCUNE VÉRIFICATION DE DROIT ICI. Les deux fonctions de 015 refusent
+/// elles-mêmes une demande qui n'est pas la vôtre, et c'est ce refus-là qui
+/// protège. Ce service ne fait que transporter, puis ranger derrière lui.
+class ReponseADemandeService {
+  /// Crée le service.
+  const ReponseADemandeService(this._ref);
+
+  final Ref _ref;
+
+  /// Accepte la demande : elle passe en option de 72 h (§5.1).
+  Future<void> accepter(DemandeDetail demande) async {
+    await _ref.read(ownerRepositoryProvider).accepter(demande.bookingId);
+    await _rafraichir(demande);
+  }
+
+  /// Refuse la demande. Le motif est facultatif — la base l'accepte vide.
+  Future<void> refuser(DemandeDetail demande, {String? motif}) async {
+    await _ref
+        .read(ownerRepositoryProvider)
+        .refuser(demande.bookingId, motif: motif);
+    await _rafraichir(demande);
+  }
+
+  /// Ce que la réponse vient de rendre faux, et rien d'autre.
+  Future<void> _rafraichir(DemandeDetail demande) async {
+    // Le détail lui-même : l'écran doit montrer le nouvel état, l'acompte fixé
+    // et l'échéance des 72 h, qu'il n'avait pas une seconde plus tôt.
+    _ref.invalidate(detailDemandeProvider(demande.bookingId));
+    _ref.invalidate(demandesEnAttenteProvider(demande.venueId));
+    // La part des demandes acceptées du mois a bougé, et le nombre de demandes
+    // tranchées avec elle.
+    _ref.invalidate(indicateursProvider(demande.venueId));
+
+    // Le compte du sélecteur. Rechargé et non invalidé — voir `rafraichir()`.
+    await _ref.read(espaceProprietaireProvider.notifier).rafraichir();
+  }
+}
+
+/// Le service de réponse aux demandes.
+final reponseADemandeServiceProvider = Provider<ReponseADemandeService>(
+  ReponseADemandeService.new,
+);

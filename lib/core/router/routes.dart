@@ -98,6 +98,23 @@ abstract final class FerhaRoutes {
   /// justement pour cela.
   static const String proprietaireTableau = '/proprietaire/tableau';
 
+  /// Détail d'une demande, côté propriétaire. `/proprietaire/demande/:id`
+  ///
+  /// Sous le même préfixe que le tableau de bord, et pour la même raison : la
+  /// barre d'onglets propriétaire enveloppera `/proprietaire/*` quand elle
+  /// viendra.
+  ///
+  /// L'identifiant est celui de la LIGNE représentative du groupe, pas celui du
+  /// groupe : c'est ce qu'attendent `owner_request_detail()`,
+  /// `accepter_demande()` et `refuser_demande()`, qui remontent au groupe
+  /// elles-mêmes. Une journée entière s'ouvre donc par l'un de ses deux
+  /// créneaux, et se répond d'un bloc.
+  static const String proprietaireDemande = '/proprietaire/demande/:id';
+
+  /// Chemin du détail d'une demande donnée.
+  static String proprietaireDemandeDe(String bookingId) =>
+      '/proprietaire/demande/$bookingId';
+
   /// Connexion par e-mail et mot de passe.
   ///
   /// Hors de la barre d'onglets : on y entre par-dessus l'écran en cours, et

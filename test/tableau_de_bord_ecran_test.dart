@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:ferha/core/preferences/preferences_affichage.dart';
 import 'package:ferha/core/theme/ferha_theme.dart';
 import 'package:ferha/features/auth/auth_providers.dart';
+import 'package:ferha/core/router/routes.dart';
+import 'package:ferha/features/owner/demande_detail.dart';
 import 'package:ferha/features/owner/demande_en_attente.dart';
+import 'package:ferha/features/owner/detail_demande_screen.dart';
 import 'package:ferha/features/owner/indicateurs_salle.dart';
 import 'package:ferha/features/owner/owner_repository.dart';
 import 'package:ferha/features/owner/salle_du_proprietaire.dart';
@@ -204,13 +208,90 @@ void main() {
       expect(find.text('il y a 2 h'), findsOneWidget);
       expect(find.text('Nouveau'), findsOneWidget);
 
-      // AUCUN BOUTON DE RÉPONSE tant que les fonctions SQL qui changent l'état
-      // n'existent pas. Un « Accepter » qui ne ferait rien serait pire que son
-      // absence — et ce test échouera le jour où on en ajoutera un, ce qui est
-      // exactement le moment de venir le relire.
+      // AUCUN BOUTON DE RÉPONSE SUR LA CARTE, alors que la maquette de l'écran
+      // 9 en dessine deux. Ce n'est plus faute de fonctions SQL — elles
+      // existent depuis 015 : accepter un mariage engage une salle pour une
+      // soirée et pose une option de 72 h (§5.1), et la carte ne montre ni le
+      // message du client, ni les options qu'il a cochées, ni son nom entier.
+      // La décision se prend sur l'écran de détail, où tout cela est écrit.
       expect(find.text('Accepter'), findsNothing);
-      expect(find.text('Contre-proposer'), findsNothing);
       expect(find.text('Refuser'), findsNothing);
+      expect(find.text('Contre-proposer'), findsNothing);
+
+      // Ce que la carte porte à la place : de quoi s'ouvrir.
+      expect(find.byIcon(Icons.chevron_right), findsOneWidget);
+    });
+
+    testWidgets('la carte ouvre le détail de SA demande', (tester) async {
+      // Un vrai routeur, et non un espion sur la navigation : ce qu'on veut
+      // vérifier est que la carte emmène sur la bonne demande — donc que
+      // l'identifiant qu'elle met dans l'adresse est celui de sa ligne, et pas
+      // celui de la première de la liste.
+      tester.view.physicalSize = const Size(1000, 2400);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+
+      final depot = DepotDeTest(
+        sallesRendues: <SalleDuProprietaire>[
+          salleDeTest(id: bahia, demandesEnAttente: 2),
+        ],
+        indicateursRendus: <String, IndicateursSalle>{
+          bahia: indicateursDeTest(),
+        },
+        demandesRendues: <String, List<DemandeEnAttente>>{
+          bahia: <DemandeEnAttente>[
+            demandeDeTest(id: '1', client: 'Amina K.'),
+            demandeDeTest(id: '2', client: 'Yacine M.'),
+          ],
+        },
+        detailsRendus: <String, DemandeDetail>{
+          'bkg-2': detailDeTest(
+            id: '2',
+            venueId: bahia,
+            client: 'Yacine Meziane',
+          ),
+        },
+      );
+
+      final routeur = GoRouter(
+        initialLocation: FerhaRoutes.proprietaireTableau,
+        routes: <RouteBase>[
+          GoRoute(
+            path: FerhaRoutes.proprietaireTableau,
+            builder: (_, _) => const TableauDeBordScreen(),
+          ),
+          GoRoute(
+            path: FerhaRoutes.proprietaireDemande,
+            builder: (_, state) =>
+                DetailDemandeScreen(bookingId: state.pathParameters['id']!),
+          ),
+        ],
+      );
+      addTearDown(routeur.dispose);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            estConnecteProvider.overrideWithValue(true),
+            preferencesAffichageProvider.overrideWithValue(
+              PreferencesEnMemoire(bahia),
+            ),
+            ownerRepositoryProvider.overrideWithValue(depot),
+          ],
+          child: MaterialApp.router(
+            theme: FerhaTheme.light(),
+            routerConfig: routeur,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // La SECONDE carte, pas la première.
+      await tester.tap(find.text('Yacine M.'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Yacine Meziane'), findsOneWidget);
+      expect(find.byKey(cleAccepter), findsOneWidget);
     });
 
     testWidgets('une demande d’hier ne porte plus « Nouveau »', (tester) async {

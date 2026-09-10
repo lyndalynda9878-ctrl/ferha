@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../core/router/routes.dart';
 import '../../core/theme/ferha_colors.dart';
 import '../../core/theme/ferha_radii.dart';
 import '../search/search_filters.dart';
@@ -378,6 +380,15 @@ class _ListeDesDemandes extends StatelessWidget {
 /// LE NOM EST DÉJÀ RACCOURCI QUAND IL ARRIVE — « Amina K. » vient de
 /// `short_name()` (014), pas d'une troncature faite ici. Il n'y a rien à
 /// couper, et rien à révéler.
+///
+/// LA CARTE ENTIÈRE OUVRE LA DEMANDE, ET ELLE NE PORTE AUCUN BOUTON DE RÉPONSE.
+/// La maquette de l'écran 9 en dessine deux — « Accepter » et
+/// « Contre-proposer » — à même la carte. On ne les met pas là, et pas parce
+/// qu'ils seraient difficiles : accepter un mariage engage une salle pour une
+/// soirée et pose une option de 72 h (§5.1), sur la foi d'une carte qui ne
+/// montre ni le message du client, ni les options qu'il a cochées, ni son nom
+/// entier. La décision se prend sur l'écran de détail, où tout cela est écrit.
+/// La contre-proposition, elle, demande une saisie : elle attend son étape.
 class _CarteDemande extends StatelessWidget {
   const _CarteDemande({required this.demande, required this.maintenant});
 
@@ -391,61 +402,76 @@ class _CarteDemande extends StatelessWidget {
 
     return Card(
       margin: EdgeInsets.zero,
-      child: Padding(
-        padding: const EdgeInsetsDirectional.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Expanded(
-                  child: Wrap(
-                    spacing: 8,
-                    runSpacing: 4,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: <Widget>[
-                      Text(demande.client, style: text.titleSmall),
-                      if (demande.estNouvelle(maintenant)) const _Nouveau(),
-                    ],
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () =>
+            context.push(FerhaRoutes.proprietaireDemandeDe(demande.bookingId)),
+        child: Padding(
+          padding: const EdgeInsetsDirectional.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Expanded(
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 4,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: <Widget>[
+                        Text(demande.client, style: text.titleSmall),
+                        if (demande.estNouvelle(maintenant)) const _Nouveau(),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  demande.attendDepuis(maintenant),
-                  style: text.bodySmall?.copyWith(color: colors.inkTertiary),
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Text(
-              <String>[
-                dateEnFrancais(demande.date),
-                demande.creneau.libelle.toLowerCase(),
-                '${demande.invites} invités',
-                if (demande.typeEvenement != null) demande.typeEvenement!,
-              ].join(' · '),
-              style: text.bodySmall?.copyWith(color: colors.inkSecondary),
-            ),
-            const SizedBox(height: 10),
-            Divider(height: 1, color: colors.ruleSoft),
-            const SizedBox(height: 8),
-            Row(
-              children: <Widget>[
-                Text(
-                  'Estimation',
-                  style: text.bodyMedium?.copyWith(color: colors.inkSecondary),
-                ),
-                const Spacer(),
-                Text(
-                  // Le devis d'`estimate_price()`, tel quel. Aucune seconde
-                  // formule, ici pas plus qu'ailleurs.
-                  '${montantEnDinars(demande.montant)} DA',
-                  style: text.titleSmall?.copyWith(color: colors.primaryDeep),
-                ),
-              ],
-            ),
-          ],
+                  const SizedBox(width: 8),
+                  Text(
+                    demande.attendDepuis(maintenant),
+                    style: text.bodySmall?.copyWith(color: colors.inkTertiary),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text(
+                <String>[
+                  dateEnFrancais(demande.date),
+                  demande.creneau.libelle.toLowerCase(),
+                  '${demande.invites} invités',
+                  if (demande.typeEvenement != null) demande.typeEvenement!,
+                ].join(' · '),
+                style: text.bodySmall?.copyWith(color: colors.inkSecondary),
+              ),
+              const SizedBox(height: 10),
+              Divider(height: 1, color: colors.ruleSoft),
+              const SizedBox(height: 8),
+              Row(
+                children: <Widget>[
+                  Text(
+                    'Estimation',
+                    style: text.bodyMedium?.copyWith(
+                      color: colors.inkSecondary,
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    // Le devis d'`estimate_price()`, tel quel. Aucune seconde
+                    // formule, ici pas plus qu'ailleurs.
+                    '${montantEnDinars(demande.montant)} DA',
+                    style: text.titleSmall?.copyWith(color: colors.primaryDeep),
+                  ),
+                  const SizedBox(width: 6),
+                  // La flèche dit que la carte s'ouvre. Sans elle, une carte
+                  // cliquable ne se distingue pas d'une carte inerte.
+                  Icon(
+                    Icons.chevron_right,
+                    size: 20,
+                    color: colors.inkTertiary,
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

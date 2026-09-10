@@ -56,8 +56,11 @@ class DemandeEnAttente {
   /// L'identifiant de la demande — un groupe, une ou deux lignes.
   final String groupId;
 
-  /// La ligne représentative du groupe, celle qu'attendront `accept_booking()`
-  /// et `refuse_booking()` à l'étape suivante.
+  /// La ligne représentative du groupe.
+  ///
+  /// C'est elle qu'attendent `owner_request_detail()`, `accepter_demande()` et
+  /// `refuser_demande()` : toutes remontent au groupe elles-mêmes, et une
+  /// journée entière se répond d'un bloc.
   final String bookingId;
 
   /// Le client, prénom et initiale — « Amina K. ».
@@ -103,15 +106,27 @@ class DemandeEnAttente {
   /// Le propriétaire ne lit pas un horodatage, il lit un retard : ce qui
   /// l'intéresse est de savoir laquelle attend depuis trop longtemps. Les 48 h
   /// de réponse du §5.1 se comptent d'ailleurs à partir d'ici.
-  String attendDepuis(DateTime maintenant) {
-    final ecart = maintenant.difference(creeLe);
+  String attendDepuis(DateTime maintenant) =>
+      attenteEnFrancais(creeLe, maintenant);
+}
 
-    // Une horloge d'appareil en retard, ou une demande arrivée pendant que
-    // l'écran s'affichait : « dans 3 minutes » n'aurait aucun sens.
-    if (ecart.isNegative || ecart.inMinutes < 1) return 'à l’instant';
-    if (ecart.inMinutes < 60) return 'il y a ${ecart.inMinutes} min';
-    if (ecart.inHours < 24) return 'il y a ${ecart.inHours} h';
-    if (ecart.inDays == 1) return 'hier';
-    return 'il y a ${ecart.inDays} jours';
-  }
+/// « il y a 2 h », « hier », « il y a 4 jours ».
+///
+/// Une fonction libre et non une méthode : l'écran de détail dit la même chose
+/// de la même demande, et il travaille sur un autre modèle. Deux exemplaires
+/// finiraient par diverger — l'un dirait « il y a 1 j » quand l'autre dirait
+/// « hier », sur le même écran, à propos de la même chose.
+///
+/// [maintenant] est un paramètre et non un `DateTime.now()` interne : sans
+/// cela, aucun test ne pourrait vérifier les frontières.
+String attenteEnFrancais(DateTime quand, DateTime maintenant) {
+  final ecart = maintenant.difference(quand);
+
+  // Une horloge d'appareil en retard, ou une demande arrivée pendant que
+  // l'écran s'affichait : « dans 3 minutes » n'aurait aucun sens.
+  if (ecart.isNegative || ecart.inMinutes < 1) return 'à l’instant';
+  if (ecart.inMinutes < 60) return 'il y a ${ecart.inMinutes} min';
+  if (ecart.inHours < 24) return 'il y a ${ecart.inHours} h';
+  if (ecart.inDays == 1) return 'hier';
+  return 'il y a ${ecart.inDays} jours';
 }

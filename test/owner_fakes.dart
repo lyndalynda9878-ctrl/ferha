@@ -1,4 +1,6 @@
 import 'package:ferha/core/preferences/preferences_affichage.dart';
+import 'package:ferha/features/booking/reservation.dart';
+import 'package:ferha/features/owner/demande_detail.dart';
 import 'package:ferha/features/owner/demande_en_attente.dart';
 import 'package:ferha/features/owner/indicateurs_salle.dart';
 import 'package:ferha/features/owner/owner_repository.dart';
@@ -42,25 +44,54 @@ class PreferencesEnMemoire implements PreferencesAffichage {
 }
 
 /// Un dépôt qui rend ce qu'on lui a donné, sans réseau ni base.
+///
+/// Les champs sont MODIFIABLES à dessein : un test qui vérifie que le compteur
+/// se rafraîchit doit pouvoir faire répondre autre chose au second appel, comme
+/// la vraie base le ferait après une acceptation.
 class DepotDeTest implements OwnerRepository {
   /// Crée le dépôt.
   DepotDeTest({
     this.sallesRendues = const <SalleDuProprietaire>[],
     this.indicateursRendus = const <String, IndicateursSalle>{},
     this.demandesRendues = const <String, List<DemandeEnAttente>>{},
+    this.detailsRendus = const <String, DemandeDetail>{},
+    this.erreurDeReponse,
   });
 
   /// Ce que rend `owner_venues()`.
-  final List<SalleDuProprietaire> sallesRendues;
+  List<SalleDuProprietaire> sallesRendues;
 
   /// Ce que rend `owner_dashboard()`, par salle.
-  final Map<String, IndicateursSalle> indicateursRendus;
+  Map<String, IndicateursSalle> indicateursRendus;
 
   /// Ce que rend `owner_pending_requests()`, par salle.
-  final Map<String, List<DemandeEnAttente>> demandesRendues;
+  Map<String, List<DemandeEnAttente>> demandesRendues;
 
-  /// Le nombre d'appels à [salles].
+  /// Ce que rend `owner_request_detail()`, par demande.
+  Map<String, DemandeDetail> detailsRendus;
+
+  /// Ce que lèvent `accepter_demande()` et `refuser_demande()`, s'il y a lieu.
+  Object? erreurDeReponse;
+
+  /// Le nombre d'appels à [salles] — c'est lui qui dit si le compteur du
+  /// sélecteur a bien été redemandé.
   int appelsSalles = 0;
+
+  /// Le nombre d'appels à [indicateurs], [demandesEnAttente] et [detail].
+  int appelsIndicateurs = 0;
+
+  /// Voir [appelsIndicateurs].
+  int appelsDemandes = 0;
+
+  /// Voir [appelsIndicateurs].
+  int appelsDetail = 0;
+
+  /// Les demandes acceptées, dans l'ordre.
+  final List<String> acceptees = <String>[];
+
+  /// Les demandes refusées, avec leur motif.
+  final List<({String id, String? motif})> refusees =
+      <({String id, String? motif})>[];
 
   @override
   Future<List<SalleDuProprietaire>> salles() async {
@@ -70,14 +101,37 @@ class DepotDeTest implements OwnerRepository {
 
   @override
   Future<IndicateursSalle> indicateurs(String venueId, {DateTime? mois}) async {
+    appelsIndicateurs++;
     final trouve = indicateursRendus[venueId];
     if (trouve == null) throw StateError('Pas d’indicateurs pour $venueId');
     return trouve;
   }
 
   @override
-  Future<List<DemandeEnAttente>> demandesEnAttente(String venueId) async =>
-      demandesRendues[venueId] ?? const <DemandeEnAttente>[];
+  Future<List<DemandeEnAttente>> demandesEnAttente(String venueId) async {
+    appelsDemandes++;
+    return demandesRendues[venueId] ?? const <DemandeEnAttente>[];
+  }
+
+  @override
+  Future<DemandeDetail> detail(String bookingId) async {
+    appelsDetail++;
+    final trouve = detailsRendus[bookingId];
+    if (trouve == null) throw StateError('Pas de détail pour $bookingId');
+    return trouve;
+  }
+
+  @override
+  Future<void> accepter(String bookingId) async {
+    if (erreurDeReponse != null) throw erreurDeReponse!;
+    acceptees.add(bookingId);
+  }
+
+  @override
+  Future<void> refuser(String bookingId, {String? motif}) async {
+    if (erreurDeReponse != null) throw erreurDeReponse!;
+    refusees.add((id: bookingId, motif: motif));
+  }
 }
 
 /// Une salle du sélecteur.
@@ -145,5 +199,45 @@ DemandeEnAttente demandeDeTest({
   invites: invites,
   typeEvenement: typeEvenement,
   montant: montant,
+  creeLe: creeLe ?? DateTime.now().subtract(const Duration(hours: 2)),
+);
+
+/// Le détail d'une demande, tel que le rend `owner_request_detail()`.
+DemandeDetail detailDeTest({
+  required String id,
+  required String venueId,
+  String salle = 'Salle El Bahia',
+  String client = 'Amina Kaddour',
+  DateTime? date,
+  Creneau creneau = Creneau.soir,
+  int invites = 300,
+  String? typeEvenement = 'Mariage',
+  String? message = 'Bonjour, nous serons environ 300, merci.',
+  List<OptionChoisie> options = const <OptionChoisie>[],
+  num montant = 205000,
+  num? acompte,
+  EtatReservation etat = EtatReservation.enAttente,
+  String? motif,
+  String? telephone,
+  bool telephoneDisponible = false,
+  DateTime? creeLe,
+}) => DemandeDetail(
+  groupId: 'grp-$id',
+  bookingId: 'bkg-$id',
+  venueId: venueId,
+  salle: salle,
+  client: client,
+  telephone: telephone,
+  telephoneDisponible: telephoneDisponible,
+  date: date ?? DateTime(2027, 8, 14),
+  creneau: creneau,
+  invites: invites,
+  typeEvenement: typeEvenement,
+  message: message,
+  options: options,
+  montant: montant,
+  acompte: acompte,
+  etat: etat,
+  motif: motif,
   creeLe: creeLe ?? DateTime.now().subtract(const Duration(hours: 2)),
 );

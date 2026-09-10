@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/preferences/preferences_affichage.dart';
 import '../../core/supabase/supabase_providers.dart';
+import 'demande_detail.dart';
 import 'demande_en_attente.dart';
 import 'indicateurs_salle.dart';
 import 'salle_du_proprietaire.dart';
@@ -15,15 +16,18 @@ import 'salle_du_proprietaire.dart';
 /// base — les tests de ce dossier ne simulent pas Supabase, ils ne le
 /// rencontrent jamais.
 ///
-/// AUCUNE DE CES TROIS MÉTHODES NE CHANGE QUOI QUE CE SOIT, et c'est l'état de
-/// l'étape J10. Accepter, refuser et contre-proposer viendront par des
-/// fonctions `SECURITY DEFINER` qui vérifieront qui appelle ; tant qu'elles
-/// n'existent pas, ce dépôt n'offre aucun moyen de répondre à une demande.
+/// QUATRE LECTURES ET DEUX GESTES. Les deux gestes — accepter, refuser —
+/// passent par `accepter_demande()` et `refuser_demande()` (015), qui sont
+/// `SECURITY DEFINER` et vérifient elles-mêmes que la salle est bien celle du
+/// demandeur. La contre-proposition du §5.2 n'est pas ici : c'est un geste à
+/// part, avec sa saisie, et il viendra à son étape.
 ///
 /// LES GARDE-FOUS SONT EN BASE, PAS ICI. `owner_venues()` ne connaît que
-/// `auth.uid()`, et les deux autres fonctions refusent une salle qui n'est pas
-/// la vôtre. Vérifier une seconde fois en Dart ferait un deuxième gardien pour
-/// la même règle — et celui-là, un client modifié pourrait le contourner.
+/// `auth.uid()` ; toutes les autres refusent une salle ou une demande qui n'est
+/// pas la vôtre. Vérifier une seconde fois en Dart ferait un deuxième gardien
+/// pour la même règle — et celui-là, un client modifié pourrait le contourner.
+/// Ce que l'écran cache, il le cache pour ne pas proposer un geste qui
+/// échouerait, jamais pour empêcher qu'il réussisse.
 abstract interface class OwnerRepository {
   /// Les salles du propriétaire connecté, dans l'ordre du sélecteur.
   Future<List<SalleDuProprietaire>> salles();
@@ -33,6 +37,15 @@ abstract interface class OwnerRepository {
 
   /// Les demandes en attente d'une salle, la plus récente en tête.
   Future<List<DemandeEnAttente>> demandesEnAttente(String venueId);
+
+  /// Le détail d'une demande, du point de vue du propriétaire.
+  Future<DemandeDetail> detail(String bookingId);
+
+  /// Accepte une demande : `pending` → `accepted`, option de 72 h (§5.1).
+  Future<void> accepter(String bookingId);
+
+  /// Refuse une demande, avec un motif facultatif.
+  Future<void> refuser(String bookingId, {String? motif});
 }
 
 /// Celui qui appelle vraiment les fonctions de 014.
@@ -89,6 +102,43 @@ class OwnerRepositorySupabase implements OwnerRepository {
         .cast<Map<String, dynamic>>()
         .map(DemandeEnAttente.depuisJson)
         .toList(growable: false);
+  }
+
+  @override
+  Future<DemandeDetail> detail(String bookingId) async {
+    final lignes = await _client.rpc<List<dynamic>>(
+      'owner_request_detail',
+      params: <String, dynamic>{'p_booking_id': bookingId},
+    );
+
+    if (lignes.isEmpty) {
+      // La fonction lève sur une demande inconnue ou étrangère ; un tableau
+      // vide voudrait dire qu'elle a changé de forme.
+      throw StateError(
+        'owner_request_detail() n’a renvoyé aucune ligne pour $bookingId.',
+      );
+    }
+
+    return DemandeDetail.depuisJson(lignes.first as Map<String, dynamic>);
+  }
+
+  /// L'acompte n'est pas passé : `accepter_demande()` applique `deposit_rate()`
+  /// au devis déjà en base. Le taux du §5.3 vit à un seul endroit, et ce n'est
+  /// pas ici.
+  @override
+  Future<void> accepter(String bookingId) async {
+    await _client.rpc<List<dynamic>>(
+      'accepter_demande',
+      params: <String, dynamic>{'p_booking_id': bookingId},
+    );
+  }
+
+  @override
+  Future<void> refuser(String bookingId, {String? motif}) async {
+    await _client.rpc<List<dynamic>>(
+      'refuser_demande',
+      params: <String, dynamic>{'p_booking_id': bookingId, 'p_motif': motif},
+    );
   }
 
   /// `date` en SQL n'a pas d'heure : on envoie le premier du mois, en clair.
