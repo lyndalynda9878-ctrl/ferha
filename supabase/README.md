@@ -31,6 +31,7 @@ seulement :
 | 18 | `migrations/018_garde_privileges_profil.sql` | un compte ne se donne pas `is_admin` ni `is_owner` | 001, 002, 017 |
 | 19 | `migrations/019_adresse_de_la_salle.sql` | `venues.address` — **redéfinit `creer_salle()`**, et retire `address` du SELECT public | 001, 002, 017 |
 | 20 | `migrations/020_telephone_joignable.sql` | la règle du téléphone — **redéfinit `handle_new_user()`, `envoyer_salle_en_validation()` et `request_booking()`** | 001, 004, 006, 007, 012, 019 |
+| 21 | `migrations/021_photos_de_la_salle.sql` | le bucket `venue-photos`, ses politiques, `ajouter_photo()`, `supprimer_photo()`, `reordonner_photos()` — **redéfinit `envoyer_salle_en_validation()`** | 001, 002, 017, 020 |
 
 `002` a besoin des tables de `001`. `003` a besoin de la table `amenities` de
 `001`, mais pas de `002`. Appliquer `002` avant `003` reste le bon ordre : le
@@ -72,9 +73,10 @@ psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/017_publier_une_s
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/018_garde_privileges_profil.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/019_adresse_de_la_salle.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/020_telephone_joignable.sql
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/021_photos_de_la_salle.sql
 ```
 
-Les vingt fichiers sont **rejouables** : les relancer sur une base déjà à jour
+Les vingt-et-un fichiers sont **rejouables** : les relancer sur une base déjà à jour
 ne produit ni erreur ni doublon. `003` va plus loin et met à jour les libellés
 existants — c'est le moyen prévu pour corriger une traduction.
 
@@ -325,7 +327,7 @@ appelle et d'où l'on part (§9).
 
 `venue_photos.storage_path` porte normalement un **chemin dans le bucket**
 `venue-photos`, de la forme `{venue_id}/{uuid}.webp` (§7.3). C'est ce que
-produira l'application quand un propriétaire téléversera ses photos.
+l'application écrit depuis le J13, quand un propriétaire téléverse ses photos.
 
 Les salles de démonstration, elles, portent une **URL Unsplash complète** :
 nous n'avons pas encore de photos réelles, et une application de salles des
@@ -343,6 +345,74 @@ partiront avec `seed/002_reset_demo.sql`.
 **N'écrivez pas d'URL externe dans `venue_photos` en dehors de
 `seed/001_demo_venues.sql`.** C'est une exception de démonstration, pas une
 seconde façon de stocker une photo.
+
+### Le bucket, et ses trois politiques (021)
+
+`venue-photos` est **public**, borné à **2 Mo par fichier** et aux types
+`image/webp` et `image/jpeg`. Public veut dire que `/object/public/...` sert les
+fichiers sans consulter aucune politique — c'est ce qui fait qu'une photo
+s'affiche chez un visiteur non connecté, et c'est voulu : une photo de salle est
+faite pour être vue.
+
+Ce qui est gardé, c'est l'**écriture**, par trois politiques sur
+`storage.objects` qui portent toutes le même prédicat — `owns_venue()` sur la
+salle que nomme le premier segment du chemin :
+
+| Politique | Ce qu'elle ouvre |
+|---|---|
+| `venue_photos_storage_insert` | déposer un fichier dans le dossier de SA salle |
+| `venue_photos_storage_select` | **retrouver** ses propres fichiers |
+| `venue_photos_storage_delete` | les effacer |
+
+La politique de lecture n'est pas décorative sur un bucket public, et l'oublier
+casse la suppression : PostgreSQL applique les politiques `select` à un
+`DELETE ... WHERE`, et l'API Storage cherche l'objet avant de l'effacer. Sans
+elle, une suppression ne trouve rien, n'efface rien, et ne se plaint de rien —
+le fichier resterait dans le bucket après que sa ligne a disparu de la galerie.
+
+### Pas de transformations d'image, et donc une seule taille
+
+Le §7.3 annonce « miniatures générées à la volée par les transformations d'image
+du Storage ». **On ne s'en sert pas** : elles sont réservées aux offres payantes
+de Supabase, et le projet coûte 0 DA.
+
+Conséquence assumée : **un seul fichier par photo**, réduit à 1600 px de large et
+réencodé à 80 % côté appareil (`lib/features/owner/compression_photo.dart`), et
+les vignettes des cartes affichent ce même fichier. Une photo pèse alors 150 à
+400 Ko — dix fois moins qu'un original de téléphone, ce qui est le point du
+§7.3. Le jour où le projet passerait à une offre payante, les miniatures
+s'ajouteraient sans rien changer en base : elles ne sont qu'un paramètre d'URL.
+
+### Le format est RENIFLÉ, jamais supposé
+
+Sur le web, `canvas.toDataURL('image/webp')` retombe **silencieusement** sur du
+PNG quand le navigateur ne sait pas encoder du WebP, et `flutter_image_compress`
+jette le préfixe qui l'aurait dit. L'application lit donc les premiers octets du
+résultat et nomme le fichier d'après ce qu'il EST — `.webp`, ou `.jpg` pour le
+repli du §7.3. La liste `allowed_mime_types` du bucket est le filet sous ce
+reniflement : un PNG déguisé serait refusé à l'entrée.
+
+### De 5 à 20 photos
+
+`photos_min()` et `photos_max()` (021) portent les deux bornes, et sont le seul
+endroit où ces nombres sont écrits en SQL. Le trigger
+`venue_photos_guard_count` refuse la 21e (FE038) ; `envoyer_salle_en_validation()`
+refuse une salle qui en a moins de cinq (FE041), parce qu'ADM-01 demande « des
+photos réelles » avant toute publication.
+
+### La couverture EST la première photo
+
+`check (is_cover = ("position" = 0))`, plus une unicité de `(venue_id, position)`.
+Les deux colonnes ne peuvent donc plus se contredire : `is_cover` n'a pas de
+valeur propre, il redit le rang. Il n'existe pas de geste « faire de celle-ci la
+couverture » — on réordonne, et la première l'est.
+
+L'unicité du rang est **`DEFERRABLE`**, et c'est nécessaire : réordonner est une
+permutation, qui traverse des collisions de rang n'existant plus à la fin de
+l'instruction. `supprimer_photo()` et `reordonner_photos()` la diffèrent le temps
+de leur `UPDATE`. L'index `venue_photos_one_cover_per_venue` de 001 a été
+**supprimé** par 021 : la paire ci-dessus dit strictement plus que lui, et un
+index unique non différable aurait refait échouer la permutation.
 
 ## Données de démonstration
 
@@ -549,7 +619,7 @@ sur un avis déjà publié.
 
 ## Tests
 
-Deux fichiers, qui se collent tels quels dans l'éditeur SQL de Supabase et
+Huit fichiers, qui se collent tels quels dans l'éditeur SQL de Supabase et
 annulent tout par un `ROLLBACK` final. Une erreur rouge commençant par « ÉCHEC »
 signale la règle qui ne tient plus.
 
@@ -562,6 +632,16 @@ signale la règle qui ne tient plus.
 | `tests/005_publier_une_salle.sql` | on n'inscrit pas une salle sans session ni au nom d'un autre, le propriétaire ne se publie pas lui-même, et une salle `pending` n'est pas au catalogue |
 | `tests/006_garde_privileges_profil.sql` | un compte connecté ne se fait pas administrateur, ne se déclare pas propriétaire sans salle — et `creer_salle()` marche toujours |
 | `tests/007_adresse_et_telephone.sql` | une salle sans adresse est refusée, le numéro est exigé aux deux endroits où quelqu'un décrochera, **l'adresse ne se lit pas même en interrogeant la table**, et un inconnu ne lit toujours aucun numéro |
+| `tests/008_photos_de_la_salle.sql` | la couverture EST la première photo, réordonner la déplace, **un autre compte n'écrit ni ligne ni fichier dans mon dossier**, la 21e est refusée et une salle de moins de 5 photos ne part pas en validation |
+
+Le huitième va plus loin encore : pour mesurer les politiques du bucket, il
+lève au passage `storage.allow_delete_query`, le verrou de Supabase qui refuse
+tout `DELETE` direct sur `storage.objects`. Ce verrou-là protège des fichiers
+orphelins, pas des intrus — il refuserait le propriétaire comme l'intrus, et
+laisserait le test vert sans avoir rien prouvé. Chacun de ses refus est d'ailleurs
+doublé d'un **contrôle positif** : on montre d'abord que le propriétaire PEUT
+faire le geste, sans quoi « permission refusée » ne distinguerait pas une
+politique qui travaille d'un `GRANT` manquant qui bloque tout le monde.
 
 Le quatrième change de rôle SQL en cours de route (`set local role
 authenticated`, puis `anon`). C'est nécessaire : ses trois derniers tests
