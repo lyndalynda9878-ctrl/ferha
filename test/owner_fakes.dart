@@ -1,5 +1,6 @@
 import 'package:ferha/core/preferences/preferences_affichage.dart';
 import 'package:ferha/features/booking/reservation.dart';
+import 'package:ferha/features/owner/creneau_agenda.dart';
 import 'package:ferha/features/owner/demande_detail.dart';
 import 'package:ferha/features/owner/demande_en_attente.dart';
 import 'package:ferha/features/owner/indicateurs_salle.dart';
@@ -55,7 +56,9 @@ class DepotDeTest implements OwnerRepository {
     this.indicateursRendus = const <String, IndicateursSalle>{},
     this.demandesRendues = const <String, List<DemandeEnAttente>>{},
     this.detailsRendus = const <String, DemandeDetail>{},
+    this.agendasRendus = const <String, AgendaDuMois>{},
     this.erreurDeReponse,
+    this.erreurDeFermeture,
   });
 
   /// Ce que rend `owner_venues()`.
@@ -70,8 +73,19 @@ class DepotDeTest implements OwnerRepository {
   /// Ce que rend `owner_request_detail()`, par demande.
   Map<String, DemandeDetail> detailsRendus;
 
+  /// Ce que rend `owner_agenda()`, par mois — la clé est « AAAA-MM ».
+  Map<String, AgendaDuMois> agendasRendus;
+
   /// Ce que lèvent `accepter_demande()` et `refuser_demande()`, s'il y a lieu.
   Object? erreurDeReponse;
+
+  /// Ce que lèvent `bloquer_date()` et `debloquer_date()`, s'il y a lieu.
+  ///
+  /// SÉPARÉE DE LA PRÉCÉDENTE, parce que les deux refus n'ont pas le même
+  /// vocabulaire : FE022 ne peut pas sortir d'une acceptation, et FE013 ne peut
+  /// pas sortir d'une fermeture. Un seul champ laisserait un test poser un code
+  /// que la vraie base ne poserait jamais là.
+  Object? erreurDeFermeture;
 
   /// Le nombre d'appels à [salles] — c'est lui qui dit si le compteur du
   /// sélecteur a bien été redemandé.
@@ -92,6 +106,19 @@ class DepotDeTest implements OwnerRepository {
   /// Les demandes refusées, avec leur motif.
   final List<({String id, String? motif})> refusees =
       <({String id, String? motif})>[];
+
+  /// Le nombre d'appels à [agenda] — c'est lui qui dit si passer de midi à soir
+  /// a redemandé le mois, ce qu'il ne doit jamais faire.
+  int appelsAgenda = 0;
+
+  /// Les créneaux fermés, dans l'ordre.
+  final List<({String venueId, DateTime jour, Creneau creneau, String? motif})>
+  fermes =
+      <({String venueId, DateTime jour, Creneau creneau, String? motif})>[];
+
+  /// Les créneaux rouverts, dans l'ordre.
+  final List<({String venueId, DateTime jour, Creneau creneau})> rouverts =
+      <({String venueId, DateTime jour, Creneau creneau})>[];
 
   @override
   Future<List<SalleDuProprietaire>> salles() async {
@@ -132,6 +159,65 @@ class DepotDeTest implements OwnerRepository {
     if (erreurDeReponse != null) throw erreurDeReponse!;
     refusees.add((id: bookingId, motif: motif));
   }
+
+  @override
+  Future<AgendaDuMois> agenda(String venueId, DateTime mois) async {
+    appelsAgenda++;
+    return agendasRendus[cleDuMois(mois)] ??
+        AgendaDuMois(mois: DateTime(mois.year, mois.month), parJour: const {});
+  }
+
+  @override
+  Future<void> bloquer(
+    String venueId,
+    DateTime jour,
+    Creneau creneau, {
+    String? motif,
+  }) async {
+    if (erreurDeFermeture != null) throw erreurDeFermeture!;
+    fermes.add((venueId: venueId, jour: jour, creneau: creneau, motif: motif));
+  }
+
+  @override
+  Future<void> debloquer(String venueId, DateTime jour, Creneau creneau) async {
+    if (erreurDeFermeture != null) throw erreurDeFermeture!;
+    rouverts.add((venueId: venueId, jour: jour, creneau: creneau));
+  }
+}
+
+/// « AAAA-MM » — la clé d'[DepotDeTest.agendasRendus].
+String cleDuMois(DateTime mois) =>
+    '${mois.year.toString().padLeft(4, '0')}-'
+    '${mois.month.toString().padLeft(2, '0')}';
+
+/// Un agenda de test : tout est libre, sauf ce qu'on précise.
+///
+/// [particuliers] est indexé par « quantième-créneau » — « 14-soir » — parce
+/// que c'est ainsi qu'un test se lit : « le 14 au soir est confirmé ». Le reste
+/// du mois est rempli de créneaux libres, comme le fait `owner_agenda()`, qui
+/// rend la grille complète.
+AgendaDuMois agendaDeTest(
+  DateTime mois, {
+  Map<String, CreneauAgenda> particuliers = const <String, CreneauAgenda>{},
+}) {
+  final premier = DateTime(mois.year, mois.month);
+  final nombreDeJours = DateTime(premier.year, premier.month + 1, 0).day;
+
+  final parJour = <int, Map<String, CreneauAgenda>>{};
+  for (var q = 1; q <= nombreDeJours; q++) {
+    for (final creneau in <Creneau>[Creneau.midi, Creneau.soir]) {
+      final particulier = particuliers['$q-${creneau.code}'];
+      (parJour[q] ??= <String, CreneauAgenda>{})[creneau.code] =
+          particulier ??
+          CreneauAgenda(
+            jour: DateTime(premier.year, premier.month, q),
+            creneau: creneau,
+            etat: EtatAgenda.libre,
+          );
+    }
+  }
+
+  return AgendaDuMois(mois: premier, parJour: parJour);
 }
 
 /// Une salle du sélecteur.

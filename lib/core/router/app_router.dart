@@ -10,6 +10,7 @@ import '../../features/booking/booking_providers.dart';
 import '../../features/booking/demande_envoyee_screen.dart';
 import '../../features/booking/demande_screen.dart';
 import '../../features/booking/mes_reservations_screen.dart';
+import '../../features/owner/agenda_screen.dart';
 import '../../features/owner/detail_demande_screen.dart';
 import '../../features/owner/tableau_de_bord_screen.dart';
 import '../../features/search/accueil_screen.dart';
@@ -197,6 +198,23 @@ final routerProvider = Provider<GoRouter>((ref) {
                 },
               ).toString(),
         builder: (context, state) => const TableauDeBordScreen(),
+      ),
+
+      // L'agenda. Même redirection que le tableau de bord, et pour la même
+      // raison : sans session, `owner_agenda()` refuse, et un écran vide se
+      // lirait comme « vous n'avez aucune date ».
+      GoRoute(
+        path: FerhaRoutes.proprietaireAgenda,
+        parentNavigatorKey: _rootNavigatorKey,
+        redirect: (context, state) => ref.read(estConnecteProvider)
+            ? null
+            : Uri(
+                path: FerhaRoutes.connexion,
+                queryParameters: <String, String>{
+                  FerhaRoutes.parametreRetour: state.matchedLocation,
+                },
+              ).toString(),
+        builder: (context, state) => const AgendaScreen(),
       ),
 
       // Le détail d'une demande. Même redirection, et pour la même raison : il

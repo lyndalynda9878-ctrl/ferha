@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/preferences/preferences_affichage.dart';
 import '../auth/auth_providers.dart';
+import '../search/search_filters.dart';
+import 'creneau_agenda.dart';
 import 'demande_detail.dart';
 import 'demande_en_attente.dart';
 import 'indicateurs_salle.dart';
@@ -271,3 +273,76 @@ final estMaSalleProvider = Provider.family<bool, String>((ref, venueId) {
   final espace = ref.watch(espaceProprietaireProvider).value;
   return espace != null && espace.salles.any((s) => s.id == venueId);
 });
+
+/// L'agenda d'une salle sur un mois (§4.3, OWN-06).
+///
+/// Une famille indexée sur la salle ET le mois, comme les indicateurs le sont
+/// sur la salle : feuilleter vers août puis revenir à juillet retrouve juillet
+/// sans le redemander. `autoDispose` referme les mois qu'on a quittés — on en
+/// regarde un à la fois, et dix-huit mois gardés en mémoire ne serviraient à
+/// personne.
+///
+/// UN APPEL PAR MOIS, PAS PAR CRÉNEAU. `owner_agenda()` rend midi ET soir en une
+/// fois : la bascule midi/soir de l'écran ne touche donc pas au réseau, elle
+/// relit ce qui est déjà là. C'est la différence avec le calendrier client, qui
+/// a un fournisseur par créneau parce que sa fonction SQL n'en rend qu'un.
+final agendaProvider = FutureProvider.autoDispose
+    .family<AgendaDuMois, DemandeAgenda>(
+      (ref, demande) => ref
+          .watch(ownerRepositoryProvider)
+          .agenda(demande.venueId, demande.mois),
+    );
+
+/// Fermer une date, la rouvrir, et remettre d'aplomb ce que le geste fausse.
+///
+/// MÊME PARTAGE DES RÔLES QUE [ReponseADemandeService] : la fonction SQL fait le
+/// travail et porte le garde-fou, ce service transporte puis range derrière lui.
+/// Aucune vérification de propriété ici — `bloquer_date()` et
+/// `debloquer_date()` (016) refusent d'elles-mêmes la salle d'un autre, et c'est
+/// ce refus-là qui protège.
+///
+/// CE QU'IL FAUT RANGER APRÈS COUP est plus large que le mois touché. Fermer un
+/// créneau change le dénominateur du taux d'occupation — `owner_dashboard()`
+/// compte les créneaux VENDABLES, soit deux par jour moins les blocages —, et
+/// une semaine fermée ne doit pas faire chuter le taux. L'indicateur est donc
+/// relu, sans quoi le propriétaire verrait ses chiffres mentir jusqu'à la
+/// prochaine ouverture.
+class FermetureDeDateService {
+  /// Crée le service.
+  const FermetureDeDateService(this._ref);
+
+  final Ref _ref;
+
+  /// Ferme un créneau, avec un motif facultatif.
+  Future<void> fermer(
+    String venueId,
+    DateTime jour,
+    Creneau creneau, {
+    String? motif,
+  }) async {
+    await _ref
+        .read(ownerRepositoryProvider)
+        .bloquer(venueId, jour, creneau, motif: motif);
+    _rafraichir(venueId, jour);
+  }
+
+  /// Rouvre un créneau fermé.
+  Future<void> rouvrir(String venueId, DateTime jour, Creneau creneau) async {
+    await _ref.read(ownerRepositoryProvider).debloquer(venueId, jour, creneau);
+    _rafraichir(venueId, jour);
+  }
+
+  void _rafraichir(String venueId, DateTime jour) {
+    _ref.invalidate(
+      agendaProvider(DemandeAgenda(venueId: venueId, mois: jour)),
+    );
+    // Le taux d'occupation du tableau de bord compte les créneaux vendables :
+    // il vient de changer.
+    _ref.invalidate(indicateursProvider(venueId));
+  }
+}
+
+/// Le service de fermeture de dates.
+final fermetureDeDateServiceProvider = Provider<FermetureDeDateService>(
+  FermetureDeDateService.new,
+);

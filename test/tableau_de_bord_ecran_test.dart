@@ -218,8 +218,16 @@ void main() {
       expect(find.text('Refuser'), findsNothing);
       expect(find.text('Contre-proposer'), findsNothing);
 
-      // Ce que la carte porte à la place : de quoi s'ouvrir.
-      expect(find.byIcon(Icons.chevron_right), findsOneWidget);
+      // Ce que la carte porte à la place : de quoi s'ouvrir. Le chevron est
+      // cherché DANS la carte : depuis le J12, l'entrée de l'agenda en porte un
+      // aussi, plus haut sur le même écran.
+      expect(
+        find.descendant(
+          of: find.byType(Card),
+          matching: find.byIcon(Icons.chevron_right),
+        ),
+        findsOneWidget,
+      );
     });
 
     testWidgets('la carte ouvre le détail de SA demande', (tester) async {

@@ -24,6 +24,9 @@ seulement :
 | 11 | `migrations/011_venue_detail.sql` | `venue_detail()` et `venue_calendar()` — la fiche et le calendrier | 002, 005, 010 |
 | 12 | `migrations/012_booking_request.sql` | La demande de réservation — **redéfinit `venue_detail()` et `request_booking()`** | 005, 010, 011 |
 | 13 | `migrations/013_mes_reservations.sql` | `client_bookings()` et `bookings` en temps réel | 004, 006 |
+| 14 | `migrations/014_espace_proprietaire.sql` | `owner_venues()`, `owner_dashboard()`, la file des demandes | 002, 004, 006 |
+| 15 | `migrations/015_repondre_a_une_demande.sql` | `accepter_demande()` et `refuser_demande()` | 004, 012 |
+| 16 | `migrations/016_agenda_proprietaire.sql` | `owner_agenda()`, `bloquer_date()`, `debloquer_date()` | 001, 002, 004, 014 |
 
 `002` a besoin des tables de `001`. `003` a besoin de la table `amenities` de
 `001`, mais pas de `002`. Appliquer `002` avant `003` reste le bon ordre : le
@@ -175,6 +178,14 @@ appelle et d'où l'on part (§9).
   et « ce créneau vient d'être pris » n'est pas une panne de serveur — c'est un
   409. Le Dart lit le `hint` (`lib/features/booking/booking_messages.dart`) et
   n'a donc jamais à comparer un message français.
+- **On ne ferme pas une date sur la tête d'un client.** `bloquer_date()` (016)
+  refuse un créneau qui porte une option de 72 h ou une réservation confirmée
+  (`FE022`). Fermer la date n'annulerait pas la réservation — elle laisserait
+  deux vérités contradictoires dans la base, et un client devant une salle
+  fermée. Une demande **en attente**, elle, n'empêche rien : elle n'a bloqué
+  aucune date (§5.1), et le propriétaire y répondra depuis sa file. Une
+  `journee` dont un seul créneau est vendu ne se ferme pas non plus, et surtout
+  pas à moitié : la fonction vérifie avant d'écrire.
 - **La double réservation est refusée par la base.** `uniq_booking_slot`, index
   unique partiel sur `(venue_id, event_date, slot) WHERE status IN ('confirmed',
   'completed')` (§6.1). Il est partiel exprès : une demande `pending` ne bloque
@@ -345,6 +356,15 @@ La vue s'exécute avec les droits de son propriétaire : elle traverse donc la
 politique de la table, et c'est son propre `WHERE` qui borne ce qui sort. Ne pas
 la passer en `security_invoker = true` — elle ne renverrait plus rien.
 
+**Le motif d'un blocage ne sort que par l'agenda du propriétaire.**
+`venue_blackouts.reason` — « travaux », « mariage de ma fille » — n'a aucun
+chemin vers un client : la vue ne porte pas la colonne, `venue_calendar()` (011)
+ne rend que `(day, state)`, et `owner_agenda()` (016) ne répond qu'au
+propriétaire de la salle. `tests/004_agenda_proprietaire.sql` le vérifie de
+quatre façons plutôt que de le supposer : les colonnes de la vue, la lecture par
+un client connecté, la lecture par un inconnu, et la signature de
+`venue_calendar()`.
+
 ## Points à reprendre plus tard
 
 - **Le nom public d'un propriétaire n'a pas encore de chemin.** `profiles` reste
@@ -416,6 +436,14 @@ signale la règle qui ne tient plus.
 |---|---|
 | `tests/001_double_booking.sql` | le prix vient d'`estimate_price()`, et la base refuse la seconde réservation confirmée sur un créneau pris |
 | `tests/002_devis_demande.sql` | `booking_quote()` ne s'écarte jamais d'`estimate_price()`, l'acompte vient de `deposit_rate()`, et chaque refus de `request_booking()` porte son code Ferha |
+| `tests/003_reponse_proprietaire.sql` | un propriétaire ne répond qu'à SES demandes, et accepter un créneau déjà vendu échoue proprement |
+| `tests/004_agenda_proprietaire.sql` | la propriété de l'agenda, le refus de fermer une date vendue, et **le motif d'un blocage qui ne sort pas** |
+
+Le quatrième change de rôle SQL en cours de route (`set local role
+authenticated`, puis `anon`). C'est nécessaire : ses trois derniers tests
+interrogent une table et une vue, et ce qui les protège est RLS — laquelle ne
+s'applique pas au rôle avec lequel on colle le fichier. Sans ce changement, le
+test lirait tout et passerait toujours.
 
 `supabase/tests/001_double_booking.sql` se colle tel quel dans l'éditeur SQL de
 Supabase. Il crée ses propres données, vérifie que la base refuse la seconde

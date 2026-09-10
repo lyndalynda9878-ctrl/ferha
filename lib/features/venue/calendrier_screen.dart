@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/router/routes.dart';
 import '../../core/theme/ferha_colors.dart';
 import '../../core/theme/ferha_radii.dart';
+import '../../core/widgets/grille_calendrier.dart';
 import '../owner/gerer_ma_salle.dart';
 import '../owner/owner_providers.dart';
 import '../search/search_filters.dart';
@@ -315,83 +316,24 @@ class _Mois extends StatelessWidget {
   final DateTime? selection;
   final void Function(DateTime jour, EtatJour etat) onJour;
 
-  /// Dimanche d'abord.
-  ///
-  /// C'est la charte qui tranche, et deux fois plutôt qu'une : les maquettes
-  /// de l'écran 4 affichent « D L M M J V S », et le paragraphe sur le miroir
-  /// RTL précise que « le calendrier commence toujours par dimanche mais se lit
-  /// de droite à gauche ». Le miroir est donc affaire de direction du texte,
-  /// pas d'ordre des colonnes : cette liste ne change pas en arabe.
-  static const List<String> _jours = <String>[
-    'D',
-    'L',
-    'M',
-    'M',
-    'J',
-    'V',
-    'S',
-  ];
-
   @override
   Widget build(BuildContext context) {
-    final colors = context.ferhaColors;
-    final text = Theme.of(context).textTheme;
-
-    final nombreDeJours = DateTime(mois.year, mois.month + 1, 0).day;
-    final decalage = colonneDuJour(DateTime(mois.year, mois.month));
-
     return Padding(
       padding: const EdgeInsetsDirectional.only(bottom: 28),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Text(
-            '${_nomMois(mois.month)} ${mois.year}',
-            style: text.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: <Widget>[
-              for (final j in _jours)
-                Expanded(
-                  child: Center(
-                    child: Text(
-                      j,
-                      style: text.labelSmall?.copyWith(
-                        color: colors.inkTertiary,
-                      ),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          _Semaines(
-            cases: <Widget>[
-              // Les cases vides du début, jusqu'au premier jour du mois.
-              for (var i = 0; i < decalage; i++) const SizedBox.shrink(),
-              for (
-                var jourDuMois = 1;
-                jourDuMois <= nombreDeJours;
-                jourDuMois++
-              )
-                Builder(
-                  builder: (context) {
-                    final jour = DateTime(mois.year, mois.month, jourDuMois);
-                    final etat = _etat(jour);
-                    return _Jour(
-                      jour: jour,
-                      etat: etat,
-                      passe: _estPasse(jour),
-                      selectionne:
-                          selection != null && _memeJour(selection!, jour),
-                      onTap: () => onJour(jour, etat),
-                    );
-                  },
-                ),
-            ],
-          ),
-        ],
+      // La grille vient de core/widgets : sept colonnes, dimanche en tête, des
+      // cases carrées. Cet écran ne s'occupe que de ce qu'on met dedans.
+      child: MoisCalendrier(
+        mois: mois,
+        caseDuJour: (jour) {
+          final etat = _etat(jour);
+          return _Jour(
+            jour: jour,
+            etat: etat,
+            passe: _estPasse(jour),
+            selectionne: selection != null && memeJour(selection!, jour),
+            onTap: () => onJour(jour, etat),
+          );
+        },
       ),
     );
   }
@@ -422,28 +364,6 @@ class _Mois extends StatelessWidget {
     return jour.isBefore(aujourdhui);
   }
 }
-
-/// La colonne d'un jour dans la grille, dimanche en tête.
-///
-/// `DateTime.weekday` vaut 1 pour lundi et 7 pour dimanche. Le reste modulo 7
-/// donne donc directement la colonne d'une semaine qui commence par dimanche :
-/// dimanche 0, lundi 1, samedi 6.
-///
-/// Dimanche est la règle du cahier des charges, énoncée deux fois : les
-/// maquettes de l'écran 4 affichent « D L M M J V S », et le paragraphe sur le
-/// miroir RTL précise que « le calendrier commence toujours par dimanche mais
-/// se lit de droite à gauche ». Le miroir est donc affaire de direction du
-/// texte, pas d'ordre des colonnes.
-///
-/// Ne pas lire les DATES de la maquette : ses cases portent des « contenus
-/// fictifs », elle y place le 14 août 2027 un jeudi quand c'est un samedi —
-/// que sa propre légende nomme d'ailleurs correctement. Elle donne la
-/// structure, pas le calendrier.
-@visibleForTesting
-int colonneDuJour(DateTime jour) => jour.weekday % 7;
-
-bool _memeJour(DateTime a, DateTime b) =>
-    a.year == b.year && a.month == b.month && a.day == b.day;
 
 /// Un jour du calendrier : un cercle plein, et son numéro au centre.
 ///
@@ -493,7 +413,7 @@ class _Jour extends StatelessWidget {
     // Le passé : pas de cercle, pas de geste, très effacé.
     if (passe) {
       return Semantics(
-        label: '${jour.day} ${_nomMois(jour.month)}, date passée',
+        label: '${jour.day} ${nomMois(jour.month)}, date passée',
         child: Opacity(opacity: 0.4, child: Center(child: numero)),
       );
     }
@@ -513,7 +433,7 @@ class _Jour extends StatelessWidget {
 
     return Semantics(
       label:
-          '${jour.day} ${_nomMois(jour.month)}, ${_libelle(etat)}'
+          '${jour.day} ${nomMois(jour.month)}, ${_libelle(etat)}'
           '${selectionne ? ', sélectionné' : ''}',
       button: etat == EtatJour.libre,
       selected: selectionne,
@@ -692,7 +612,7 @@ class _CalendrierEnAttente extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            _Semaines(
+            SemainesCalendrier(
               cases: <Widget>[
                 for (var i = 0; i < 35; i++)
                   DecoratedBox(
@@ -709,70 +629,3 @@ class _CalendrierEnAttente extends StatelessWidget {
     );
   }
 }
-
-/// Sept colonnes, autant de rangées qu'il faut, et AUCUN défilement.
-///
-/// SURTOUT PAS UN GridView. Imbriqué dans le ListView des mois, même en
-/// `NeverScrollableScrollPhysics`, un GridView reste un `Scrollable` : il
-/// s'inscrit auprès du système de pointeurs et capte la molette au lieu de la
-/// laisser remonter au parent. Le calendrier s'accroche alors sous le curseur,
-/// et le défilement ne repart qu'en sortant de la grille — c'est-à-dire
-/// presque nulle part, puisque la grille occupe l'écran.
-///
-/// Sept cases par rangée se posent très bien à la main, et une rangée n'est
-/// pas un `Scrollable`.
-class _Semaines extends StatelessWidget {
-  const _Semaines({required this.cases});
-
-  /// Les cases, dans l'ordre, la première rangée d'abord.
-  final List<Widget> cases;
-
-  /// L'écart entre deux cases.
-  ///
-  /// Les cercles occupent toute leur case : c'est donc cet écart, et lui seul,
-  /// qui les empêche de se toucher. À 4 ils se frôlaient.
-  static const double _ecart = 8;
-
-  @override
-  Widget build(BuildContext context) {
-    final rangees = <Widget>[];
-
-    for (var debut = 0; debut < cases.length; debut += 7) {
-      final fin = debut + 7 <= cases.length ? debut + 7 : cases.length;
-      final semaine = cases.sublist(debut, fin);
-
-      rangees.add(
-        Row(
-          spacing: _ecart,
-          children: <Widget>[
-            for (final c in semaine)
-              Expanded(child: AspectRatio(aspectRatio: 1, child: c)),
-            // La dernière rangée est rarement pleine : on la complète pour que
-            // ses cases gardent la largeur de celles du dessus.
-            for (var i = semaine.length; i < 7; i++)
-              const Expanded(child: SizedBox.shrink()),
-          ],
-        ),
-      );
-    }
-
-    return Column(spacing: _ecart, children: rangees);
-  }
-}
-
-const List<String> _moisFr = <String>[
-  'Janvier',
-  'Février',
-  'Mars',
-  'Avril',
-  'Mai',
-  'Juin',
-  'Juillet',
-  'Août',
-  'Septembre',
-  'Octobre',
-  'Novembre',
-  'Décembre',
-];
-
-String _nomMois(int mois) => _moisFr[mois - 1];

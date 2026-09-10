@@ -63,3 +63,54 @@ String? _parCodeFerha(String? hint) {
       return null;
   }
 }
+
+/// Traduit le refus d'une fermeture ou d'une réouverture de date (§4.3,
+/// OWN-06).
+///
+/// UNE SECONDE FONCTION PLUTÔT QU'UN SEUL GRAND `switch`, et ce n'est pas de la
+/// duplication : les deux écrans ne peuvent pas recevoir les mêmes codes.
+/// L'agenda ne verra jamais « cette demande a déjà reçu une réponse », et
+/// l'écran de réponse ne verra jamais « ce créneau porte une réservation ». Les
+/// mettre ensemble obligerait chacun à porter le vocabulaire de l'autre, et la
+/// première phrase mal aiguillée passerait inaperçue.
+///
+/// Les trois codes sont documentés en tête de `016_agenda_proprietaire.sql`, et
+/// `supabase/tests/004_agenda_proprietaire.sql` vérifie que la base les pose
+/// bien — c'est ce test qui empêche ce fichier de mentir.
+String messageErreurAgenda(Object erreur) {
+  if (erreur is PostgrestException) {
+    final traduit = _parCodeAgenda(erreur.hint);
+    if (traduit != null) return traduit;
+  }
+
+  return messageErreurAuth(erreur);
+}
+
+/// Les refus de 016, et ce qu'ils veulent dire pour quelqu'un qui vient
+/// d'appuyer sur « Fermer cette date ».
+String? _parCodeAgenda(String? hint) {
+  switch (hint) {
+    // FE020 ne devrait jamais atteindre l'écran : on n'entre dans l'espace
+    // propriétaire que connecté. Il reste traduit pour le cas où la session
+    // expire pendant que l'agenda est ouvert.
+    case 'FE020':
+      return 'Votre session a expiré. Reconnectez-vous, puis fermez la date à '
+          'nouveau.';
+
+    case 'FE021':
+      return 'Cette salle n’est pas la vôtre.';
+
+    // FE022 — LA RÈGLE QUI PROTÈGE LE CLIENT, et la seule de ces trois qu'un
+    // propriétaire rencontrera pour de bon. Il arrive quand une demande a été
+    // acceptée ou payée pendant que l'agenda était ouvert : l'écran affichait
+    // encore « libre », la base sait déjà que non. La phrase dit ce qui s'est
+    // passé et ce qui reste possible — annuler la réservation est un geste, pas
+    // un effet de bord d'une fermeture de date.
+    case 'FE022':
+      return 'Ce créneau vient d’être réservé. Fermer la date n’annulerait pas '
+          'la réservation : ouvrez-la d’abord si vous voulez y renoncer.';
+
+    default:
+      return null;
+  }
+}

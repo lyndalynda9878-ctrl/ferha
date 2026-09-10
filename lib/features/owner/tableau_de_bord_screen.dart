@@ -37,10 +37,11 @@ import 'salle_du_proprietaire.dart';
 /// bouton qu'un bouton qui ne fait rien.
 ///
 /// PAS DE BARRE D'ONGLETS, alors que la maquette en dessine une (Tableau,
-/// Agenda, Messages, Ma salle). Elle arrivera avec le deuxième écran
-/// propriétaire et enveloppera `/proprietaire/*` — la route est déjà rangée
-/// sous ce préfixe pour cela. Trois onglets morts sur quatre diraient que
-/// l'application est inachevée bien plus fort que leur absence.
+/// Agenda, Messages, Ma salle). L'agenda existe depuis le J12, ce qui en fait
+/// deux sur quatre qui mèneraient quelque part — et deux onglets morts restent
+/// deux onglets morts. La barre attendra donc d'avoir ses quatre destinations,
+/// et l'agenda s'ouvre d'ici, par-dessus. Les deux routes sont déjà sous
+/// `/proprietaire/` pour que ce jour-là ne coûte qu'un emballage.
 class TableauDeBordScreen extends ConsumerWidget {
   /// Crée le tableau de bord.
   const TableauDeBordScreen({super.key});
@@ -248,12 +249,79 @@ class _Contenu extends ConsumerWidget {
           if (!salle.statut.estAuCatalogue)
             _BandeauStatut(statut: salle.statut),
 
+          // L'ENTRÉE DE L'AGENDA, ET PAS UN ONGLET. La maquette de l'écran 9
+          // dessine une barre — Tableau, Agenda, Messages, Ma salle — dont deux
+          // onglets sur quatre mèneraient aujourd'hui quelque part. Deux
+          // onglets morts restent deux onglets morts ; l'agenda s'ouvre donc
+          // par-dessus le tableau de bord, et la barre attendra d'avoir ses
+          // quatre destinations. Les routes sont déjà sous `/proprietaire/`
+          // pour que ce jour-là ne coûte qu'un emballage.
+          const _EntreeAgenda(),
+          const SizedBox(height: 16),
+
           // Les jours sans demande, les chiffres reprennent la tête : une file
           // vide n'est pas une action à faire, et la laisser en haut ferait
           // commencer l'écran par « rien à signaler ».
           if (aDesDemandes) ...<Widget>[demandesSection, chiffresSection],
           if (!aDesDemandes) ...<Widget>[chiffresSection, demandesSection],
         ],
+      ),
+    );
+  }
+}
+
+/// La porte de l'agenda, sur le tableau de bord.
+///
+/// Une ligne pleine largeur plutôt qu'un bouton dans la barre de titre : c'est
+/// la seconde chose qu'un propriétaire vient faire, après répondre à ses
+/// demandes, et elle mérite d'être lisible pour Karim, 45 ans, peu à l'aise
+/// avec l'informatique.
+class _EntreeAgenda extends StatelessWidget {
+  const _EntreeAgenda();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.ferhaColors;
+    final text = Theme.of(context).textTheme;
+
+    return Material(
+      color: colors.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: FerhaRadii.cardBorder,
+        side: BorderSide(color: colors.rule),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => context.push(FerhaRoutes.proprietaireAgenda),
+        child: Padding(
+          padding: const EdgeInsetsDirectional.all(14),
+          child: Row(
+            children: <Widget>[
+              Icon(Icons.calendar_month_outlined, color: colors.primaryDeep),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      'Agenda',
+                      style: text.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    Text(
+                      'Voir le mois, fermer une date',
+                      style: text.bodySmall?.copyWith(
+                        color: colors.inkSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right, color: colors.inkTertiary),
+            ],
+          ),
+        ),
       ),
     );
   }

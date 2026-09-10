@@ -98,6 +98,22 @@ abstract final class FerhaRoutes {
   /// justement pour cela.
   static const String proprietaireTableau = '/proprietaire/tableau';
 
+  /// Agenda du propriétaire. `/proprietaire/agenda`
+  ///
+  /// LE DEUXIÈME ÉCRAN DE L'ESPACE PROPRIÉTAIRE, ET DONC LE MOMENT OÙ LA BARRE
+  /// D'ONGLETS DE LA MAQUETTE DEVIENT DISCUTABLE. Elle en dessine quatre —
+  /// Tableau, Agenda, Messages, Ma salle — et deux d'entre eux mènent
+  /// maintenant quelque part. Deux onglets morts sur quatre restent deux
+  /// onglets morts : la barre attend donc encore, et l'agenda s'ouvre depuis le
+  /// tableau de bord, par-dessus lui. Rien n'est perdu le jour où elle
+  /// arrivera — c'est justement pour cela que les deux routes sont sous le même
+  /// préfixe.
+  ///
+  /// Aucun paramètre, comme le tableau de bord : la salle regardée n'est pas
+  /// dans l'adresse, elle est dans les préférences de l'appareil. Le mois non
+  /// plus — on feuillette, on ne partage pas un agenda.
+  static const String proprietaireAgenda = '/proprietaire/agenda';
+
   /// Détail d'une demande, côté propriétaire. `/proprietaire/demande/:id`
   ///
   /// Sous le même préfixe que le tableau de bord, et pour la même raison : la

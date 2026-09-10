@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:ferha/features/venue/calendrier_screen.dart';
+import 'package:ferha/core/widgets/grille_calendrier.dart';
 
 /// La semaine du calendrier commence par DIMANCHE.
 ///

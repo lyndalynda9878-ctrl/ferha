@@ -3,6 +3,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/preferences/preferences_affichage.dart';
 import '../../core/supabase/supabase_providers.dart';
+import '../search/search_filters.dart';
+import 'creneau_agenda.dart';
 import 'demande_detail.dart';
 import 'demande_en_attente.dart';
 import 'indicateurs_salle.dart';
@@ -46,6 +48,21 @@ abstract interface class OwnerRepository {
 
   /// Refuse une demande, avec un motif facultatif.
   Future<void> refuser(String bookingId, {String? motif});
+
+  /// L'agenda d'une salle sur un mois : un état par jour et par créneau.
+  Future<AgendaDuMois> agenda(String venueId, DateTime mois);
+
+  /// Ferme un créneau, avec un motif facultatif — la note privée du
+  /// propriétaire.
+  Future<void> bloquer(
+    String venueId,
+    DateTime jour,
+    Creneau creneau, {
+    String? motif,
+  });
+
+  /// Rouvre un créneau fermé.
+  Future<void> debloquer(String venueId, DateTime jour, Creneau creneau);
 }
 
 /// Celui qui appelle vraiment les fonctions de 014.
@@ -138,6 +155,56 @@ class OwnerRepositorySupabase implements OwnerRepository {
     await _client.rpc<List<dynamic>>(
       'refuser_demande',
       params: <String, dynamic>{'p_booking_id': bookingId, 'p_motif': motif},
+    );
+  }
+
+  @override
+  Future<AgendaDuMois> agenda(String venueId, DateTime mois) async {
+    final lignes = await _client.rpc<List<dynamic>>(
+      'owner_agenda',
+      params: <String, dynamic>{
+        'p_venue_id': venueId,
+        'p_month': _premierDuMois(mois),
+      },
+    );
+
+    return AgendaDuMois.depuisLignes(mois, lignes.cast<Map<String, dynamic>>());
+  }
+
+  /// Le refus de fermer un créneau vendu n'est PAS vérifié ici.
+  ///
+  /// `bloquer_date()` (016) le refuse elle-même, avec un code Ferha que
+  /// `messageErreurAgenda` traduit. Regarder l'état affiché avant d'appeler
+  /// ferait un second gardien pour la même règle — et celui-là mentirait dès
+  /// que l'écran aurait une seconde de retard sur la base, ce qui est
+  /// exactement le cas qu'on veut couvrir.
+  @override
+  Future<void> bloquer(
+    String venueId,
+    DateTime jour,
+    Creneau creneau, {
+    String? motif,
+  }) async {
+    await _client.rpc<List<dynamic>>(
+      'bloquer_date',
+      params: <String, dynamic>{
+        'p_venue_id': venueId,
+        'p_date': dateVersIso(jour),
+        'p_creneau': creneau.code,
+        'p_motif': motif,
+      },
+    );
+  }
+
+  @override
+  Future<void> debloquer(String venueId, DateTime jour, Creneau creneau) async {
+    await _client.rpc<List<dynamic>>(
+      'debloquer_date',
+      params: <String, dynamic>{
+        'p_venue_id': venueId,
+        'p_date': dateVersIso(jour),
+        'p_creneau': creneau.code,
+      },
     );
   }
 
