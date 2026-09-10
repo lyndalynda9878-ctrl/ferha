@@ -2,6 +2,16 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../auth/auth_messages.dart';
 
+/// Un refus d'envoi : ce qu'on en dit, et s'il sert de réessayer.
+///
+/// LE SECOND CHAMP EXISTE POUR UN BOUTON. « Ce créneau vient d'être réservé »
+/// ne se répare pas en rappuyant : la date est prise, et elle ne se change pas
+/// depuis l'écran de demande. Laisser « Envoyer la demande » plein et ambre
+/// sous cette phrase-là invite à un geste dont la réponse est déjà connue.
+/// [definitif] distingue ces refus-là d'une session expirée ou d'un réseau
+/// tombé, que le même bouton répare.
+typedef RefusDemande = ({String message, bool definitif});
+
 /// Traduit le refus d'une demande de réservation en une phrase qui dit quoi
 /// faire.
 ///
@@ -22,47 +32,83 @@ import '../auth/auth_messages.dart';
 /// Les six codes sont documentés en tête de `012_booking_request.sql`. Le
 /// premier est le seul que la maquette exige explicitement : « Ce créneau
 /// vient d'être réservé », pas un code.
-String messageErreurDemande(Object erreur) {
+RefusDemande refusDemande(Object erreur) {
   if (erreur is PostgrestException) {
     final traduit = _parCodeFerha(erreur.hint) ?? _parSqlstate(erreur.code);
     if (traduit != null) return traduit;
   }
 
   // Réseau, session expirée, erreur inconnue : la traduction commune sait déjà
-  // les dire, et montre le message d'origine quand elle ne sait pas.
-  return messageErreurAuth(erreur);
+  // les dire, et montre le message d'origine quand elle ne sait pas. Rien de
+  // définitif là-dedans — un réseau qui revient fait aboutir le même envoi.
+  return (message: messageErreurAuth(erreur), definitif: false);
 }
+
+/// La phrase seule, pour les endroits qui n'ont aucun bouton à éteindre.
+String messageErreurDemande(Object erreur) => refusDemande(erreur).message;
 
 /// Les refus de `request_booking()`, et ce qu'ils veulent dire pour quelqu'un
 /// qui vient d'appuyer sur « Envoyer la demande ».
-String? _parCodeFerha(String? hint) {
+///
+/// LES CINQ PREMIERS SONT DÉFINITIFS : ce qu'ils refusent est la date, le
+/// créneau ou la salle, et aucun de ces trois-là ne se change depuis cet écran.
+/// Rappuyer sur « Envoyer » rendrait mot pour mot la même phrase — d'où leur
+/// `definitif: true`, qui éteint le bouton plutôt que de laisser un rectangle
+/// ambre inviter à un second essai perdu d'avance. Leurs phrases disent déjà
+/// où aller, et c'est le calendrier, pas ce bouton.
+RefusDemande? _parCodeFerha(String? hint) {
   switch (hint) {
     // FE001 — la course perdue. Le calendrier disait « libre » quand le client
     // l'a ouvert ; quelqu'un a confirmé entre-temps. Ce n'est pas sa faute, et
     // la phrase doit le dire ainsi : au passé récent, avec la suite à faire.
     case 'FE001':
-      return 'Ce créneau vient d’être réservé. Revenez au calendrier pour '
-          'choisir une autre date.';
+      return (
+        message:
+            'Ce créneau vient d’être réservé. Revenez au calendrier pour '
+            'choisir une autre date.',
+        definitif: true,
+      );
 
     case 'FE002':
-      return 'Le propriétaire a bloqué ce créneau. Choisissez une autre date '
-          'au calendrier.';
+      return (
+        message:
+            'Le propriétaire a bloqué ce créneau. Choisissez une autre date '
+            'au calendrier.',
+        definitif: true,
+      );
 
     case 'FE003':
-      return 'Cette date est passée. Choisissez une date à venir.';
+      return (
+        message: 'Cette date est passée. Choisissez une date à venir.',
+        definitif: true,
+      );
 
     case 'FE004':
-      return 'Cette salle n’accepte plus de réservation pour le moment.';
+      return (
+        message: 'Cette salle n’accepte plus de réservation pour le moment.',
+        definitif: true,
+      );
 
+    // FE005 ne devrait plus atteindre l'écran : le formulaire ne s'affiche pas
+    // sur sa propre salle, et ni la fiche ni le calendrier n'y mènent. Il reste
+    // traduit — la base est la garde, cet écran n'en est que la politesse.
     case 'FE005':
-      return 'Vous ne pouvez pas réserver votre propre salle.';
+      return (
+        message: 'Vous ne pouvez pas réserver votre propre salle.',
+        definitif: true,
+      );
 
-    // FE006 ne devrait jamais atteindre l'écran : la connexion est demandée
-    // avant l'envoi. Il reste traduit pour le cas où la session expire entre
-    // les deux.
+    // FE006 ne devrait jamais atteindre l'écran non plus : la connexion est
+    // demandée avant l'envoi. Il reste traduit pour le cas où la session expire
+    // entre les deux — et il n'est PAS définitif : c'est le seul de la liste
+    // qu'un geste depuis cet écran répare.
     case 'FE006':
-      return 'Votre session a expiré. Reconnectez-vous, votre demande est '
-          'conservée.';
+      return (
+        message:
+            'Votre session a expiré. Reconnectez-vous, votre demande est '
+            'conservée.',
+        definitif: false,
+      );
 
     default:
       return null;
@@ -71,19 +117,30 @@ String? _parCodeFerha(String? hint) {
 
 /// Les erreurs qui n'ont pas de code Ferha parce qu'elles ne viennent pas de
 /// `request_booking()`, mais des garde-fous posés sous elle.
-String? _parSqlstate(String? code) {
+RefusDemande? _parSqlstate(String? code) {
   switch (code) {
     // Levé par le trigger bookings_set_price quand une option ne vient pas de
     // cette salle — une option retirée du catalogue pendant que l'écran était
     // ouvert, par exemple.
+    //
+    // Pas définitif : la phrase demande de décocher puis de renvoyer, et
+    // éteindre le bouton empêcherait justement le geste qu'on réclame.
     case '23503':
-      return 'Une des options choisies n’est plus proposée par cette salle. '
-          'Décochez-la et renvoyez la demande.';
+      return (
+        message:
+            'Une des options choisies n’est plus proposée par cette salle. '
+            'Décochez-la et renvoyez la demande.',
+        definitif: false,
+      );
 
     // Levé par estimate_price() quand la salle ne tarife pas ce créneau, et
-    // par booking_quote() sur une salle qu'on n'a pas le droit de voir.
+    // par booking_quote() sur une salle qu'on n'a pas le droit de voir. Ni le
+    // créneau ni la salle ne se changent d'ici.
     case 'P0002':
-      return 'Cette salle ne propose pas ce créneau à cette date.';
+      return (
+        message: 'Cette salle ne propose pas ce créneau à cette date.',
+        definitif: true,
+      );
 
     default:
       return null;

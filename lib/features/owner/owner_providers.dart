@@ -246,3 +246,28 @@ class ReponseADemandeService {
 final reponseADemandeServiceProvider = Provider<ReponseADemandeService>(
   ReponseADemandeService.new,
 );
+
+/// Vrai quand la salle regardée est une salle du propriétaire connecté.
+///
+/// C'EST UNE QUESTION D'AFFICHAGE, PAS UN DROIT. Ce qui protège reste
+/// `request_booking()`, qui refuse elle-même une demande d'un propriétaire sur
+/// sa propre salle (FE005, migration 012). Ce fournisseur ne sert qu'à ne pas
+/// PROPOSER un geste qu'on sait perdu d'avance : mieux vaut ne pas mettre la
+/// porte que de la barrer au dernier moment.
+///
+/// LA LISTE EST CELLE DE LA BASE, PAS UNE DÉDUCTION. `owner_venues()` ne
+/// connaît qu'`auth.uid()` : un visiteur non connecté n'appelle rien du tout —
+/// [EspaceProprietaireNotifier] s'arrête sur la liste vide — et un client
+/// connecté qui ne possède rien reçoit une liste vide. La fiche salle ne révèle
+/// donc toujours RIEN du propriétaire (§9) : c'est le lecteur qui dit ce qu'il
+/// possède, jamais la salle qui dit à qui elle est.
+///
+/// TANT QUE LA LISTE CHARGE, ON RÉPOND « NON ». C'est le mauvais côté d'une
+/// image ou deux — le bouton client, puis le bouton propriétaire — plutôt que
+/// l'inverse, qui montrerait « Gérer ma salle » une fraction de seconde à
+/// quelqu'un qui n'a jamais eu de salle. Un faux non se corrige tout seul ; un
+/// faux oui laisserait un souvenir.
+final estMaSalleProvider = Provider.family<bool, String>((ref, venueId) {
+  final espace = ref.watch(espaceProprietaireProvider).value;
+  return espace != null && espace.salles.any((s) => s.id == venueId);
+});

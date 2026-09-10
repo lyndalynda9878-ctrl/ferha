@@ -9,6 +9,8 @@ import '../../core/router/exiger_connexion.dart';
 import '../../core/router/routes.dart';
 import '../../core/theme/ferha_colors.dart';
 import '../../core/theme/ferha_radii.dart';
+import '../owner/gerer_ma_salle.dart';
+import '../owner/owner_providers.dart';
 import '../search/search_filters.dart';
 import '../search/widgets/etats.dart';
 import '../venue/venue_detail.dart';
@@ -93,7 +95,14 @@ class _DemandeScreenState extends ConsumerState<DemandeScreen> {
   DevisReservation? _dernierDevis;
 
   bool _envoiEnCours = false;
-  String? _erreurEnvoi;
+
+  /// Le dernier refus de la base, et s'il sert de rappuyer.
+  ///
+  /// C'est ce second champ qui commande le bouton : un refus DÉFINITIF —
+  /// créneau pris, date passée, salle fermée — l'éteint, parce que rien de ce
+  /// qui se règle sur cet écran ne le lèvera. Un refus passager — session
+  /// expirée, réseau tombé — le laisse allumé, puisque c'est lui qui répare.
+  RefusDemande? _refus;
 
   @override
   void dispose() {
@@ -159,7 +168,7 @@ class _DemandeScreenState extends ConsumerState<DemandeScreen> {
 
     setState(() {
       _envoiEnCours = true;
-      _erreurEnvoi = null;
+      _refus = null;
     });
 
     try {
@@ -190,7 +199,7 @@ class _DemandeScreenState extends ConsumerState<DemandeScreen> {
       );
     } on Object catch (erreur) {
       if (!mounted) return;
-      setState(() => _erreurEnvoi = messageErreurDemande(erreur));
+      setState(() => _refus = refusDemande(erreur));
     } finally {
       if (mounted) setState(() => _envoiEnCours = false);
     }
@@ -222,6 +231,19 @@ class _DemandeScreenState extends ConsumerState<DemandeScreen> {
   }
 
   Widget _corps(VenueDetail salle) {
+    // CHEZ SOI, PAS DE FORMULAIRE DU TOUT.
+    //
+    // On arrive encore ici par un lien direct ou une adresse collée : la fiche
+    // et le calendrier ne proposent plus le chemin, mais une adresse se garde
+    // en favori. Ce qu'on ne fait PAS, c'est laisser composer la demande pour
+    // la refuser au dernier moment — c'était le défaut d'avant, et remplir
+    // vingt champs pour s'entendre dire non au pied de la page est la plus
+    // longue façon de dire une chose qu'on savait dès la première ligne.
+    //
+    // La garde reste évidemment côté base : `request_booking()` refuse FE005
+    // quoi qu'affiche cet écran. Celle-ci ne protège rien, elle explique.
+    if (ref.watch(estMaSalleProvider(salle.id))) return _MaPropreSalle(salle);
+
     _initialiseInvites(salle);
 
     final devis = ref.watch(
@@ -288,9 +310,9 @@ class _DemandeScreenState extends ConsumerState<DemandeScreen> {
           onReessayer: () => ref.invalidate(devisProvider),
         ),
 
-        if (_erreurEnvoi != null) ...<Widget>[
+        if (_refus != null) ...<Widget>[
           const SizedBox(height: 16),
-          _Refus(message: _erreurEnvoi!),
+          _Refus(message: _refus!.message),
         ],
 
         const SizedBox(height: 20),
@@ -299,7 +321,15 @@ class _DemandeScreenState extends ConsumerState<DemandeScreen> {
           child: FilledButton(
             // Rien à envoyer tant qu'aucun devis n'est arrivé : on ne demande
             // pas une réservation dont on n'a pas montré le prix.
-            onPressed: (_dernierDevis == null || _envoiEnCours)
+            //
+            // ET PLUS RIEN À ENVOYER APRÈS UN REFUS DÉFINITIF. « Ce créneau
+            // vient d'être réservé » ne se répare pas en rappuyant : la suite
+            // est au calendrier, et la phrase le dit. Un bouton resté plein et
+            // ambre sous ce refus-là promettrait le contraire.
+            onPressed:
+                (_dernierDevis == null ||
+                    _envoiEnCours ||
+                    (_refus?.definitif ?? false))
                 ? null
                 : () => _envoyer(salle, _dernierDevis!),
             style: FilledButton.styleFrom(
@@ -329,6 +359,30 @@ class _DemandeScreenState extends ConsumerState<DemandeScreen> {
 // -----------------------------------------------------------------------------
 // Les morceaux de l'écran
 // -----------------------------------------------------------------------------
+
+/// Ce qu'on montre au propriétaire venu sur le formulaire de sa propre salle.
+///
+/// Un état vide, et non un formulaire barré : il n'y a rien à composer ici pour
+/// lui. La phrase dit pourquoi — « on ne réserve pas chez soi » est une règle,
+/// pas une panne — et le bouton mène là où son geste a un sens, sur SA salle.
+class _MaPropreSalle extends StatelessWidget {
+  const _MaPropreSalle(this.salle);
+
+  final VenueDetail salle;
+
+  @override
+  Widget build(BuildContext context) {
+    return EtatVide(
+      icone: Icons.storefront_outlined,
+      titre: '${salle.nom} est votre salle',
+      explication:
+          'On ne réserve pas chez soi : une demande sur sa propre salle serait '
+          'refusée. Les demandes de vos clients, elles, vous attendent dans '
+          'votre tableau de bord.',
+      pistes: <Widget>[BoutonGererMaSalle(venueId: salle.id)],
+    );
+  }
+}
 
 /// De quoi savoir ce qu'on demande : la salle, la date, le créneau.
 ///

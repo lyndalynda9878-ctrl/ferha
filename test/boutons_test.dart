@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:ferha/core/theme/ferha_colors.dart';
 import 'package:ferha/core/theme/ferha_theme.dart';
 
 /// Un bouton doit tenir dans un parent qui ne borne pas sa largeur.
@@ -70,4 +71,66 @@ void main() {
       }
     }
   }
+
+  _eteintNeSePeintPasEnAmbre();
 }
+
+/// Un bouton éteint ne doit pas avoir l'air allumé.
+///
+/// C'est la troisième correction du J11, et l'enquête a innocenté le thème :
+/// `FilledButton.styleFrom` n'y pose que `backgroundColor`, jamais
+/// `disabledBackgroundColor`, et `ButtonStyleButton.defaultColor` rend alors
+/// `null` pour l'état désactivé — la valeur retombe sur celle de Material 3,
+/// `onSurface` à 12 %. Autrement dit le thème fait déjà ce qu'il faut.
+///
+/// Ce test est là pour que cela le reste. Le piège serait d'ajouter un jour un
+/// `backgroundColor` par `WidgetStatePropertyAll` — la même couleur pour tous
+/// les états, y compris désactivé —, et l'ambre resterait plein sous un bouton
+/// qui n'accepte plus rien. Aucun écran ne le verrait ; celui-ci si.
+void _eteintNeSePeintPasEnAmbre() {
+  for (final theme in <String, ThemeData>{
+    'clair': FerhaTheme.light(),
+    'sombre': FerhaTheme.dark(),
+  }.entries) {
+    testWidgets('thème ${theme.key} : un bouton éteint n’a pas l’air actif', (
+      tester,
+    ) async {
+      final colors = theme.value.extension<FerhaColors>()!;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: theme.value,
+          home: const Scaffold(
+            body: Column(
+              children: <Widget>[
+                FilledButton(onPressed: null, child: Text('Envoyer')),
+                FilledButton(onPressed: _rien, child: Text('Envoyer')),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Le Material que pose ButtonStyleButton porte la couleur résolue pour
+      // l'état courant : c'est là que se lit ce qu'on voit vraiment.
+      Material fond(int index) => tester.widget<Material>(
+        find
+            .descendant(
+              of: find.byType(FilledButton).at(index),
+              matching: find.byType(Material),
+            )
+            .first,
+      );
+
+      final eteint = fond(0);
+      final allume = fond(1);
+
+      expect(allume.color, colors.primary);
+      expect(eteint.color, isNot(colors.primary));
+      expect(eteint.textStyle?.color, isNot(colors.onPrimary));
+    });
+  }
+}
+
+void _rien() {}

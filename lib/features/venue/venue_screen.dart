@@ -6,6 +6,8 @@ import '../../core/router/routes.dart';
 import '../../core/theme/ferha_colors.dart';
 import '../../core/theme/ferha_radii.dart';
 import '../../core/widgets/photo_salle.dart';
+import '../owner/gerer_ma_salle.dart';
+import '../owner/owner_providers.dart';
 import '../search/search_filters.dart';
 import '../search/widgets/etats.dart';
 import 'venue_detail.dart';
@@ -461,6 +463,16 @@ String _nomCreneau(String code) => switch (code) {
 // La barre d'action
 // -----------------------------------------------------------------------------
 
+/// La taille des deux boutons de la barre d'action.
+///
+/// La même pour « Disponibilité » et pour « Gérer ma salle » : la barre ne doit
+/// pas changer de hauteur selon qui regarde la fiche. Elle ne pose qu'une
+/// dimension — les couleurs restent celles du thème, seul endroit où elles
+/// s'écrivent.
+final ButtonStyle _styleBouton = FilledButton.styleFrom(
+  padding: const EdgeInsetsDirectional.symmetric(horizontal: 20, vertical: 16),
+);
+
 /// Collée en bas, toujours visible.
 ///
 /// « La question "combien ça me coûte" ne doit jamais demander de scroller. »
@@ -469,7 +481,14 @@ String _nomCreneau(String code) => switch (code) {
 /// LE BOUTON NE DEMANDE PAS DE COMPTE. Consulter un calendrier fait partie de
 /// la consultation, pas de l'action : la connexion se demandera au moment
 /// d'envoyer une demande, et pas avant.
-class _BarreAction extends StatelessWidget {
+///
+/// SAUF CHEZ SOI, OÙ CE N'EST PLUS LA MÊME PORTE. Un propriétaire qui ouvre la
+/// fiche de sa propre salle n'a rien à y réserver — `request_booking()` le
+/// refuserait (FE005), et le lui apprendre au bas d'un formulaire rempli serait
+/// lui avoir fait perdre son temps. Le bouton devient donc « Gérer ma salle ».
+/// L'estimation, elle, reste : c'est son tarif, il a le droit de le lire comme
+/// ses clients le lisent.
+class _BarreAction extends ConsumerWidget {
   const _BarreAction({
     required this.salle,
     required this.creneau,
@@ -483,10 +502,11 @@ class _BarreAction extends StatelessWidget {
   final int? invites;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colors = context.ferhaColors;
     final text = Theme.of(context).textTheme;
     final tarif = salle.tarifPour(creneau.code);
+    final maSalle = ref.watch(estMaSalleProvider(salle.id));
 
     return SafeArea(
       top: false,
@@ -535,25 +555,23 @@ class _BarreAction extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 12),
-            FilledButton(
-              onPressed: () => context.push(
-                Uri(
-                  path: FerhaRoutes.calendrierDe(salle.id),
-                  queryParameters: <String, String>{
-                    'creneau': creneau.code,
-                    if (date != null) 'date': dateVersIso(date!),
-                    if (invites != null) 'invites': '$invites',
-                  },
-                ).toString(),
-              ),
-              style: FilledButton.styleFrom(
-                padding: const EdgeInsetsDirectional.symmetric(
-                  horizontal: 20,
-                  vertical: 16,
+            if (maSalle)
+              BoutonGererMaSalle(venueId: salle.id, style: _styleBouton)
+            else
+              FilledButton(
+                onPressed: () => context.push(
+                  Uri(
+                    path: FerhaRoutes.calendrierDe(salle.id),
+                    queryParameters: <String, String>{
+                      'creneau': creneau.code,
+                      if (date != null) 'date': dateVersIso(date!),
+                      if (invites != null) 'invites': '$invites',
+                    },
+                  ).toString(),
                 ),
+                style: _styleBouton,
+                child: const Text('Disponibilité'),
               ),
-              child: const Text('Disponibilité'),
-            ),
           ],
         ),
       ),

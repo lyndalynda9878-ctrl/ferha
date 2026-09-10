@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../core/router/routes.dart';
 import '../../core/theme/ferha_colors.dart';
 import '../../core/theme/ferha_radii.dart';
+import '../owner/gerer_ma_salle.dart';
+import '../owner/owner_providers.dart';
 import '../search/search_filters.dart';
 import '../search/widgets/etats.dart';
 import 'venue_detail.dart';
@@ -558,7 +560,12 @@ String _libelle(EtatJour etat) => switch (etat) {
 /// Il reprend le prix de ce jour-là, majorations comprises — c'est la remarque
 /// de la maquette : « Samedi 14 août — soirée. Haute saison, majoration +30 %
 /// appliquée. »
-class _Resume extends StatelessWidget {
+/// La taille du bouton du résumé, la même pour les deux qui s'y relaient.
+final ButtonStyle _styleContinuer = FilledButton.styleFrom(
+  padding: const EdgeInsetsDirectional.symmetric(horizontal: 20, vertical: 16),
+);
+
+class _Resume extends ConsumerWidget {
   const _Resume({
     required this.venueId,
     required this.jour,
@@ -578,9 +585,10 @@ class _Resume extends StatelessWidget {
   final int? invites;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colors = context.ferhaColors;
     final text = Theme.of(context).textTheme;
+    final maSalle = ref.watch(estMaSalleProvider(venueId));
 
     final majorations = <String>[
       if (tarif?.jourMajore ?? false) 'jour majoré',
@@ -628,27 +636,30 @@ class _Resume extends StatelessWidget {
             //
             // AUCUNE CONNEXION N'EST DEMANDÉE ICI. C'est l'écran suivant qui
             // la réclamera, au moment d'envoyer — et lui seul.
-            FilledButton(
-              onPressed: tarif == null
-                  ? null
-                  : () => context.push(
-                      Uri(
-                        path: FerhaRoutes.demandeDe(venueId),
-                        queryParameters: <String, String>{
-                          'creneau': creneau.code,
-                          'date': dateVersIso(jour),
-                          if (invites != null) 'invites': '$invites',
-                        },
-                      ).toString(),
-                    ),
-              style: FilledButton.styleFrom(
-                padding: const EdgeInsetsDirectional.symmetric(
-                  horizontal: 20,
-                  vertical: 16,
-                ),
+            //
+            // CHEZ LUI, LE PROPRIÉTAIRE NE CONTINUE PAS : il regarde son propre
+            // agenda, et le formulaire de demande n'a rien à lui offrir. Même
+            // règle qu'à la fiche, un pas plus loin — on lui donne la porte de
+            // son tableau de bord plutôt qu'une porte murée.
+            if (maSalle)
+              BoutonGererMaSalle(venueId: venueId, style: _styleContinuer)
+            else
+              FilledButton(
+                onPressed: tarif == null
+                    ? null
+                    : () => context.push(
+                        Uri(
+                          path: FerhaRoutes.demandeDe(venueId),
+                          queryParameters: <String, String>{
+                            'creneau': creneau.code,
+                            'date': dateVersIso(jour),
+                            if (invites != null) 'invites': '$invites',
+                          },
+                        ).toString(),
+                      ),
+                style: _styleContinuer,
+                child: const Text('Continuer'),
               ),
-              child: const Text('Continuer'),
-            ),
           ],
         ),
       ),
