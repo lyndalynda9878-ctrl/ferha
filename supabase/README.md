@@ -28,6 +28,7 @@ seulement :
 | 15 | `migrations/015_repondre_a_une_demande.sql` | `accepter_demande()` et `refuser_demande()` | 004, 012 |
 | 16 | `migrations/016_agenda_proprietaire.sql` | `owner_agenda()`, `bloquer_date()`, `debloquer_date()` | 001, 002, 004, 014 |
 | 17 | `migrations/017_publier_une_salle.sql` | `creer_salle()` et `envoyer_salle_en_validation()` | 001, 002, 009, 010 |
+| 18 | `migrations/018_garde_privileges_profil.sql` | un compte ne se donne pas `is_admin` ni `is_owner` | 001, 002, 017 |
 
 `002` a besoin des tables de `001`. `003` a besoin de la table `amenities` de
 `001`, mais pas de `002`. Appliquer `002` avant `003` reste le bon ordre : le
@@ -195,6 +196,22 @@ appelle et d'où l'on part (§9).
   transaction (017). Le drapeau suit le fait au lieu de le précéder : sans lui,
   une cliente qui inscrit une salle n'aurait plus aucun chemin pour la
   retrouver — c'est `is_owner` qui ouvre l'entrée de l'espace propriétaire.
+- **Un compte ne se donne pas de droits à lui-même** (018). `is_admin` et
+  `is_owner` sont dans `profiles`, mais ce ne sont pas des données : ce sont des
+  droits. `profiles_update_self` (002) borne la LIGNE qu'on écrit, pas les
+  COLONNES — n'importe quel compte connecté pouvait donc faire
+  `update profiles set is_admin = true where id = auth.uid()`, et lire ensuite
+  le nom, l'e-mail et le téléphone de **tous** les utilisateurs (la politique de
+  lecture s'élargit à `or is_admin()`) puis publier n'importe quelle salle
+  (`venues_guard_status` laisse passer les administrateurs). Le trou est fermé
+  par le trigger `profiles_guard_privileges` — un `WITH CHECK` ne voit que la
+  ligne d'arrivée et ne peut pas distinguer « était déjà administrateur » de
+  « vient de se déclarer administrateur », exactement comme en 001.
+  Passent encore : le rôle de service — c'est par lui, et par lui seul, que
+  naît le premier administrateur — et un administrateur déjà en place.
+  `is_owner`, lui, **se constate au lieu de se déclarer** : il ne se lève que
+  sur un compte qui possède réellement une salle, ce qui laisse passer
+  `creer_salle()` sans une ligne de changement.
 - **On ne ferme pas une date sur la tête d'un client.** `bloquer_date()` (016)
   refuse un créneau qui porte une option de 72 h ou une réservation confirmée
   (`FE022`). Fermer la date n'annulerait pas la réservation — elle laisserait
@@ -483,6 +500,7 @@ signale la règle qui ne tient plus.
 | `tests/003_reponse_proprietaire.sql` | un propriétaire ne répond qu'à SES demandes, et accepter un créneau déjà vendu échoue proprement |
 | `tests/004_agenda_proprietaire.sql` | la propriété de l'agenda, le refus de fermer une date vendue, et **le motif d'un blocage qui ne sort pas** |
 | `tests/005_publier_une_salle.sql` | on n'inscrit pas une salle sans session ni au nom d'un autre, le propriétaire ne se publie pas lui-même, et une salle `pending` n'est pas au catalogue |
+| `tests/006_garde_privileges_profil.sql` | un compte connecté ne se fait pas administrateur, ne se déclare pas propriétaire sans salle — et `creer_salle()` marche toujours |
 
 Le quatrième change de rôle SQL en cours de route (`set local role
 authenticated`, puis `anon`). C'est nécessaire : ses trois derniers tests
