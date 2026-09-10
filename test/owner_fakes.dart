@@ -4,6 +4,7 @@ import 'package:ferha/features/owner/creneau_agenda.dart';
 import 'package:ferha/features/owner/demande_detail.dart';
 import 'package:ferha/features/owner/demande_en_attente.dart';
 import 'package:ferha/features/owner/indicateurs_salle.dart';
+import 'package:ferha/features/owner/nouvelle_salle.dart';
 import 'package:ferha/features/owner/owner_repository.dart';
 import 'package:ferha/features/owner/salle_du_proprietaire.dart';
 import 'package:ferha/features/search/search_filters.dart';
@@ -59,6 +60,7 @@ class DepotDeTest implements OwnerRepository {
     this.agendasRendus = const <String, AgendaDuMois>{},
     this.erreurDeReponse,
     this.erreurDeFermeture,
+    this.erreurDePublication,
   });
 
   /// Ce que rend `owner_venues()`.
@@ -78,6 +80,12 @@ class DepotDeTest implements OwnerRepository {
 
   /// Ce que lèvent `accepter_demande()` et `refuser_demande()`, s'il y a lieu.
   Object? erreurDeReponse;
+
+  /// L'identifiant que rend `creer_salle()`.
+  String venueCree = '5a11e000-0000-4000-a000-0000000000ff';
+
+  /// Ce que lèvent `creer_salle()` et `envoyer_salle_en_validation()`.
+  Object? erreurDePublication;
 
   /// Ce que lèvent `bloquer_date()` et `debloquer_date()`, s'il y a lieu.
   ///
@@ -119,6 +127,16 @@ class DepotDeTest implements OwnerRepository {
   /// Les créneaux rouverts, dans l'ordre.
   final List<({String venueId, DateTime jour, Creneau creneau})> rouverts =
       <({String venueId, DateTime jour, Creneau creneau})>[];
+
+  /// Les salles inscrites, telles que l'écran les a composées.
+  ///
+  /// C'est ce que regardent les tests du formulaire : ce qui ARRIVE au dépôt,
+  /// et non ce que l'écran affiche. Un champ facultatif laissé vide doit
+  /// arriver à `null`, et un parking à zéro doit arriver à zéro.
+  final List<NouvelleSalle> inscrites = <NouvelleSalle>[];
+
+  /// Les salles envoyées à la validation, dans l'ordre.
+  final List<String> envoyees = <String>[];
 
   @override
   Future<List<SalleDuProprietaire>> salles() async {
@@ -182,6 +200,19 @@ class DepotDeTest implements OwnerRepository {
   Future<void> debloquer(String venueId, DateTime jour, Creneau creneau) async {
     if (erreurDeFermeture != null) throw erreurDeFermeture!;
     rouverts.add((venueId: venueId, jour: jour, creneau: creneau));
+  }
+
+  @override
+  Future<String> creerSalle(NouvelleSalle salle) async {
+    if (erreurDePublication != null) throw erreurDePublication!;
+    inscrites.add(salle);
+    return venueCree;
+  }
+
+  @override
+  Future<void> envoyerEnValidation(String venueId) async {
+    if (erreurDePublication != null) throw erreurDePublication!;
+    envoyees.add(venueId);
   }
 }
 

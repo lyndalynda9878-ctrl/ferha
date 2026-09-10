@@ -135,3 +135,86 @@ final typesEvenementProvider = FutureProvider<List<TypeEvenement>>((ref) async {
       )
       .toList(growable: false);
 });
+
+/// Les 58 wilayas, sans exception.
+///
+/// À NE PAS CONFONDRE AVEC [wilayasProvider], qui n'en rend qu'une partie. Ce
+/// dernier lit `wilayas_avec_salles` : celles où il y a déjà quelque chose à
+/// montrer, parce qu'une puce de recherche qui ne mène nulle part fait perdre
+/// un geste. Ici c'est l'inverse — le formulaire d'inscription d'une salle
+/// (§4.3, OWN-01) doit proposer TOUTES les wilayas, y compris celles qui n'ont
+/// pas encore une seule salle. Ce sont précisément les plus importantes : c'est
+/// la première salle d'une wilaya qui l'ouvre au catalogue, et lui refuser
+/// l'entrée fermerait la carte pour toujours.
+///
+/// Le référentiel entier, gardé une fois chargé : cinquante-huit lignes qui ne
+/// changent jamais ne se redemandent pas.
+final toutesLesWilayasProvider = FutureProvider<List<Wilaya>>((ref) async {
+  final client = ref.watch(supabaseClientProvider);
+
+  final lignes = await client
+      .from('wilayas')
+      .select('code, name_fr')
+      .order('code');
+
+  return lignes
+      .map<Wilaya>(
+        (l) => (code: l['code'] as String, nom: l['name_fr'] as String),
+      )
+      .toList(growable: false);
+});
+
+/// Une wilaya du référentiel : son code sur deux chiffres, et son nom.
+typedef Wilaya = ({String code, String nom});
+
+/// Un équipement du référentiel, tel qu'on le montre à cocher.
+typedef Equipement = ({String code, String libelle, String categorie});
+
+/// Le référentiel des équipements, groupés par catégorie.
+///
+/// À NE PAS CONFONDRE non plus avec [equipementsProvider], qui rend une simple
+/// table code → libellé : elle suffit aux cartes de résultat, qui traduisent un
+/// code déjà connu. Pour COCHER, il faut l'ordre et le regroupement — « confort,
+/// espaces, services, logistique », les quatre catégories de la table (§6).
+/// Trente cases en vrac ne se lisent pas ; quatre paquets de sept, si.
+///
+/// La `Map` garde l'ordre d'insertion en Dart, et la requête est triée par
+/// catégorie puis par position : les paquets sortent donc dans l'ordre du
+/// référentiel, jamais dans celui du hasard.
+final equipementsParCategorieProvider =
+    FutureProvider<Map<String, List<Equipement>>>((ref) async {
+      final client = ref.watch(supabaseClientProvider);
+
+      final lignes = await client
+          .from('amenities')
+          .select('code, label_fr, category, position')
+          .order('category')
+          .order('position');
+
+      final parCategorie = <String, List<Equipement>>{};
+      for (final l in lignes) {
+        final categorie = l['category'] as String;
+        (parCategorie[categorie] ??= <Equipement>[]).add((
+          code: l['code'] as String,
+          libelle: l['label_fr'] as String,
+          categorie: categorie,
+        ));
+      }
+      return parCategorie;
+    });
+
+/// Le nom français d'une catégorie d'équipement.
+///
+/// Les quatre codes viennent du `CHECK` d'`amenities.category` (001). Ils ne
+/// s'affichent jamais tels quels — « logistique » passerait, « espaces » aussi,
+/// mais ce sont des codes, et un code qu'on affiche finit par être traduit par
+/// erreur le jour où l'arabe arrive.
+String libelleCategorieEquipement(String code) => switch (code) {
+  'confort' => 'Confort',
+  'espaces' => 'Espaces',
+  'services' => 'Services',
+  'logistique' => 'Logistique',
+  // Une cinquième catégorie apparaîtrait telle quelle plutôt que de disparaître
+  // avec ses équipements : mieux vaut un intitulé laid qu'une case invisible.
+  _ => code,
+};

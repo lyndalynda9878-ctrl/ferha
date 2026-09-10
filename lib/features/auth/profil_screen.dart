@@ -211,6 +211,26 @@ class _ProfilConnecte extends ConsumerWidget {
               ),
             ),
 
+            // INSCRIRE UNE SALLE, POUR TOUT COMPTE CONNECTÉ (§4.3, OWN-01).
+            //
+            // Sans condition de rôle, et c'est le point : « un même compte peut
+            // être client et propriétaire » (§2), et beaucoup de propriétaires
+            // réservent aussi des salles pour leur famille. Un bouton réservé à
+            // `is_owner` n'apparaîtrait jamais à personne — c'est justement ce
+            // geste-ci qui lève le drapeau, dans `creer_salle()` (017).
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => context.push(FerhaRoutes.publierSalle),
+                icon: const Icon(Icons.add_business_outlined, size: 18),
+                label: const Text('Publier ma salle'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsetsDirectional.symmetric(vertical: 14),
+                ),
+              ),
+            ),
+
             // L'espace propriétaire, pour qui en est un.
             //
             // Le bouton n'apparaît qu'avec `is_owner`, et ce n'est PAS ce qui

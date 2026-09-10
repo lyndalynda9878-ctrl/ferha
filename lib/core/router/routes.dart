@@ -114,6 +114,32 @@ abstract final class FerhaRoutes {
   /// plus — on feuillette, on ne partage pas un agenda.
   static const String proprietaireAgenda = '/proprietaire/agenda';
 
+  /// Inscription d'une salle. `/proprietaire/publier`
+  ///
+  /// Sous le préfixe propriétaire, comme le tableau de bord et l'agenda — même
+  /// si l'on y entre depuis le PROFIL, et depuis un compte qui n'est pas encore
+  /// propriétaire. C'est justement le geste qui le fait devenir : la route dit
+  /// où l'on arrive, pas d'où l'on vient.
+  ///
+  /// Aucun paramètre : le formulaire part vide, et son contenu vit dans l'écran
+  /// jusqu'à l'inscription. Rien à partager, rien à reprendre en cours de route.
+  static const String publierSalle = '/proprietaire/publier';
+
+  /// Récapitulatif d'une salle inscrite. `/proprietaire/publier/:id`
+  ///
+  /// LA SALLE EXISTE DÉJÀ QUAND ON ARRIVE ICI, en brouillon et invisible de
+  /// tous. L'identifiant est dans l'adresse et non dans un `extra` : sur le
+  /// web, un rechargement de page perd l'un et pas l'autre — et perdre le
+  /// chemin vers une salle qu'on vient de créer serait le pire moment.
+  ///
+  /// C'est ici que l'écran des photos (OWN-02) viendra s'intercaler au J13 :
+  /// il a besoin du même identifiant, pour la même raison.
+  static const String publierRecapitulatif = '/proprietaire/publier/:id';
+
+  /// Chemin du récapitulatif d'une salle donnée.
+  static String publierRecapitulatifDe(String venueId) =>
+      '/proprietaire/publier/$venueId';
+
   /// Détail d'une demande, côté propriétaire. `/proprietaire/demande/:id`
   ///
   /// Sous le même préfixe que le tableau de bord, et pour la même raison : la

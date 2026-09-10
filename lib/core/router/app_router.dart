@@ -12,6 +12,8 @@ import '../../features/booking/demande_screen.dart';
 import '../../features/booking/mes_reservations_screen.dart';
 import '../../features/owner/agenda_screen.dart';
 import '../../features/owner/detail_demande_screen.dart';
+import '../../features/owner/publier_salle_screen.dart';
+import '../../features/owner/recapitulatif_salle_screen.dart';
 import '../../features/owner/tableau_de_bord_screen.dart';
 import '../../features/search/accueil_screen.dart';
 import '../../features/search/resultats_screen.dart';
@@ -215,6 +217,40 @@ final routerProvider = Provider<GoRouter>((ref) {
                 },
               ).toString(),
         builder: (context, state) => const AgendaScreen(),
+      ),
+
+      // L'INSCRIPTION D'UNE SALLE, ET SON RÉCAPITULATIF. Même redirection que
+      // les deux écrans précédents : `creer_salle()` refuse un appel sans
+      // session (FE030), et un formulaire qu'on remplirait pour se voir
+      // demander de se connecter à la dernière ligne aurait fait perdre quatre
+      // étapes. Ici, contrairement à la fiche salle, il n'y a rien à consulter
+      // avant d'agir : la connexion se demande donc à l'entrée.
+      GoRoute(
+        path: FerhaRoutes.publierSalle,
+        parentNavigatorKey: _rootNavigatorKey,
+        redirect: (context, state) => ref.read(estConnecteProvider)
+            ? null
+            : Uri(
+                path: FerhaRoutes.connexion,
+                queryParameters: <String, String>{
+                  FerhaRoutes.parametreRetour: state.matchedLocation,
+                },
+              ).toString(),
+        builder: (context, state) => const PublierSalleScreen(),
+      ),
+      GoRoute(
+        path: FerhaRoutes.publierRecapitulatif,
+        parentNavigatorKey: _rootNavigatorKey,
+        redirect: (context, state) => ref.read(estConnecteProvider)
+            ? null
+            : Uri(
+                path: FerhaRoutes.connexion,
+                queryParameters: <String, String>{
+                  FerhaRoutes.parametreRetour: state.matchedLocation,
+                },
+              ).toString(),
+        builder: (context, state) =>
+            RecapitulatifSalleScreen(venueId: state.pathParameters['id']!),
       ),
 
       // Le détail d'une demande. Même redirection, et pour la même raison : il

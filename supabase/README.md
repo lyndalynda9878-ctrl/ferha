@@ -27,6 +27,7 @@ seulement :
 | 14 | `migrations/014_espace_proprietaire.sql` | `owner_venues()`, `owner_dashboard()`, la file des demandes | 002, 004, 006 |
 | 15 | `migrations/015_repondre_a_une_demande.sql` | `accepter_demande()` et `refuser_demande()` | 004, 012 |
 | 16 | `migrations/016_agenda_proprietaire.sql` | `owner_agenda()`, `bloquer_date()`, `debloquer_date()` | 001, 002, 004, 014 |
+| 17 | `migrations/017_publier_une_salle.sql` | `creer_salle()` et `envoyer_salle_en_validation()` | 001, 002, 009, 010 |
 
 `002` a besoin des tables de `001`. `003` a besoin de la table `amenities` de
 `001`, mais pas de `002`. Appliquer `002` avant `003` reste le bon ordre : le
@@ -178,6 +179,22 @@ appelle et d'où l'on part (§9).
   et « ce créneau vient d'être pris » n'est pas une panne de serveur — c'est un
   409. Le Dart lit le `hint` (`lib/features/booking/booking_messages.dart`) et
   n'a donc jamais à comparer un message français.
+- **Le propriétaire ne dépasse jamais `pending`.** ADM-01 : « aucune salle n'est
+  visible avant contrôle humain ». Deux portes tiennent cette règle, et il faut
+  les deux : `envoyer_salle_en_validation()` (017) écrit `pending` **en dur** —
+  il n'y a pas de paramètre de statut par lequel glisser `published` —, et le
+  trigger `venues_guard_status` (001) refuse l'écriture directe. Être `SECURITY
+  DEFINER` n'endort pas le trigger : il lit `auth.uid()`, qui reste celui du
+  propriétaire.
+- **Le propriétaire d'une salle vient d'`auth.uid()`, jamais d'un paramètre.**
+  `creer_salle()` (017) ne demande pas à qui appartient la salle. « Créer une
+  salle au nom d'un autre » n'est donc pas interdit : c'est **inexprimable**, il
+  n'y a aucun argument par lequel le mentir. Même chose pour le statut, écrit
+  `draft` en dur.
+- **Créer sa première salle lève `profiles.is_owner`**, dans la même
+  transaction (017). Le drapeau suit le fait au lieu de le précéder : sans lui,
+  une cliente qui inscrit une salle n'aurait plus aucun chemin pour la
+  retrouver — c'est `is_owner` qui ouvre l'entrée de l'espace propriétaire.
 - **On ne ferme pas une date sur la tête d'un client.** `bloquer_date()` (016)
   refuse un créneau qui porte une option de 72 h ou une réservation confirmée
   (`FE022`). Fermer la date n'annulerait pas la réservation — elle laisserait
@@ -365,6 +382,33 @@ quatre façons plutôt que de le supposer : les colonnes de la vue, la lecture p
 un client connecté, la lecture par un inconnu, et la signature de
 `venue_calendar()`.
 
+## Ce qui manque encore
+
+- **UNE SALLE NE PEUT PAS ÊTRE PUBLIÉE SANS GRILLE TARIFAIRE, ET RIEN NE
+  L'EMPÊCHE ENCORE.** C'est le trou ouvert par l'étape J12, et il est écrit ici
+  pour qu'on ne le découvre pas par un propriétaire qui attend des demandes.
+
+  `search_venues()` (010) fait une jointure **interne** sur `venue_pricing` pour
+  le créneau cherché : une salle sans ligne de tarif ne sort d'**aucune**
+  recherche, même publiée. Et `estimate_price()` (005) lève `P0002` sur elle, ce
+  qui rend sa fiche et son calendrier inutilisables. Autrement dit, une salle
+  passée en `published` sans tarifs est visible de personne et réservable par
+  personne — sans qu'aucune erreur ne le signale.
+
+  Aujourd'hui, `creer_salle()` (017) n'écrit aucun tarif : l'écran de la grille
+  tarifaire (OWN-03) n'existe pas. Deux choses restent donc à faire, et dans cet
+  ordre :
+
+  1. l'écran OWN-03, pour que le propriétaire puisse saisir ses prix ;
+  2. **un garde-fou dans le passage à `published`** — celui qui valide une salle
+     doit se voir refuser une salle sans tarifs, plutôt que de publier une fiche
+     morte. Le contrôle humain d'ADM-01 ne suffit pas : c'est exactement le
+     genre d'absence qu'un œil ne voit pas.
+
+  En attendant, le récapitulatif de l'inscription le dit au propriétaire en
+  toutes lettres — « il vous restera à saisir vos tarifs par créneau ». Une
+  phrase n'est pas une contrainte, mais elle vaut mieux qu'un silence.
+
 ## Points à reprendre plus tard
 
 - **Le nom public d'un propriétaire n'a pas encore de chemin.** `profiles` reste
@@ -438,6 +482,7 @@ signale la règle qui ne tient plus.
 | `tests/002_devis_demande.sql` | `booking_quote()` ne s'écarte jamais d'`estimate_price()`, l'acompte vient de `deposit_rate()`, et chaque refus de `request_booking()` porte son code Ferha |
 | `tests/003_reponse_proprietaire.sql` | un propriétaire ne répond qu'à SES demandes, et accepter un créneau déjà vendu échoue proprement |
 | `tests/004_agenda_proprietaire.sql` | la propriété de l'agenda, le refus de fermer une date vendue, et **le motif d'un blocage qui ne sort pas** |
+| `tests/005_publier_une_salle.sql` | on n'inscrit pas une salle sans session ni au nom d'un autre, le propriétaire ne se publie pas lui-même, et une salle `pending` n'est pas au catalogue |
 
 Le quatrième change de rôle SQL en cours de route (`set local role
 authenticated`, puis `anon`). C'est nécessaire : ses trois derniers tests

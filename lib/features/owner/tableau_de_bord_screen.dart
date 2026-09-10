@@ -257,6 +257,8 @@ class _Contenu extends ConsumerWidget {
           // quatre destinations. Les routes sont déjà sous `/proprietaire/`
           // pour que ce jour-là ne coûte qu'un emballage.
           const _EntreeAgenda(),
+          const SizedBox(height: 10),
+          const _EntreeNouvelleSalle(),
           const SizedBox(height: 16),
 
           // Les jours sans demande, les chiffres reprennent la tête : une file
@@ -265,6 +267,30 @@ class _Contenu extends ConsumerWidget {
           if (aDesDemandes) ...<Widget>[demandesSection, chiffresSection],
           if (!aDesDemandes) ...<Widget>[chiffresSection, demandesSection],
         ],
+      ),
+    );
+  }
+}
+
+/// Inscrire une AUTRE salle (§4.3, OWN-08).
+///
+/// Le même geste que dans le profil, à l'endroit où l'on pense à ses salles.
+/// « Karim en a quatre » : le multi-salles est le cas normal du propriétaire
+/// qui marche, pas une exception.
+class _EntreeNouvelleSalle extends StatelessWidget {
+  const _EntreeNouvelleSalle();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: () => context.push(FerhaRoutes.publierSalle),
+        icon: const Icon(Icons.add_business_outlined, size: 18),
+        label: const Text('Publier une autre salle'),
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsetsDirectional.symmetric(vertical: 14),
+        ),
       ),
     );
   }
@@ -935,13 +961,24 @@ class _AucuneSalle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const EtatVide(
+    // LA PHRASE A CHANGÉ AU J12, et c'est la seule chose à retenir de ce
+    // widget : jusque-là, elle disait que l'inscription se faisait « avec
+    // l'équipe Ferha », faute de formulaire. Il existe. Un état vide qui décrit
+    // un monde disparu est pire qu'un état vide muet — il envoie écrire un
+    // message à personne.
+    return EtatVide(
       icone: Icons.storefront_outlined,
       titre: 'Aucune salle pour l’instant',
       explication:
-          'Votre tableau de bord s’ouvrira dès qu’une salle sera inscrite à '
-          'votre compte. L’inscription d’une salle se fait pour le moment avec '
-          'l’équipe Ferha.',
+          'Votre tableau de bord s’ouvrira dès que vous aurez inscrit une '
+          'salle. Comptez cinq minutes, et vous pourrez compléter plus tard.',
+      pistes: <Widget>[
+        FilledButton.icon(
+          onPressed: () => context.push(FerhaRoutes.publierSalle),
+          icon: const Icon(Icons.add_business_outlined, size: 18),
+          label: const Text('Publier ma salle'),
+        ),
+      ],
     );
   }
 }

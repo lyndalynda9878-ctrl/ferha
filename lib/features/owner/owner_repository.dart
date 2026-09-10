@@ -8,6 +8,7 @@ import 'creneau_agenda.dart';
 import 'demande_detail.dart';
 import 'demande_en_attente.dart';
 import 'indicateurs_salle.dart';
+import 'nouvelle_salle.dart';
 import 'salle_du_proprietaire.dart';
 
 /// Les trois lectures de l'espace propriétaire (§4.3 ; écran 9).
@@ -63,6 +64,16 @@ abstract interface class OwnerRepository {
 
   /// Rouvre un créneau fermé.
   Future<void> debloquer(String venueId, DateTime jour, Creneau creneau);
+
+  /// Inscrit une salle en brouillon, avec ses équipements et ses types.
+  ///
+  /// Rend l'identifiant de la salle créée : c'est lui qui mène au
+  /// récapitulatif, et c'est lui dont les photos auront besoin au J13 pour
+  /// leur chemin de Storage.
+  Future<String> creerSalle(NouvelleSalle salle);
+
+  /// Envoie un brouillon à la validation humaine : `draft` → `pending`.
+  Future<void> envoyerEnValidation(String venueId);
 }
 
 /// Celui qui appelle vraiment les fonctions de 014.
@@ -205,6 +216,53 @@ class OwnerRepositorySupabase implements OwnerRepository {
         'p_date': dateVersIso(jour),
         'p_creneau': creneau.code,
       },
+    );
+  }
+
+  /// UN SEUL APPEL POUR LA SALLE, SES ÉQUIPEMENTS ET SES TYPES. `creer_salle()`
+  /// (017) écrit les trois dans une seule transaction : ou tout passe, ou rien.
+  /// Trois appels depuis ici laisseraient, sur une 4G qui coupe (§7.3), une
+  /// salle sans équipements que le propriétaire recréerait en double.
+  ///
+  /// NI LE PROPRIÉTAIRE NI LE STATUT NE SONT ENVOYÉS : la fonction lit
+  /// `auth.uid()` et écrit « draft » en dur. Il n'y a donc rien à mentir depuis
+  /// ici, et ce n'est pas une politesse — c'est ce qui rend « créer une salle au
+  /// nom d'un autre » inexprimable.
+  @override
+  Future<String> creerSalle(NouvelleSalle salle) async {
+    final lignes = await _client.rpc<List<dynamic>>(
+      'creer_salle',
+      params: <String, dynamic>{
+        'p_name': salle.nom.trim(),
+        'p_wilaya_code': salle.wilayaCode,
+        'p_commune': salle.commune.trim(),
+        'p_capacity_seated': salle.capacite,
+        'p_area_sqm': salle.superficie,
+        // Envoyé tel quel, `null` compris : « non renseigné » et « aucune
+        // place » ne se disent pas pareil (§6), et les confondre ici ferait
+        // afficher « 0 place » sur une salle dont on ne sait rien.
+        'p_parking_spaces': salle.parking,
+        'p_description': salle.description.trim(),
+        'p_amenities': salle.equipements.toList(growable: false),
+        'p_event_types': salle.typesEvenement.toList(growable: false),
+      },
+    );
+
+    if (lignes.isEmpty) {
+      // `creer_salle()` rend toujours une ligne, ou lève. Un tableau vide
+      // voudrait dire qu'elle a changé de forme — et l'écran naviguerait vers
+      // un récapitulatif sans identifiant.
+      throw StateError('creer_salle() n’a renvoyé aucune ligne.');
+    }
+
+    return (lignes.first as Map<String, dynamic>)['id'] as String;
+  }
+
+  @override
+  Future<void> envoyerEnValidation(String venueId) async {
+    await _client.rpc<List<dynamic>>(
+      'envoyer_salle_en_validation',
+      params: <String, dynamic>{'p_venue_id': venueId},
     );
   }
 

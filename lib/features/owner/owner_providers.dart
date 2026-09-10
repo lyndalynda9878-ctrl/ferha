@@ -8,6 +8,7 @@ import 'creneau_agenda.dart';
 import 'demande_detail.dart';
 import 'demande_en_attente.dart';
 import 'indicateurs_salle.dart';
+import 'nouvelle_salle.dart';
 import 'owner_repository.dart';
 import 'salle_du_proprietaire.dart';
 
@@ -345,4 +346,57 @@ class FermetureDeDateService {
 /// Le service de fermeture de dates.
 final fermetureDeDateServiceProvider = Provider<FermetureDeDateService>(
   FermetureDeDateService.new,
+);
+
+/// Inscrire une salle, puis l'envoyer à la validation (§4.3, OWN-01).
+///
+/// DEUX GESTES, ET LE PREMIER OUVRE LA PORTE DU SECOND. `creerSalle()` rend un
+/// identifiant : c'est lui qui mène au récapitulatif, et c'est lui dont les
+/// photos auront besoin pour leur chemin de Storage. Entre les deux, la salle
+/// existe en brouillon et n'est visible de personne — ni du catalogue, ni de la
+/// recherche.
+///
+/// AUCUNE VÉRIFICATION DE DROIT ICI, comme pour les autres services de ce
+/// dossier. `creer_salle()` lit `auth.uid()` et `envoyer_salle_en_validation()`
+/// refuse la salle d'un autre (FE034) ; ce service ne fait que transporter,
+/// puis ranger derrière lui.
+class PublicationDeSalleService {
+  /// Crée le service.
+  const PublicationDeSalleService(this._ref);
+
+  final Ref _ref;
+
+  /// Inscrit la salle en brouillon, et rend son identifiant.
+  ///
+  /// L'ESPACE PROPRIÉTAIRE EST RECHARGÉ DERRIÈRE, et c'est la moitié du travail
+  /// de cette méthode. Une cliente qui vient d'inscrire sa salle n'était pas
+  /// propriétaire une seconde plus tôt : `owner_venues()` lui rendait une liste
+  /// vide, et `espaceProprietaireProvider` la garde en mémoire. Sans ce
+  /// rechargement, son tableau de bord dirait « vous n'avez aucune salle » sur
+  /// une salle qu'elle vient de créer. Le profil est relu pour la même raison :
+  /// c'est `is_owner` qui décide de l'entrée de l'espace propriétaire, et il
+  /// vient de passer à vrai.
+  Future<String> creer(NouvelleSalle salle) async {
+    final venueId = await _ref.read(ownerRepositoryProvider).creerSalle(salle);
+
+    _ref.invalidate(profilProvider);
+    await _ref.read(espaceProprietaireProvider.notifier).reessayer();
+
+    return venueId;
+  }
+
+  /// Envoie le brouillon à la validation humaine (ADM-01).
+  ///
+  /// Le statut de la salle change, et c'est lui que le sélecteur et le bandeau
+  /// du tableau de bord affichent — « Brouillon » devient « En attente de
+  /// validation ». On recharge donc la liste, sans repasser par un squelette.
+  Future<void> envoyer(String venueId) async {
+    await _ref.read(ownerRepositoryProvider).envoyerEnValidation(venueId);
+    await _ref.read(espaceProprietaireProvider.notifier).rafraichir();
+  }
+}
+
+/// Le service de publication d'une salle.
+final publicationDeSalleServiceProvider = Provider<PublicationDeSalleService>(
+  PublicationDeSalleService.new,
 );

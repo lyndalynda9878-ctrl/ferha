@@ -87,6 +87,13 @@ enum StatutSalle {
   /// Vrai quand la salle est au catalogue, donc réservable.
   bool get estAuCatalogue => this == publiee;
 
+  /// Vrai tant que la salle n'a pas été envoyée à la validation (§4.4, ADM-01).
+  ///
+  /// C'est le seul statut où le propriétaire a encore un geste : envoyer. Les
+  /// trois autres attendent quelqu'un d'autre — l'équipe qui valide, ou celle
+  /// qui a suspendu.
+  bool get estBrouillon => this == brouillon;
+
   /// Retrouve un statut depuis son code.
   ///
   /// Un code inconnu est une erreur de programme : la contrainte CHECK de

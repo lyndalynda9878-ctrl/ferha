@@ -114,3 +114,63 @@ String? _parCodeAgenda(String? hint) {
       return null;
   }
 }
+
+/// Traduit le refus d'une inscription de salle (§4.3, OWN-01).
+///
+/// Troisième table de codes de ce fichier, et troisième vocabulaire disjoint :
+/// l'écran de publication ne verra jamais « cette demande a déjà reçu une
+/// réponse », et l'agenda ne verra jamais « wilaya inconnue ». Voir
+/// [messageErreurAgenda] pour la raison de ce découpage.
+///
+/// LES QUATRE PREMIERS NE DEVRAIENT JAMAIS S'AFFICHER, et c'est le signe que
+/// l'écran fait son travail : « Continuer » reste éteint tant qu'un champ
+/// obligatoire manque, les wilayas et les équipements viennent de listes que la
+/// base a fournies. S'ils arrivent quand même, c'est que l'écran et la base ne
+/// disent plus la même chose — et le dire vaut mieux que de laisser croire à
+/// une panne de réseau.
+///
+/// Les six codes sont documentés en tête de `017_publier_une_salle.sql`, et
+/// `supabase/tests/005_publier_une_salle.sql` vérifie que la base les pose
+/// bien — c'est ce test qui empêche ce fichier de mentir.
+String messageErreurPublication(Object erreur) {
+  if (erreur is PostgrestException) {
+    final traduit = _parCodePublication(erreur.hint);
+    if (traduit != null) return traduit;
+  }
+
+  return messageErreurAuth(erreur);
+}
+
+/// Les refus de 017, et ce qu'ils veulent dire pour quelqu'un qui vient
+/// d'appuyer sur « Inscrire ma salle » ou « Envoyer pour validation ».
+String? _parCodePublication(String? hint) {
+  switch (hint) {
+    case 'FE030':
+      return 'Votre session a expiré. Reconnectez-vous, puis reprenez — ce que '
+          'vous avez rempli est toujours là.';
+
+    case 'FE031':
+      return 'Il manque le nom, la wilaya, la commune ou la capacité. '
+          'Revenez en arrière pour compléter.';
+
+    case 'FE032':
+      return 'Cette wilaya n’existe pas. Choisissez-en une dans la liste.';
+
+    case 'FE033':
+      return 'Un équipement ou un type d’événement coché n’existe plus. '
+          'Décochez-le et renvoyez.';
+
+    case 'FE034':
+      return 'Cette salle n’est pas la vôtre.';
+
+    // FE035 — le cas courant, et il n'est presque jamais une erreur : un double
+    // appui, ou un retour en arrière suivi d'un second envoi. La phrase ne
+    // gronde donc personne, et elle dit où en est la salle.
+    case 'FE035':
+      return 'Cette salle a déjà été envoyée. Elle attend maintenant la '
+          'validation de l’équipe Ferha.';
+
+    default:
+      return null;
+  }
+}
