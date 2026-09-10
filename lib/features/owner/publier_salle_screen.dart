@@ -32,7 +32,7 @@ import 'owner_providers.dart';
 /// quatre écrans poussés l'un sur l'autre perdrait tout au premier retour —
 /// et un propriétaire qui retape son nom de salle deux fois abandonne.
 ///
-/// LA SALLE N'EXISTE QU'À LA FIN, ET EN BROUILLON. `creer_salle()` (017) est
+/// LA SALLE N'EXISTE QU'À LA FIN, ET EN BROUILLON. `creer_salle()` (019) est
 /// appelée une seule fois, au bout de l'étape 4 ; elle écrit la salle, ses
 /// équipements et ses types en une transaction. Rien n'est enregistré avant :
 /// un formulaire abandonné à l'étape 2 ne laisse aucune trace.
@@ -58,6 +58,7 @@ class _PublierSalleScreenState extends ConsumerState<PublierSalleScreen> {
   final _nom = TextEditingController();
   final _description = TextEditingController();
   final _commune = TextEditingController();
+  final _adresse = TextEditingController();
   final _capacite = TextEditingController();
   final _superficie = TextEditingController();
   final _parking = TextEditingController();
@@ -70,6 +71,7 @@ class _PublierSalleScreenState extends ConsumerState<PublierSalleScreen> {
     _nom.dispose();
     _description.dispose();
     _commune.dispose();
+    _adresse.dispose();
     _capacite.dispose();
     _superficie.dispose();
     _parking.dispose();
@@ -176,6 +178,7 @@ class _PublierSalleScreenState extends ConsumerState<PublierSalleScreen> {
                   ),
                   EtapePublication.lieu => _EtapeLieu(
                     commune: _commune,
+                    adresse: _adresse,
                     salle: _salle,
                     onChange: _modifie,
                   ),
@@ -402,11 +405,13 @@ class _EtapeIdentite extends StatelessWidget {
 class _EtapeLieu extends ConsumerWidget {
   const _EtapeLieu({
     required this.commune,
+    required this.adresse,
     required this.salle,
     required this.onChange,
   });
 
   final TextEditingController commune;
+  final TextEditingController adresse;
   final NouvelleSalle salle;
   final ValueChanged<NouvelleSalle> onChange;
 
@@ -461,6 +466,32 @@ class _EtapeLieu extends ConsumerWidget {
           maxLength: 80,
           decoration: const InputDecoration(hintText: 'Bir El Djir'),
           onChanged: (v) => onChange(salle.copyWith(commune: v)),
+        ),
+
+        const SizedBox(height: 12),
+        const _Intitule('Adresse'),
+        const SizedBox(height: 8),
+        TextField(
+          controller: adresse,
+          textCapitalization: TextCapitalization.sentences,
+          maxLength: 200,
+          maxLines: 2,
+          // L'EXEMPLE PLUTÔT QUE LA CONSIGNE. « Rue, numéro, repères » demande
+          // de traduire ; « Cité 200 logements, route de l'aéroport » se
+          // recopie. Et c'est ainsi qu'une adresse se dit vraiment ici : par
+          // des repères, souvent sans numéro de rue.
+          decoration: const InputDecoration(
+            hintText: 'Cité 200 logements, route de l’aéroport',
+          ),
+          onChanged: (v) => onChange(salle.copyWith(adresse: v)),
+        ),
+        // POURQUOI ON LA DEMANDE, DIT AVANT QU'ON SE LE DEMANDE. Un champ
+        // obligatoire qu'on ne verra jamais affiché a l'air d'une indiscrétion
+        // tant qu'on n'a pas dit à quoi il sert — et ce qu'on en fera.
+        const _Facultatif(
+          texte:
+              'Obligatoire, et montrée à personne : l’équipe Ferha s’en sert '
+              'pour vérifier votre salle avant de la publier.',
         ),
       ],
     );
@@ -631,6 +662,42 @@ class _EtapeEquipements extends ConsumerWidget {
             child: LinearProgressIndicator(),
           ),
         },
+
+        // UN SERVICE QUI N'EST PAS DANS LA LISTE, ET PAS DE CHAMP LIBRE POUR
+        // LUI. Un champ « autre équipement » produirait autant d'orthographes
+        // que de propriétaires — « climatiseur », « clim », « climatisation » —
+        // et aucune ne sortirait dans une recherche, qui filtre sur des codes
+        // (`venue_amenities.amenity_code`). On renvoie donc à la description,
+        // qui est faite pour cela : elle se lit, elle ne se filtre pas.
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsetsDirectional.all(12),
+          decoration: BoxDecoration(
+            color: context.ferhaColors.surfaceSecondary,
+            borderRadius: FerhaRadii.cardBorder,
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Icon(
+                Icons.lightbulb_outline,
+                size: 16,
+                color: context.ferhaColors.inkSecondary,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Un service qui n’est pas dans la liste ? Décrivez-le à '
+                  'l’étape 1.',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: context.ferhaColors.inkSecondary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
 
         const _Intitule('Événements accueillis'),
         const SizedBox(height: 6),

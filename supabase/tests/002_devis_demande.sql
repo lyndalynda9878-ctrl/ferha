@@ -179,7 +179,7 @@ begin
                      true);
 
   begin
-    perform public.request_booking(c_venue, c_date, 'soir', 250);
+    perform public.request_booking(c_venue, c_date, 'soir', 250, '0770 11 22 33');
     raise exception 'ÉCHEC 5 — un créneau bloqué a accepté une demande.';
   exception when others then
     get stacked diagnostics v_sqlstate = returned_sqlstate, v_hint = pg_exception_hint;
@@ -204,7 +204,8 @@ begin
   from public.estimate_price(c_venue, c_date, 'journee', 250, array[v_option_a]) e;
 
   if (select count(*) from public.request_booking(
-        c_venue, c_date, 'journee', 250, 'mariage', null, array[v_option_a])) <> 2 then
+        c_venue, c_date, 'journee', 250, '0770 11 22 33',
+        'mariage', null, array[v_option_a])) <> 2 then
     raise exception 'ÉCHEC 6 — une journée entière n''a pas produit deux lignes (§6.1).';
   end if;
 

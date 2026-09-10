@@ -135,8 +135,13 @@ class DepotDeTest implements OwnerRepository {
   /// arriver à `null`, et un parking à zéro doit arriver à zéro.
   final List<NouvelleSalle> inscrites = <NouvelleSalle>[];
 
-  /// Les salles envoyées à la validation, dans l'ordre.
-  final List<String> envoyees = <String>[];
+  /// Les salles envoyées à la validation, avec le numéro qui les accompagnait.
+  ///
+  /// Le numéro est gardé parce que c'est lui que le test regarde : il doit
+  /// arriver au dépôt tel qu'il a été tapé, espaces compris — c'est
+  /// `telephone_normalise()` (020) qui les retire, en base et à un seul endroit.
+  final List<({String venueId, String telephone})> envoyees =
+      <({String venueId, String telephone})>[];
 
   @override
   Future<List<SalleDuProprietaire>> salles() async {
@@ -210,9 +215,9 @@ class DepotDeTest implements OwnerRepository {
   }
 
   @override
-  Future<void> envoyerEnValidation(String venueId) async {
+  Future<void> envoyerEnValidation(String venueId, String telephone) async {
     if (erreurDePublication != null) throw erreurDePublication!;
-    envoyees.add(venueId);
+    envoyees.add((venueId: venueId, telephone: telephone));
   }
 }
 

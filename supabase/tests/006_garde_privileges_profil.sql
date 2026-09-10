@@ -225,7 +225,8 @@ begin
   select w.code into v_wilaya from public.wilayas w order by w.code limit 1;
 
   select v.id into v_salle
-  from public.creer_salle('Ma première salle', v_wilaya, 'Oran', 250) v;
+  from public.creer_salle('Ma première salle', v_wilaya, 'Oran',
+                          'Cité 200 logements, route de l''aéroport', 250) v;
 
   if v_salle is null then
     raise exception 'ÉCHEC 6 — creer_salle() n''a rendu aucune salle.';

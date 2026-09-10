@@ -8,11 +8,18 @@ import 'package:flutter/foundation.dart';
 /// étape garderait son propre état perdrait le tout au premier retour — et
 /// c'est exactement ce qu'on refait quand on en a assez de tout retaper.
 ///
-/// LES QUATRE CHAMPS OBLIGATOIRES SONT CEUX QUE LA TABLE IMPOSE, et rien de
-/// plus : `venues` déclare `name`, `wilaya_code`, `commune` et
-/// `capacity_seated` en `not null` (§6). Superficie, parking, description,
-/// équipements et types d'événement sont facultatifs, et le resteront —
-/// « Karim ne veut pas d'un formulaire de 30 champs pour publier sa salle ».
+/// LES CHAMPS OBLIGATOIRES SONT CEUX SANS LESQUELS LA SALLE N'EXISTE PAS, et
+/// rien de plus. Quatre viennent de la table : `venues` déclare `name`,
+/// `wilaya_code`, `commune` et `capacity_seated` en `not null` (§6). Le
+/// cinquième est l'ADRESSE, et il vient d'ailleurs — de l'exigence humaine
+/// d'ADM-01, « aucune salle n'est visible avant contrôle humain (photos
+/// réelles, adresse plausible, propriétaire joignable) ». Elle est nullable en
+/// table pour les quinze salles de démonstration qui n'en ont pas, et exigée
+/// par `creer_salle()` (019) pour toute salle neuve.
+///
+/// Superficie, parking, description, équipements et types d'événement restent
+/// facultatifs, et le resteront — « Karim ne veut pas d'un formulaire de 30
+/// champs pour publier sa salle ».
 @immutable
 class NouvelleSalle {
   /// Crée un formulaire vide, ou déjà rempli.
@@ -21,6 +28,7 @@ class NouvelleSalle {
     this.description = '',
     this.wilayaCode,
     this.commune = '',
+    this.adresse = '',
     this.capacite,
     this.superficie,
     this.parking,
@@ -39,6 +47,15 @@ class NouvelleSalle {
 
   /// La commune. Obligatoire.
   final String commune;
+
+  /// La rue et ses repères. Obligatoire.
+  ///
+  /// ELLE NE S'AFFICHE NULLE PART CÔTÉ CLIENT, et ce n'est pas un oubli : ni
+  /// `venue_detail()`, ni `search_venues()`, ni aucune vue ne la renvoient, et
+  /// la migration 019 va jusqu'à retirer le droit de lire cette colonne-là.
+  /// Elle sert au contrôle humain d'ADM-01, et à lui seul — comme le
+  /// téléphone, une adresse donnée trop tôt fait contourner la plateforme.
+  final String adresse;
 
   /// La capacité assise, en couverts. Obligatoire.
   final int? capacite;
@@ -78,6 +95,7 @@ class NouvelleSalle {
     String? description,
     Object? wilayaCode = _absent,
     String? commune,
+    String? adresse,
     Object? capacite = _absent,
     Object? superficie = _absent,
     Object? parking = _absent,
@@ -91,6 +109,7 @@ class NouvelleSalle {
           ? this.wilayaCode
           : wilayaCode as String?,
       commune: commune ?? this.commune,
+      adresse: adresse ?? this.adresse,
       capacite: capacite == _absent ? this.capacite : capacite as int?,
       superficie: superficie == _absent ? this.superficie : superficie as int?,
       parking: parking == _absent ? this.parking : parking as int?,
@@ -118,6 +137,11 @@ class NouvelleSalle {
       'Choisissez la wilaya de votre salle.',
     EtapePublication.lieu when commune.trim().isEmpty =>
       'Indiquez la commune de votre salle.',
+    // L'adresse en dernier de l'étape 2, parce qu'elle est le dernier champ de
+    // l'écran : on réclame toujours le premier champ vide dans l'ordre de
+    // lecture.
+    EtapePublication.lieu when adresse.trim().isEmpty =>
+      'Indiquez l’adresse de votre salle — elle est vérifiée avant publication.',
     EtapePublication.capacite when capacite == null =>
       'Indiquez combien de couverts votre salle peut asseoir.',
     _ => null,
@@ -128,8 +152,8 @@ class NouvelleSalle {
 
   /// Vrai quand toutes les étapes sont complètes.
   ///
-  /// C'est ce que `creer_salle()` exige (FE031). L'écran ne devrait jamais
-  /// laisser envoyer sans, mais la base reste le dernier mot.
+  /// C'est ce que `creer_salle()` exige (FE031 et FE036). L'écran ne devrait
+  /// jamais laisser envoyer sans, mais la base reste le dernier mot.
   bool get estEnvoyable => EtapePublication.values.every(estComplete);
 }
 
@@ -150,7 +174,8 @@ enum EtapePublication {
   /// Où elle se trouve.
   lieu(
     'Où est-elle ?',
-    'La wilaya et la commune, comme les clients les cherchent.',
+    'La wilaya et la commune, comme les clients les cherchent. L’adresse, elle, '
+        'ne sera montrée à personne : elle sert à vérifier votre salle.',
   ),
 
   /// Combien elle tient.

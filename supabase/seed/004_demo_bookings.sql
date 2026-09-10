@@ -57,9 +57,9 @@ values
 on conflict (id) do nothing;
 
 insert into public.profiles (id, full_name, email, phone, is_owner) values
-  ('d0000000-0000-4000-a000-000000000011', 'Sofia Benali',   'sofia.benali@demo.ferha.dz',  '0771 23 45 67', false),
-  ('d0000000-0000-4000-a000-000000000012', 'Mehdi Larbi',    'mehdi.larbi@demo.ferha.dz',   '0662 98 76 54', false),
-  ('d0000000-0000-4000-a000-000000000013', 'Lila Zerrouki',  'lila.zerrouki@demo.ferha.dz', '0556 32 10 98', false)
+  ('d0000000-0000-4000-a000-000000000011', 'Sofia Benali',   'sofia.benali@demo.ferha.dz',  '0771234567', false),
+  ('d0000000-0000-4000-a000-000000000012', 'Mehdi Larbi',    'mehdi.larbi@demo.ferha.dz',   '0662987654', false),
+  ('d0000000-0000-4000-a000-000000000013', 'Lila Zerrouki',  'lila.zerrouki@demo.ferha.dz', '0556321098', false)
 on conflict (id) do update set
   full_name = excluded.full_name,
   email     = excluded.email,

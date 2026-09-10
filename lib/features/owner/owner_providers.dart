@@ -390,8 +390,18 @@ class PublicationDeSalleService {
   /// Le statut de la salle change, et c'est lui que le sélecteur et le bandeau
   /// du tableau de bord affichent — « Brouillon » devient « En attente de
   /// validation ». On recharge donc la liste, sans repasser par un squelette.
-  Future<void> envoyer(String venueId) async {
-    await _ref.read(ownerRepositoryProvider).envoyerEnValidation(venueId);
+  ///
+  /// LE PROFIL EST RELU AUSSI, parce que ce geste l'écrit :
+  /// `envoyer_salle_en_validation()` (020) pose [telephone] dans
+  /// `profiles.phone`. Sans cette relecture, le champ resterait prérempli avec
+  /// l'ancien numéro tant qu'on n'aurait pas rouvert l'application — et le
+  /// propriétaire croirait que sa correction n'a pas pris.
+  Future<void> envoyer(String venueId, String telephone) async {
+    await _ref
+        .read(ownerRepositoryProvider)
+        .envoyerEnValidation(venueId, telephone);
+
+    _ref.invalidate(profilProvider);
     await _ref.read(espaceProprietaireProvider.notifier).rafraichir();
   }
 }

@@ -9,6 +9,8 @@ import '../../core/router/exiger_connexion.dart';
 import '../../core/router/routes.dart';
 import '../../core/theme/ferha_colors.dart';
 import '../../core/theme/ferha_radii.dart';
+import '../../core/validation/telephone.dart';
+import '../auth/auth_providers.dart';
 import '../owner/gerer_ma_salle.dart';
 import '../owner/owner_providers.dart';
 import '../search/search_filters.dart';
@@ -26,6 +28,13 @@ import 'devis_reservation.dart';
 /// — type d'événement, invité de plus, case cochée — rappelle
 /// `booking_quote()`, qui appelle `estimate_price()` (§5.2). Si vous voyez un
 /// `+` entre deux montants dans ce fichier, c'est un bug.
+///
+/// LE NUMÉRO EST DEMANDÉ ICI AUSSI, ET POUR LA MÊME RAISON. `booking_contact()`
+/// ouvre au propriétaire le numéro du client dès « accepted » (§9) — mais il
+/// n'ouvrait rien, parce qu'aucun écran ne remplissait `profiles.phone`. Le
+/// champ est donc là, au bas de cette page : c'est le geste après lequel
+/// quelqu'un décroche. `request_booking()` (020) l'écrit dans le profil et
+/// refuse la demande sans lui (FE007).
 ///
 /// LA CONNEXION EST DEMANDÉE ICI, ET NULLE PART AVANT. Chercher, ouvrir une
 /// fiche, lire un calendrier et composer cette demande se font sans compte :
@@ -86,6 +95,17 @@ class _DemandeScreenState extends ConsumerState<DemandeScreen> {
 
   final _invitesCtrl = TextEditingController();
 
+  /// Le numéro auquel la salle rappellera.
+  final _telephoneCtrl = TextEditingController();
+
+  /// Vrai dès que le champ a reçu le numéro du profil — ou qu'on y a touché.
+  ///
+  /// LE PROFIL PEUT ARRIVER APRÈS COUP, ET C'EST LE CAS COURANT : on compose sa
+  /// demande sans compte (§3), et la connexion n'arrive qu'à l'envoi. Le champ
+  /// se préremplit donc au retour de la connexion — sauf si le visiteur a déjà
+  /// tapé quelque chose, qu'on ne lui reprend pas.
+  bool _telephonePose = false;
+
   /// Le dernier devis reçu, gardé pendant qu'un autre se charge.
   ///
   /// Même raison qu'au calendrier : remplacer le récapitulatif par un squelette
@@ -108,6 +128,7 @@ class _DemandeScreenState extends ConsumerState<DemandeScreen> {
   void dispose() {
     _minuterie?.cancel();
     _invitesCtrl.dispose();
+    _telephoneCtrl.dispose();
     super.dispose();
   }
 
@@ -125,6 +146,20 @@ class _DemandeScreenState extends ConsumerState<DemandeScreen> {
     _invites = _borne(depart, salle);
     _invitesDevis = _invites;
     _invitesCtrl.text = '$_invites';
+  }
+
+  /// Pose le numéro du profil dans le champ, une seule fois.
+  ///
+  /// Sans le drapeau, le profil — qui se relit à chaque changement de session —
+  /// reposerait l'ancien numéro sous les doigts de quelqu'un en train d'en
+  /// taper un autre.
+  void _preremplitTelephone(Map<String, dynamic>? profil) {
+    if (_telephonePose) return;
+    final numero = profil?['phone'] as String?;
+    if (numero == null) return;
+
+    _telephoneCtrl.text = numero;
+    _telephonePose = true;
   }
 
   /// Entre 1 et la capacité assise de la salle.
@@ -184,6 +219,10 @@ class _DemandeScreenState extends ConsumerState<DemandeScreen> {
             // récapitulatif de confirmation ne doit pas la citer.
             options: devis.options,
             typeEvenement: _type,
+            // Tel qu'il a été tapé, espaces compris : c'est
+            // `telephone_normalise()` (020) qui les retire, en base, pour que
+            // les deux écrans qui écrivent un numéro le rangent pareil.
+            telephone: _telephoneCtrl.text,
           );
       if (!mounted) return;
 
@@ -245,6 +284,7 @@ class _DemandeScreenState extends ConsumerState<DemandeScreen> {
     if (ref.watch(estMaSalleProvider(salle.id))) return _MaPropreSalle(salle);
 
     _initialiseInvites(salle);
+    _preremplitTelephone(ref.watch(profilProvider).value);
 
     final devis = ref.watch(
       devisProvider(
@@ -260,6 +300,8 @@ class _DemandeScreenState extends ConsumerState<DemandeScreen> {
 
     final recu = devis.value;
     if (recu != null) _dernierDevis = recu;
+
+    final manqueTelephone = TelephoneAlgerien.ceQuiManque(_telephoneCtrl.text);
 
     return ListView(
       padding: const EdgeInsetsDirectional.fromSTEB(20, 16, 20, 32),
@@ -310,9 +352,62 @@ class _DemandeScreenState extends ConsumerState<DemandeScreen> {
           onReessayer: () => ref.invalidate(devisProvider),
         ),
 
+        // LE NUMÉRO, ENTRE LE DEVIS ET LE BOUTON. C'est la dernière chose
+        // qu'on donne avant d'envoyer, et la seule qui ne parle pas d'argent :
+        // elle a sa place là, pas au milieu des options.
+        const SizedBox(height: 24),
+        const _Intitule('Téléphone pour que la salle vous rappelle'),
+        const SizedBox(height: 10),
+        TextField(
+          controller: _telephoneCtrl,
+          keyboardType: TextInputType.phone,
+          decoration: const InputDecoration(hintText: '0770 11 22 33'),
+          onChanged: (_) => setState(() {
+            _telephonePose = true;
+            // Un refus précédent ne survit pas à une correction.
+            _refus = null;
+          }),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          // QUI LE VERRA, ET QUAND. C'est la règle du §9 dite au client dont
+          // c'est le numéro : personne ne l'a tant que la salle n'a pas
+          // accepté. Sans cette phrase, le champ ressemble à un formulaire de
+          // plus qui collecte des coordonnées.
+          'Le propriétaire ne le voit qu’après avoir accepté votre demande.',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: context.ferhaColors.inkTertiary,
+          ),
+        ),
+
         if (_refus != null) ...<Widget>[
           const SizedBox(height: 16),
           _Refus(message: _refus!.message),
+        ],
+
+        // Ce qui manque au numéro, à côté du bouton qu'il éteint — même règle
+        // qu'au formulaire d'inscription : un bouton gris sans phrase fait
+        // relire toute la page.
+        if (manqueTelephone != null) ...<Widget>[
+          const SizedBox(height: 16),
+          Row(
+            children: <Widget>[
+              Icon(
+                Icons.info_outline,
+                size: 16,
+                color: context.ferhaColors.inkSecondary,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  manqueTelephone,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: context.ferhaColors.inkSecondary,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ],
 
         const SizedBox(height: 20),
@@ -329,6 +424,7 @@ class _DemandeScreenState extends ConsumerState<DemandeScreen> {
             onPressed:
                 (_dernierDevis == null ||
                     _envoiEnCours ||
+                    manqueTelephone != null ||
                     (_refus?.definitif ?? false))
                 ? null
                 : () => _envoyer(salle, _dernierDevis!),

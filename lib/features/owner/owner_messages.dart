@@ -127,11 +127,15 @@ String? _parCodeAgenda(String? hint) {
 /// obligatoire manque, les wilayas et les équipements viennent de listes que la
 /// base a fournies. S'ils arrivent quand même, c'est que l'écran et la base ne
 /// disent plus la même chose — et le dire vaut mieux que de laisser croire à
-/// une panne de réseau.
+/// une panne de réseau. FE036 et FE037 sont dans le même cas : l'adresse et le
+/// téléphone éteignent chacun leur bouton avant qu'on appuie.
 ///
-/// Les six codes sont documentés en tête de `017_publier_une_salle.sql`, et
-/// `supabase/tests/005_publier_une_salle.sql` vérifie que la base les pose
-/// bien — c'est ce test qui empêche ce fichier de mentir.
+/// Les six premiers codes sont documentés en tête de
+/// `017_publier_une_salle.sql`, FE036 en tête de `019_adresse_de_la_salle.sql`
+/// et FE037 en tête de `020_telephone_joignable.sql`.
+/// `supabase/tests/005_publier_une_salle.sql` et
+/// `supabase/tests/007_adresse_et_telephone.sql` vérifient que la base les pose
+/// bien — ce sont ces tests qui empêchent ce fichier de mentir.
 String messageErreurPublication(Object erreur) {
   if (erreur is PostgrestException) {
     final traduit = _parCodePublication(erreur.hint);
@@ -169,6 +173,18 @@ String? _parCodePublication(String? hint) {
     case 'FE035':
       return 'Cette salle a déjà été envoyée. Elle attend maintenant la '
           'validation de l’équipe Ferha.';
+
+    // FE036 — l'adresse (019). La phrase dit OÙ la remplir : le refus arrive
+    // au bout de l'étape 4, et l'adresse est à l'étape 2.
+    case 'FE036':
+      return 'L’adresse de votre salle est obligatoire. Revenez à l’étape '
+          '« Où est-elle ? » pour l’ajouter.';
+
+    // FE037 — le téléphone (020). On redonne la forme attendue plutôt que de
+    // dire « invalide » : c'est un chiffre oublié dans neuf cas sur dix.
+    case 'FE037':
+      return 'Un numéro de téléphone valide est nécessaire : 0770 11 22 33 '
+          'pour un mobile, 041 23 45 67 pour un fixe.';
 
     default:
       return null;

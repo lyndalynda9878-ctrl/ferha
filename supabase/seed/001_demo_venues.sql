@@ -52,6 +52,11 @@ begin;
 --
 -- Rachid n'a pas de téléphone : la colonne est nullable depuis la v2.0, et il
 -- faut au moins un cas qui l'exerce.
+--
+-- LES NUMÉROS S'ÉCRIVENT EN CHIFFRES SEULS. C'est la règle de 020 : les espaces
+-- sont tolérés à la saisie et retirés à l'écriture. Les poser ici sous la forme
+-- « 0770 11 22 33 » marcherait — le trigger les nettoierait — mais ce fichier
+-- doit montrer ce que la base contient, pas ce qu'un écran accepte.
 -- -----------------------------------------------------------------------------
 
 insert into auth.users (instance_id, id, aud, role, email,
@@ -70,10 +75,10 @@ values
 on conflict (id) do nothing;
 
 insert into public.profiles (id, full_name, email, phone, is_owner) values
-  ('d0000000-0000-4000-a000-000000000001', 'Karim Belhadj',       'karim.belhadj@demo.ferha.dz',     '0770 11 22 33',   true),
-  ('d0000000-0000-4000-a000-000000000002', 'Yacine Mokrani',      'yacine.mokrani@demo.ferha.dz',    '0661 44 55 66',   true),
-  ('d0000000-0000-4000-a000-000000000003', 'Nadia Cherifi',       'nadia.cherifi@demo.ferha.dz',     '0555 77 88 99',   true),
-  ('d0000000-0000-4000-a000-000000000004', 'Rachid Amrani',       'rachid.amrani@demo.ferha.dz',     null,              true)
+  ('d0000000-0000-4000-a000-000000000001', 'Karim Belhadj',       'karim.belhadj@demo.ferha.dz',     '0770112233', true),
+  ('d0000000-0000-4000-a000-000000000002', 'Yacine Mokrani',      'yacine.mokrani@demo.ferha.dz',    '0661445566', true),
+  ('d0000000-0000-4000-a000-000000000003', 'Nadia Cherifi',       'nadia.cherifi@demo.ferha.dz',     '0555778899', true),
+  ('d0000000-0000-4000-a000-000000000004', 'Rachid Amrani',       'rachid.amrani@demo.ferha.dz',     null,         true)
 on conflict (id) do update set
   full_name = excluded.full_name,
   email     = excluded.email,

@@ -76,6 +76,7 @@ declare
   v_nom      text;
   v_commune  text;
   v_desc     text;
+  v_adresse  text;
   v_parking  integer;
   v_area     integer;
 begin
@@ -126,7 +127,8 @@ begin
   perform set_config('request.jwt.claims', '', true);
 
   begin
-    perform * from public.creer_salle('Salle fantôme', v_wilaya, 'Oran', 300);
+    perform * from public.creer_salle('Salle fantôme', v_wilaya, 'Oran',
+                                      'Rue des Fantômes', 300);
     raise exception 'ÉCHEC 1 — une salle a été créée sans session.';
   exception when others then
     get stacked diagnostics v_sqlstate = returned_sqlstate, v_hint = pg_exception_hint;
@@ -137,7 +139,7 @@ begin
   end;
 
   begin
-    perform * from public.envoyer_salle_en_validation(gen_random_uuid());
+    perform * from public.envoyer_salle_en_validation(gen_random_uuid(), '0770112233');
     raise exception 'ÉCHEC 1 — une validation a été demandée sans session.';
   exception when others then
     get stacked diagnostics v_hint = pg_exception_hint;
@@ -170,6 +172,7 @@ begin
     '  Salle Les Palmiers  ',       -- les blancs autour du nom ne sont pas le nom
     v_wilaya,
     '  Bir El Djir  ',
+    '  Cité 200 logements, route de l''aéroport  ',   -- les blancs autour ne sont pas l'adresse
     380,
     p_area_sqm       => 620,
     p_parking_spaces => 0,          -- ZÉRO, et non « non renseigné » : les deux se disent
@@ -188,8 +191,8 @@ begin
     raise exception 'ÉCHEC 2 — la salle naît en « % » au lieu de « draft ».', v_statut;
   end if;
 
-  select v.name, v.commune, v.description, v.parking_spaces, v.area_sqm
-    into v_nom, v_commune, v_desc, v_parking, v_area
+  select v.name, v.commune, v.address, v.description, v.parking_spaces, v.area_sqm
+    into v_nom, v_commune, v_adresse, v_desc, v_parking, v_area
   from public.venues v where v.id = v_salle;
 
   if v_nom is distinct from 'Salle Les Palmiers' then
@@ -197,6 +200,10 @@ begin
   end if;
   if v_commune is distinct from 'Bir El Djir' then
     raise exception 'ÉCHEC 2 — la commune est « % ».', v_commune;
+  end if;
+  if v_adresse is distinct from 'Cité 200 logements, route de l''aéroport' then
+    raise exception 'ÉCHEC 2 — l''adresse est « % » : les blancs n''ont pas été retirés.',
+      coalesce(v_adresse, 'NULL');
   end if;
   if v_desc is not null then
     raise exception 'ÉCHEC 2 — une description de blancs a été enregistrée : « % ».', v_desc;
@@ -250,7 +257,7 @@ begin
                      true);
 
   begin
-    perform * from public.envoyer_salle_en_validation(v_salle);
+    perform * from public.envoyer_salle_en_validation(v_salle, '0661445566');
     raise exception 'ÉCHEC 3 — UN INCONNU A ENVOYÉ EN VALIDATION LA SALLE D''UN AUTRE.';
   exception when others then
     get stacked diagnostics v_sqlstate = returned_sqlstate, v_hint = pg_exception_hint;
@@ -275,7 +282,7 @@ begin
                      true);
 
   select v.status into v_statut
-  from public.envoyer_salle_en_validation(v_salle) v;
+  from public.envoyer_salle_en_validation(v_salle, '0770 11 22 33') v;
 
   if v_statut is distinct from 'pending' then
     raise exception 'ÉCHEC 4 — la salle est en « % » au lieu de « pending ».', v_statut;
@@ -284,7 +291,7 @@ begin
   -- On n'envoie pas deux fois. Le cas courant n'est pas une attaque : un double
   -- appui, ou un retour en arrière suivi d'un second envoi.
   begin
-    perform * from public.envoyer_salle_en_validation(v_salle);
+    perform * from public.envoyer_salle_en_validation(v_salle, '0770112233');
     raise exception 'ÉCHEC 4 — une salle déjà en attente a été renvoyée en validation.';
   exception when others then
     get stacked diagnostics v_sqlstate = returned_sqlstate, v_hint = pg_exception_hint;

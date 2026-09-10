@@ -229,9 +229,9 @@ where u.id in (
 
 insert into public.profiles (id, full_name, email, phone, is_owner, locale) values
   ('d0000000-0000-4000-a000-000000000010', 'Amina Haddad',
-   'amina@demo.ferha.dz', '0770 00 11 22', false, 'fr'),
+   'amina@demo.ferha.dz', '0770001122', false, 'fr'),
   ('d0000000-0000-4000-a000-000000000001', 'Karim Belhadj',
-   'karim.belhadj@demo.ferha.dz', '0770 11 22 33', true, 'fr')
+   'karim.belhadj@demo.ferha.dz', '0770112233', true, 'fr')
 on conflict (id) do update set
   full_name = excluded.full_name,
   email     = excluded.email,

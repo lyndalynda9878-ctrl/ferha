@@ -16,7 +16,7 @@ typedef RefusDemande = ({String message, bool definitif});
 /// faire.
 ///
 /// ON LIT LE CODE FERHA, JAMAIS LE MESSAGE. `request_booking()` (migration 012)
-/// pose sur chacun de ses refus un code à lui — `FE001` à `FE006` — dans le
+/// pose sur chacun de ses refus un code à lui — `FE001` à `FE007` — dans le
 /// `hint` de l'exception. C'est un contrat, là où un message est une
 /// formulation : celle de la base est en français, ne sera jamais traduite en
 /// arabe, et peut être reprise demain sans que personne ne pense à cet écran.
@@ -29,9 +29,10 @@ typedef RefusDemande = ({String message, bool definitif});
 /// 409, un 403 ou un 401 honnête, et son code Ferha dans le `hint`, que
 /// PostgREST recopie tel quel.
 ///
-/// Les six codes sont documentés en tête de `012_booking_request.sql`. Le
-/// premier est le seul que la maquette exige explicitement : « Ce créneau
-/// vient d'être réservé », pas un code.
+/// Les six premiers codes sont documentés en tête de `012_booking_request.sql`,
+/// et FE007 en tête de `020_telephone_joignable.sql`. Le premier est le seul
+/// que la maquette exige explicitement : « Ce créneau vient d'être réservé »,
+/// pas un code.
 RefusDemande refusDemande(Object erreur) {
   if (erreur is PostgrestException) {
     final traduit = _parCodeFerha(erreur.hint) ?? _parSqlstate(erreur.code);
@@ -56,6 +57,10 @@ String messageErreurDemande(Object erreur) => refusDemande(erreur).message;
 /// `definitif: true`, qui éteint le bouton plutôt que de laisser un rectangle
 /// ambre inviter à un second essai perdu d'avance. Leurs phrases disent déjà
 /// où aller, et c'est le calendrier, pas ce bouton.
+///
+/// LES DEUX DERNIERS NE LE SONT PAS : la session (FE006) et le numéro (FE007)
+/// se réparent sans quitter cet écran — le champ du téléphone est à quelques
+/// centimètres du bouton.
 RefusDemande? _parCodeFerha(String? hint) {
   switch (hint) {
     // FE001 — la course perdue. Le calendrier disait « libre » quand le client
@@ -107,6 +112,17 @@ RefusDemande? _parCodeFerha(String? hint) {
         message:
             'Votre session a expiré. Reconnectez-vous, votre demande est '
             'conservée.',
+        definitif: false,
+      );
+
+    // FE007 — le numéro de téléphone (020). Pas définitif, et c'est le seul de
+    // la liste avec FE006 : le champ est sur cet écran, à quelques centimètres
+    // du bouton. On redonne la forme attendue plutôt que de dire « invalide ».
+    case 'FE007':
+      return (
+        message:
+            'Un numéro de téléphone valide est nécessaire : 0770 11 22 33 '
+            'pour un mobile, 041 23 45 67 pour un fixe.',
         definitif: false,
       );
 

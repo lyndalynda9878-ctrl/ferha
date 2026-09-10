@@ -164,12 +164,19 @@ class BookingService {
   /// Une journée entière revient en deux lignes, midi et soir, qui portent le
   /// devis du GROUPE — répété, pas partagé (§6.1). On lit donc la première, et
   /// on ne somme surtout pas les deux.
+  ///
+  /// [telephone] EST ENVOYÉ TEL QU'IL A ÉTÉ TAPÉ, espaces compris.
+  /// `request_booking()` (020) l'écrit dans `profiles.phone` après l'avoir
+  /// normalisé, et refuse la demande s'il ne suit pas la règle (FE007). C'est
+  /// par ce numéro que la salle rappelle une fois la demande acceptée (§9) :
+  /// sans lui, `booking_contact()` ne rendrait rien au propriétaire.
   Future<DemandeEnvoyee> envoyer({
     required VenueDetail salle,
     required DateTime date,
     required Creneau creneau,
     required int invites,
     required List<OptionSalle> options,
+    required String telephone,
     TypeEvenement? typeEvenement,
   }) async {
     final lignes = await _client.rpc<List<dynamic>>(
@@ -179,6 +186,7 @@ class BookingService {
         'p_event_date': dateVersIso(date),
         'p_slot': creneau.code,
         'p_guest_count': invites,
+        'p_phone': telephone,
         // Le CODE, pas le libellé : « Mariage » ne se compare pas à « زفاف ».
         'p_event_type': typeEvenement?.code,
         'p_option_ids': options.map((o) => o.id).toList(growable: false),

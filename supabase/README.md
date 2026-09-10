@@ -29,6 +29,8 @@ seulement :
 | 16 | `migrations/016_agenda_proprietaire.sql` | `owner_agenda()`, `bloquer_date()`, `debloquer_date()` | 001, 002, 004, 014 |
 | 17 | `migrations/017_publier_une_salle.sql` | `creer_salle()` et `envoyer_salle_en_validation()` | 001, 002, 009, 010 |
 | 18 | `migrations/018_garde_privileges_profil.sql` | un compte ne se donne pas `is_admin` ni `is_owner` | 001, 002, 017 |
+| 19 | `migrations/019_adresse_de_la_salle.sql` | `venues.address` — **redéfinit `creer_salle()`**, et retire `address` du SELECT public | 001, 002, 017 |
+| 20 | `migrations/020_telephone_joignable.sql` | la règle du téléphone — **redéfinit `handle_new_user()`, `envoyer_salle_en_validation()` et `request_booking()`** | 001, 004, 006, 007, 012, 019 |
 
 `002` a besoin des tables de `001`. `003` a besoin de la table `amenities` de
 `001`, mais pas de `002`. Appliquer `002` avant `003` reste le bon ordre : le
@@ -63,9 +65,16 @@ psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/010_event_types.s
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/011_venue_detail.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/012_booking_request.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/013_mes_reservations.sql
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/014_espace_proprietaire.sql
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/015_repondre_a_une_demande.sql
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/016_agenda_proprietaire.sql
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/017_publier_une_salle.sql
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/018_garde_privileges_profil.sql
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/019_adresse_de_la_salle.sql
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/020_telephone_joignable.sql
 ```
 
-Les treize fichiers sont **rejouables** : les relancer sur une base déjà à jour
+Les vingt fichiers sont **rejouables** : les relancer sur une base déjà à jour
 ne produit ni erreur ni doublon. `003` va plus loin et met à jour les libellés
 existants — c'est le moyen prévu pour corriger une traduction.
 
@@ -93,7 +102,7 @@ Les fonctions appelées en RPC depuis Flutter :
 | `venue_detail()` (**012**) | fiche salle, et demande | droits de l'appelant |
 | `venue_calendar()` (011) | calendrier | `SECURITY DEFINER` |
 | `booking_quote()` (012) | demande — le devis | droits de l'appelant, ouvert à `anon` |
-| `request_booking()` (**012**) | demande — l'envoi | `SECURITY DEFINER`, fermée à `anon` |
+| `request_booking()` (**020**) | demande — l'envoi | `SECURITY DEFINER`, fermée à `anon` |
 | `client_bookings()` (013) | mes réservations | `SECURITY DEFINER`, fermée à `anon` |
 
 `booking_quote()` est ouverte aux visiteurs et `request_booking()` ne l'est pas :
@@ -196,6 +205,30 @@ appelle et d'où l'on part (§9).
   transaction (017). Le drapeau suit le fait au lieu de le précéder : sans lui,
   une cliente qui inscrit une salle n'aurait plus aucun chemin pour la
   retrouver — c'est `is_owner` qui ouvre l'entrée de l'espace propriétaire.
+- **Une salle neuve a une adresse, et personne ne la lit** (019). ADM-01 demande
+  de contrôler une « adresse plausible » : `creer_salle()` l'exige donc (FE036).
+  La colonne reste nullable en table — les quinze salles de démonstration n'en
+  ont pas, et inventer quinze rues fausses serait la pire des réponses.
+  **RLS ne suffisait pas à la garder privée** : `venues_select_published_or_own`
+  (002) laisse un inconnu lire la LIGNE d'une salle publiée, et RLS borne les
+  lignes, jamais les colonnes — un `GET /rest/v1/venues?select=address` aurait
+  tout rendu. Le droit de SELECT est donc repris sur la table et redonné
+  **colonne par colonne**, `address` exclue. Une colonne ajoutée à `venues` sera
+  invisible tant qu'on ne l'aura pas ajoutée à cette liste : c'est un oubli qui
+  se voit, plutôt qu'un oubli qui ne se voit jamais.
+- **Le numéro de téléphone suit UNE règle, écrite une fois** (020) :
+  `telephone_valide()` — mobile 05/06/07 + 8 chiffres, ou fixe 0 + 8 chiffres,
+  espaces tolérés à la saisie, chiffres seuls en base. La contrainte de table,
+  le trigger de normalisation et les deux fonctions RPC l'appellent tous ; côté
+  Flutter, `lib/core/validation/telephone.dart` en porte le seul autre
+  exemplaire, et `tests/007` compare les deux listes d'exemples.
+  **Il se demande là où quelqu'un devra décrocher**, et nulle part ailleurs :
+  `envoyer_salle_en_validation()` (ADM-01, « propriétaire joignable », FE037) et
+  `request_booking()` (FE007) le reçoivent et l'écrivent dans `profiles.phone`.
+  Avant cela, aucun écran ne remplissait cette colonne : `booking_contact()`
+  ouvrait fidèlement… rien, des deux côtés. Un numéro qui change fait retomber
+  `phone_verified` — un drapeau de vérification ne suit pas un numéro jusqu'au
+  suivant.
 - **Un compte ne se donne pas de droits à lui-même** (018). `is_admin` et
   `is_owner` sont dans `profiles`, mais ce ne sont pas des données : ce sont des
   droits. `profiles_update_self` (002) borne la LIGNE qu'on écrit, pas les
@@ -426,6 +459,28 @@ un client connecté, la lecture par un inconnu, et la signature de
   toutes lettres — « il vous restera à saisir vos tarifs par créneau ». Une
   phrase n'est pas une contrainte, mais elle vaut mieux qu'un silence.
 
+- **LA CARTE ET LES COORDONNÉES (CLI-02) NE SONT PAS FAITES.** `venues.lat` et
+  `venues.lng` existent depuis `001`, avec une contrainte qui interdit d'en
+  renseigner une seule (`venues_coordinates_complete`) — mais **aucune salle
+  n'en porte**, et aucun écran ne les saisit. La fiche salle n'a donc pas de
+  carte, et « les 5 salles les plus proches » du §4.2 n'a rien pour se calculer.
+
+  Ce qui reste à faire, et dans cet ordre :
+
+  1. la saisie, à l'étape 2 du formulaire d'inscription — un point qu'on pose
+     sur une carte vaut mieux qu'une latitude tapée à la main ;
+  2. la sortie publique. `venues.address` (019) est **privée** : elle sert au
+     contrôle humain d'ADM-01 et le droit de SELECT lui a été retiré. `lat` et
+     `lng` sont d'une autre nature — une carte est faite pour être vue — mais
+     elles restent à décider : montrer le point exact d'une salle avant
+     réservation revient à donner son adresse, et c'est précisément ce que le §9
+     évite pour les téléphones. Un cercle approximatif avant « accepted », le
+     point exact après, est la piste ; elle n'est pas tranchée.
+
+  La question de ce qui s'affiche AVANT réservation se pose donc à trois
+  endroits maintenant — téléphone (§9, tranché), adresse (019, tranché : rien),
+  coordonnées (à trancher). La réponse devrait être la même partout.
+
 ## Points à reprendre plus tard
 
 - **Le nom public d'un propriétaire n'a pas encore de chemin.** `profiles` reste
@@ -501,6 +556,7 @@ signale la règle qui ne tient plus.
 | `tests/004_agenda_proprietaire.sql` | la propriété de l'agenda, le refus de fermer une date vendue, et **le motif d'un blocage qui ne sort pas** |
 | `tests/005_publier_une_salle.sql` | on n'inscrit pas une salle sans session ni au nom d'un autre, le propriétaire ne se publie pas lui-même, et une salle `pending` n'est pas au catalogue |
 | `tests/006_garde_privileges_profil.sql` | un compte connecté ne se fait pas administrateur, ne se déclare pas propriétaire sans salle — et `creer_salle()` marche toujours |
+| `tests/007_adresse_et_telephone.sql` | une salle sans adresse est refusée, le numéro est exigé aux deux endroits où quelqu'un décrochera, **l'adresse ne se lit pas même en interrogeant la table**, et un inconnu ne lit toujours aucun numéro |
 
 Le quatrième change de rôle SQL en cours de route (`set local role
 authenticated`, puis `anon`). C'est nécessaire : ses trois derniers tests

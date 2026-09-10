@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:ferha/core/theme/ferha_theme.dart';
+import 'package:ferha/features/auth/auth_providers.dart';
 import 'package:ferha/features/booking/booking_providers.dart';
 import 'package:ferha/features/booking/demande_screen.dart';
 import 'package:ferha/features/booking/devis_reservation.dart';
@@ -95,7 +96,11 @@ void main() {
   /// L'écran tient sur un téléphone en défilant ; un test, lui, ne construit
   /// que ce qui est à l'écran. On lui donne donc une fenêtre assez haute pour
   /// que le récapitulatif ET le bouton d'envoi soient posés en même temps.
-  Future<void> ouvre(WidgetTester tester, ThemeData theme) async {
+  Future<void> ouvre(
+    WidgetTester tester,
+    ThemeData theme, {
+    String? telephoneDuProfil,
+  }) async {
     tester.view.physicalSize = const Size(1000, 2400);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -105,6 +110,11 @@ void main() {
         overrides: [
           ficheProvider.overrideWith((ref, demande) async => salle()),
           devisProvider.overrideWith((ref, demande) async => devis()),
+          profilProvider.overrideWith(
+            (ref) async => telephoneDuProfil == null
+                ? null
+                : <String, dynamic>{'phone': telephoneDuProfil},
+          ),
         ],
         child: MaterialApp(
           theme: theme,
@@ -174,6 +184,79 @@ void main() {
     // de départ où le client ne paie aucun supplément.
     expect(find.text('300'), findsOneWidget);
     expect(find.text('Capacité de la salle : 450 couverts.'), findsOneWidget);
+  });
+
+  // ---------------------------------------------------------------------------
+  // Le téléphone, et le bouton qu'il commande (§9, FE007)
+  //
+  // `booking_contact()` ouvre au propriétaire le numéro du client dès
+  // « accepted » — mais il n'ouvrait rien tant qu'aucun écran ne remplissait
+  // `profiles.phone`. La salle recevait une demande de quelqu'un qu'elle ne
+  // pouvait pas rappeler.
+  // ---------------------------------------------------------------------------
+
+  bool envoyerEstAllume(WidgetTester tester) {
+    final bouton = tester.widget<FilledButton>(
+      find.widgetWithText(FilledButton, 'Envoyer la demande'),
+    );
+    return bouton.onPressed != null;
+  }
+
+  Finder champTelephone() => find.widgetWithText(TextField, '0770 11 22 33');
+
+  group('Le téléphone', () {
+    testWidgets('sans numéro, « Envoyer la demande » est éteint et le dit', (
+      tester,
+    ) async {
+      await ouvre(tester, FerhaTheme.light());
+
+      expect(envoyerEstAllume(tester), isFalse);
+      expect(find.text('Indiquez un numéro de téléphone.'), findsOneWidget);
+    });
+
+    testWidgets('un numéro incomplet n’allume pas le bouton', (tester) async {
+      await ouvre(tester, FerhaTheme.light());
+
+      await tester.enterText(champTelephone(), '0770 11');
+      await tester.pumpAndSettle();
+
+      expect(envoyerEstAllume(tester), isFalse);
+    });
+
+    testWidgets('un numéro valide allume le bouton', (tester) async {
+      await ouvre(tester, FerhaTheme.light());
+
+      await tester.enterText(champTelephone(), '0770 11 22 33');
+      await tester.pumpAndSettle();
+
+      expect(envoyerEstAllume(tester), isTrue);
+      expect(find.text('Indiquez un numéro de téléphone.'), findsNothing);
+    });
+
+    testWidgets('le numéro du profil préremplit le champ', (tester) async {
+      // Un client qui a déjà réservé une fois ne retape pas son numéro. Le
+      // champ reste modifiable : on change de puce, pas de compte.
+      await ouvre(tester, FerhaTheme.light(), telephoneDuProfil: '0770112233');
+
+      expect(find.text('0770112233'), findsOneWidget);
+      expect(envoyerEstAllume(tester), isTrue);
+    });
+
+    testWidgets('l’écran dit quand le propriétaire verra ce numéro (§9)', (
+      tester,
+    ) async {
+      // Sans cette phrase, le champ ressemble à un formulaire de plus qui
+      // collecte des coordonnées. C'est la règle du §9, dite à celui dont c'est
+      // le numéro.
+      await ouvre(tester, FerhaTheme.light());
+
+      expect(
+        find.text(
+          'Le propriétaire ne le voit qu’après avoir accepté votre demande.',
+        ),
+        findsOneWidget,
+      );
+    });
   });
 
   testWidgets('l’écran se rend aussi en thème sombre', (tester) async {

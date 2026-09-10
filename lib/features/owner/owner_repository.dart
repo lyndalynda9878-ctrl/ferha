@@ -73,7 +73,12 @@ abstract interface class OwnerRepository {
   Future<String> creerSalle(NouvelleSalle salle);
 
   /// Envoie un brouillon à la validation humaine : `draft` → `pending`.
-  Future<void> envoyerEnValidation(String venueId);
+  ///
+  /// [telephone] est le numéro auquel joindre le propriétaire : ADM-01 exige
+  /// un « propriétaire joignable », et `envoyer_salle_en_validation()` (020)
+  /// l'écrit dans `profiles.phone` avant de changer le statut. Il refuse sans
+  /// lui — la salle reste alors un brouillon.
+  Future<void> envoyerEnValidation(String venueId, String telephone);
 }
 
 /// Celui qui appelle vraiment les fonctions de 014.
@@ -220,7 +225,7 @@ class OwnerRepositorySupabase implements OwnerRepository {
   }
 
   /// UN SEUL APPEL POUR LA SALLE, SES ÉQUIPEMENTS ET SES TYPES. `creer_salle()`
-  /// (017) écrit les trois dans une seule transaction : ou tout passe, ou rien.
+  /// (019) écrit les trois dans une seule transaction : ou tout passe, ou rien.
   /// Trois appels depuis ici laisseraient, sur une 4G qui coupe (§7.3), une
   /// salle sans équipements que le propriétaire recréerait en double.
   ///
@@ -236,6 +241,7 @@ class OwnerRepositorySupabase implements OwnerRepository {
         'p_name': salle.nom.trim(),
         'p_wilaya_code': salle.wilayaCode,
         'p_commune': salle.commune.trim(),
+        'p_address': salle.adresse.trim(),
         'p_capacity_seated': salle.capacite,
         'p_area_sqm': salle.superficie,
         // Envoyé tel quel, `null` compris : « non renseigné » et « aucune
@@ -258,11 +264,15 @@ class OwnerRepositorySupabase implements OwnerRepository {
     return (lignes.first as Map<String, dynamic>)['id'] as String;
   }
 
+  /// LE NUMÉRO PART TEL QUE LE PROPRIÉTAIRE L'A TAPÉ, espaces compris : c'est
+  /// `telephone_normalise()` (020) qui les retire, en base, pour que les deux
+  /// écrans qui écrivent un numéro le rangent forcément pareil. Le nettoyer ici
+  /// ferait un second endroit où la forme est décidée.
   @override
-  Future<void> envoyerEnValidation(String venueId) async {
+  Future<void> envoyerEnValidation(String venueId, String telephone) async {
     await _client.rpc<List<dynamic>>(
       'envoyer_salle_en_validation',
-      params: <String, dynamic>{'p_venue_id': venueId},
+      params: <String, dynamic>{'p_venue_id': venueId, 'p_phone': telephone},
     );
   }
 

@@ -335,7 +335,7 @@ begin
                      true);
 
   select b.id into v_journee
-  from public.request_booking(c_venue, date '2099-10-02', 'journee', 250) b
+  from public.request_booking(c_venue, date '2099-10-02', 'journee', 250, '0770112233') b
   limit 1;
 
   perform set_config('request.jwt.claims',

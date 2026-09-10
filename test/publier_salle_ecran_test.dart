@@ -153,12 +153,18 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  Future<void> passeEtape2(WidgetTester tester) async {
+  Future<void> passeEtape2(
+    WidgetTester tester, {
+    String adresse = 'Cité 200 logements, route de l’aéroport',
+  }) async {
     await tester.tap(find.byType(DropdownButtonFormField<String>));
     await tester.pumpAndSettle();
     await tester.tap(find.text('31 · Oran').last);
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField).first, 'Canastel');
+    // Les deux champs de l'étape, dans l'ordre de lecture : commune, adresse.
+    await tester.enterText(find.byType(TextField).at(0), 'Canastel');
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).at(1), adresse);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Continuer'));
     await tester.pumpAndSettle();
@@ -240,10 +246,66 @@ void main() {
       expect(continuerEstAllume(tester), isFalse);
       expect(find.text('Indiquez la commune de votre salle.'), findsOneWidget);
 
-      await tester.enterText(find.byType(TextField).first, 'Canastel');
+      await tester.enterText(find.byType(TextField).at(0), 'Canastel');
+      await tester.pumpAndSettle();
+
+      // ET L'ADRESSE ENSUITE, qui est le dernier champ de l'écran. Elle n'est
+      // exigée par aucune contrainte de table — `venues.address` est nullable —
+      // mais par ADM-01 : « aucune salle n'est visible avant contrôle humain
+      // (photos réelles, adresse plausible…) ». Sans elle, `creer_salle()`
+      // refuse en FE036, après quatre étapes remplies.
+      expect(continuerEstAllume(tester), isFalse);
+      expect(
+        find.text(
+          'Indiquez l’adresse de votre salle — elle est vérifiée avant '
+          'publication.',
+        ),
+        findsOneWidget,
+      );
+
+      await tester.enterText(
+        find.byType(TextField).at(1),
+        'Cité 200 logements, route de l’aéroport',
+      );
       await tester.pumpAndSettle();
 
       expect(continuerEstAllume(tester), isTrue);
+    });
+
+    testWidgets('une adresse faite de blancs ne compte pas pour une adresse', (
+      tester,
+    ) async {
+      await ouvre(tester);
+      await passeEtape1(tester);
+
+      await tester.tap(find.byType(DropdownButtonFormField<String>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('31 · Oran').last);
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).at(0), 'Canastel');
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).at(1), '    ');
+      await tester.pumpAndSettle();
+
+      expect(continuerEstAllume(tester), isFalse);
+    });
+
+    testWidgets('l’adresse dit à quoi elle sert, et qu’elle ne s’affiche pas', (
+      tester,
+    ) async {
+      // UN CHAMP OBLIGATOIRE QU'ON NE VERRA JAMAIS AFFICHÉ a l'air d'une
+      // indiscrétion tant qu'on n'a pas dit à quoi il sert. La phrase est donc
+      // sous le champ, pas dans une aide qu'on n'ouvre pas.
+      await ouvre(tester);
+      await passeEtape1(tester);
+
+      expect(
+        find.text(
+          'Obligatoire, et montrée à personne : l’équipe Ferha s’en sert pour '
+          'vérifier votre salle avant de la publier.',
+        ),
+        findsOneWidget,
+      );
     });
 
     testWidgets('étape 3 : une capacité de zéro n’est pas une capacité', (
@@ -284,6 +346,26 @@ void main() {
         expect(find.byIcon(Icons.info_outline), findsNothing);
       },
     );
+
+    testWidgets('étape 4 : un service hors liste se décrit à l’étape 1', (
+      tester,
+    ) async {
+      // PAS DE CHAMP LIBRE DANS LES ÉQUIPEMENTS, et une phrase qui dit où
+      // mettre le reste. Un « autre équipement » saisi à la main produirait
+      // autant d'orthographes que de propriétaires, et aucune ne sortirait
+      // d'une recherche qui filtre sur des codes.
+      await ouvre(tester);
+      await passeEtape1(tester);
+      await passeEtape2(tester);
+      await passeEtape3(tester);
+
+      expect(
+        find.text(
+          'Un service qui n’est pas dans la liste ? Décrivez-le à l’étape 1.',
+        ),
+        findsOneWidget,
+      );
+    });
   });
 
   // ---------------------------------------------------------------------------
@@ -404,6 +486,7 @@ void main() {
       expect(salle.nom.trim(), 'Salle Les Palmiers');
       expect(salle.wilayaCode, '31');
       expect(salle.commune, 'Canastel');
+      expect(salle.adresse, 'Cité 200 logements, route de l’aéroport');
       expect(salle.capacite, 380);
       expect(salle.parking, 60);
       expect(salle.equipements, <String>{'climatisation'});
@@ -489,7 +572,7 @@ void main() {
       PostgrestException(message: 'refus', code: 'PT400', hint: hint),
     );
 
-    test('les six codes sont traduits, aucun n’est laissé en clair', () {
+    test('les huit codes sont traduits, aucun n’est laissé en clair', () {
       for (final code in <String>[
         'FE030',
         'FE031',
@@ -497,6 +580,12 @@ void main() {
         'FE033',
         'FE034',
         'FE035',
+        // L'adresse (019) et le téléphone (020). Ils ne devraient jamais
+        // s'afficher — les deux boutons restent éteints sans eux — mais un
+        // code laissé en clair à l'écran est ce qu'on voit quand l'écran et la
+        // base cessent de dire la même chose.
+        'FE036',
+        'FE037',
       ]) {
         expect(phrase(code), isNot(contains(code)), reason: code);
         expect(phrase(code), isNotEmpty, reason: code);
@@ -543,14 +632,26 @@ void main() {
       expect(pleine.copyWith(nom: 'Autre').wilayaCode, '31');
     });
 
-    test('les quatre champs obligatoires sont ceux de la table', () {
+    test('les cinq champs obligatoires : quatre de la table, un d’ADM-01', () {
       const vide = NouvelleSalle();
       expect(vide.estEnvoyable, isFalse);
+
+      // Quatre viennent des `not null` de `venues` ; l'adresse vient d'ADM-01,
+      // et elle est nullable en table — ce sont `creer_salle()` et cet écran
+      // qui l'exigent, pour les salles neuves seulement.
+      const sansAdresse = NouvelleSalle(
+        nom: 'Salle',
+        wilayaCode: '31',
+        commune: 'Oran',
+        capacite: 300,
+      );
+      expect(sansAdresse.estEnvoyable, isFalse);
 
       const complete = NouvelleSalle(
         nom: 'Salle',
         wilayaCode: '31',
         commune: 'Oran',
+        adresse: 'Cité 200 logements',
         capacite: 300,
       );
       // Ni superficie, ni parking, ni description, ni équipement : la salle

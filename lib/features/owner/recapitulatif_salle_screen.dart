@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../core/router/routes.dart';
 import '../../core/theme/ferha_colors.dart';
 import '../../core/theme/ferha_radii.dart';
+import '../../core/validation/telephone.dart';
+import '../auth/auth_providers.dart';
 import '../search/widgets/etats.dart';
 import 'owner_messages.dart';
 import 'owner_providers.dart';
@@ -25,6 +27,14 @@ import 'salle_du_proprietaire.dart';
 /// écrit. Un dernier écran qui redit ce qui part, avant le bouton qui l'envoie,
 /// est ce qui fait qu'on relit. Et tant qu'on ne l'a pas appuyé, la salle reste
 /// un brouillon que personne ne voit : rien n'est perdu si l'on referme.
+///
+/// C'EST AUSSI ICI QU'ON DEMANDE LE NUMÉRO, et pas au formulaire. ADM-01 veut
+/// un « propriétaire joignable » : le numéro appartient donc à l'instant où la
+/// salle part à la validation, pas à sa description. Il est prérempli depuis le
+/// profil — un propriétaire qui inscrit sa deuxième salle ne le retape pas — et
+/// c'est `envoyer_salle_en_validation()` (020) qui l'écrit dans
+/// `profiles.phone`, en même temps qu'elle change le statut. Les deux vont
+/// ensemble ou pas du tout.
 ///
 /// LA SALLE EST RELUE DEPUIS LA BASE, PAS REÇUE DU FORMULAIRE. On pourrait la
 /// passer par `extra` — ce serait plus rapide d'une requête. Mais ce qu'il faut
@@ -48,6 +58,34 @@ class _RecapitulatifSalleScreenState
   bool _envoiEnCours = false;
   String? _erreur;
 
+  /// Le numéro auquel joindre le propriétaire.
+  final _telephone = TextEditingController();
+
+  /// Vrai dès que le champ a reçu le numéro du profil — ou que le propriétaire
+  /// y a touché.
+  ///
+  /// SANS CE DRAPEAU, LE PRÉREMPLISSAGE ÉCRASERAIT LA SAISIE. Le profil arrive
+  /// de façon asynchrone et se relit à chaque changement de session ; recopier
+  /// sa valeur à chaque `build` reposerait l'ancien numéro sous les doigts de
+  /// quelqu'un en train d'en taper un nouveau.
+  bool _telephonePose = false;
+
+  @override
+  void dispose() {
+    _telephone.dispose();
+    super.dispose();
+  }
+
+  /// Pose le numéro du profil dans le champ, une seule fois.
+  void _preremplit(Map<String, dynamic>? profil) {
+    if (_telephonePose) return;
+    final numero = profil?['phone'] as String?;
+    if (numero == null) return;
+
+    _telephone.text = numero;
+    _telephonePose = true;
+  }
+
   Future<void> _envoyer() async {
     setState(() {
       _envoiEnCours = true;
@@ -55,7 +93,9 @@ class _RecapitulatifSalleScreenState
     });
 
     try {
-      await ref.read(publicationDeSalleServiceProvider).envoyer(widget.venueId);
+      await ref
+          .read(publicationDeSalleServiceProvider)
+          .envoyer(widget.venueId, _telephone.text);
       if (!mounted) return;
 
       // go et non push : on ne revient pas sur un récapitulatif dont le bouton
@@ -81,6 +121,7 @@ class _RecapitulatifSalleScreenState
   @override
   Widget build(BuildContext context) {
     final espace = ref.watch(espaceProprietaireProvider);
+    _preremplit(ref.watch(profilProvider).value);
 
     // La salle se retrouve dans la liste du propriétaire, qui vient d'être
     // rechargée par le service — `owner_venues()` rend aussi les brouillons.
@@ -113,6 +154,14 @@ class _RecapitulatifSalleScreenState
         ),
         AsyncData() => _Contenu(
           salle: salle!,
+          telephone: _telephone,
+          manqueTelephone: TelephoneAlgerien.ceQuiManque(_telephone.text),
+          onTelephoneChange: () => setState(() {
+            _telephonePose = true;
+            // Le refus précédent ne survit pas à une correction : on vient de
+            // changer ce qu'il reprochait.
+            _erreur = null;
+          }),
           enCours: _envoiEnCours,
           erreur: _erreur,
           onEnvoyer: _envoyer,
@@ -126,12 +175,21 @@ class _RecapitulatifSalleScreenState
 class _Contenu extends StatelessWidget {
   const _Contenu({
     required this.salle,
+    required this.telephone,
+    required this.manqueTelephone,
+    required this.onTelephoneChange,
     required this.enCours,
     required this.erreur,
     required this.onEnvoyer,
   });
 
   final SalleDuProprietaire salle;
+  final TextEditingController telephone;
+
+  /// Ce qui manque au numéro, ou `null` s'il va bien.
+  final String? manqueTelephone;
+
+  final VoidCallback onTelephoneChange;
   final bool enCours;
   final String? erreur;
   final VoidCallback onEnvoyer;
@@ -235,6 +293,37 @@ class _Contenu extends StatelessWidget {
           ),
         ),
 
+        // LE NUMÉRO, JUSTE AU-DESSUS DU BOUTON QUI L'ENVOIE. Une salle déjà
+        // partie n'a plus rien à demander : le champ disparaît avec le bouton.
+        if (!dejaEnvoyee) ...<Widget>[
+          const SizedBox(height: 24),
+          Text(
+            'TÉLÉPHONE POUR VOUS JOINDRE',
+            style: text.labelSmall?.copyWith(
+              color: colors.inkTertiary,
+              letterSpacing: 1.2,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: telephone,
+            keyboardType: TextInputType.phone,
+            decoration: const InputDecoration(hintText: '0770 11 22 33'),
+            onChanged: (_) => onTelephoneChange(),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            // À QUOI IL SERT, ET À QUI IL N'EST PAS DONNÉ. Un numéro demandé
+            // sans explication se donne à contrecœur ou se donne faux. Les
+            // deux phrases répondent aux deux questions qu'on se pose : qui
+            // m'appelle, et qui d'autre le verra (§9).
+            'L’équipe Ferha vous appelle pour vérifier votre salle. Vos '
+            'clients ne le voient qu’après avoir accepté une réservation.',
+            style: text.bodySmall?.copyWith(color: colors.inkTertiary),
+          ),
+        ],
+
         if (erreur != null) ...<Widget>[
           const SizedBox(height: 20),
           Container(
@@ -265,11 +354,30 @@ class _Contenu extends StatelessWidget {
         ],
 
         const SizedBox(height: 24),
-        if (!dejaEnvoyee)
+        if (!dejaEnvoyee) ...<Widget>[
+          // CE QUI MANQUE, DIT À CÔTÉ DU BOUTON ÉTEINT — même règle qu'au
+          // formulaire : un bouton gris sans phrase fait relire l'écran.
+          if (manqueTelephone != null) ...<Widget>[
+            Row(
+              children: <Widget>[
+                Icon(Icons.info_outline, size: 16, color: colors.inkSecondary),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    manqueTelephone!,
+                    style: text.bodySmall?.copyWith(color: colors.inkSecondary),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+          ],
           SizedBox(
             width: double.infinity,
             child: FilledButton(
-              onPressed: enCours ? null : onEnvoyer,
+              onPressed: (enCours || manqueTelephone != null)
+                  ? null
+                  : onEnvoyer,
               style: FilledButton.styleFrom(
                 padding: const EdgeInsetsDirectional.symmetric(vertical: 16),
               ),
@@ -282,6 +390,7 @@ class _Contenu extends StatelessWidget {
                   : const Text('Envoyer pour validation'),
             ),
           ),
+        ],
         const SizedBox(height: 12),
         SizedBox(
           width: double.infinity,
