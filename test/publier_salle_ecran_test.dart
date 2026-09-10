@@ -63,10 +63,14 @@ void main() {
   // même chose dedans ferait trouver deux fois le même texte à l'écran, et un
   // `findsOneWidget` échouerait sans que rien ne soit cassé.
 
-  /// Les demandes de récapitulatif reçues par le routeur, dans l'ordre.
-  late List<String> recapitulatifs;
+  /// Les identifiants de salle pour lesquels l'écran des photos a été ouvert.
+  ///
+  /// C'est là que mène le formulaire depuis le J13 : `creer_salle()` rend un
+  /// identifiant, et c'est lui qui sert de dossier de Storage aux photos
+  /// (OWN-02). Une liste vide veut donc dire « le formulaire n'a rien inscrit ».
+  late List<String> etapesPhotos;
 
-  setUp(() => recapitulatifs = <String>[]);
+  setUp(() => etapesPhotos = <String>[]);
 
   Future<DepotDeTest> ouvre(
     WidgetTester tester, {
@@ -86,12 +90,21 @@ void main() {
           path: FerhaRoutes.publierSalle,
           builder: (context, state) => const PublierSalleScreen(),
         ),
+        // DEPUIS LE J13, LE FORMULAIRE NE MÈNE PLUS AU RÉCAPITULATIF MAIS AUX
+        // PHOTOS (OWN-02) : la cinquième étape s'est glissée entre les deux.
+        // Le récapitulatif reste déclaré parce que la route existe toujours ;
+        // c'est l'écran des photos qui y mène maintenant.
+        GoRoute(
+          path: FerhaRoutes.publierPhotos,
+          builder: (context, state) {
+            etapesPhotos.add(state.pathParameters['id']!);
+            return const Scaffold(body: Text('L’étape des photos'));
+          },
+        ),
         GoRoute(
           path: FerhaRoutes.publierRecapitulatif,
-          builder: (context, state) {
-            recapitulatifs.add(state.pathParameters['id']!);
-            return const Scaffold(body: Text('Le récapitulatif'));
-          },
+          builder: (context, state) =>
+              const Scaffold(body: Text('Le récapitulatif')),
         ),
         GoRoute(
           path: FerhaRoutes.proprietaireTableau,
@@ -381,17 +394,17 @@ void main() {
       await passeEtape2(tester);
 
       // On est à l'étape 3. On recule deux fois.
-      expect(find.text('Étape 3 sur 4'), findsOneWidget);
+      expect(find.text('Étape 3 sur 5'), findsOneWidget);
 
       await tester.tap(find.byType(BackButton));
       await tester.pumpAndSettle();
-      expect(find.text('Étape 2 sur 4'), findsOneWidget);
+      expect(find.text('Étape 2 sur 5'), findsOneWidget);
       // La commune n'a pas été effacée par le passage.
       expect(find.text('Canastel'), findsOneWidget);
 
       await tester.tap(find.byType(BackButton));
       await tester.pumpAndSettle();
-      expect(find.text('Étape 1 sur 4'), findsOneWidget);
+      expect(find.text('Étape 1 sur 5'), findsOneWidget);
       expect(find.text('Salle Les Palmiers'), findsOneWidget);
 
       // Et le bouton est toujours allumé : ce qui était valide le reste.
@@ -424,7 +437,7 @@ void main() {
 
       await tester.tap(find.byType(BackButton));
       await tester.pumpAndSettle();
-      expect(find.text('Étape 3 sur 4'), findsOneWidget);
+      expect(find.text('Étape 3 sur 5'), findsOneWidget);
 
       await tester.tap(find.text('Continuer'));
       await tester.pumpAndSettle();
@@ -451,7 +464,7 @@ void main() {
       // « There is nothing to pop » et casserait l'écran au lieu de le fermer.
       await ouvre(tester);
 
-      expect(find.text('Étape 1 sur 4'), findsOneWidget);
+      expect(find.text('Étape 1 sur 5'), findsOneWidget);
       await tester.tap(find.byType(BackButton));
       await tester.pumpAndSettle();
 
@@ -459,7 +472,7 @@ void main() {
       expect(find.text('Le profil'), findsOneWidget);
 
       // Rien n'a été inscrit : un formulaire abandonné ne laisse aucune trace.
-      expect(recapitulatifs, isEmpty);
+      expect(etapesPhotos, isEmpty);
     });
   });
 
@@ -492,9 +505,10 @@ void main() {
       expect(salle.equipements, <String>{'climatisation'});
       expect(salle.typesEvenement, <String>{'mariage'});
 
-      // Et l'écran a poussé le récapitulatif de LA salle créée.
-      expect(recapitulatifs, <String>[depot.venueCree]);
-      expect(find.text('Le récapitulatif'), findsOneWidget);
+      // Et l'écran a poussé l'étape des photos de LA salle créée : c'est cet
+      // identifiant qui sert de dossier de Storage, `{venue_id}/{uuid}.webp`.
+      expect(etapesPhotos, <String>[depot.venueCree]);
+      expect(find.text('L’étape des photos'), findsOneWidget);
     });
 
     testWidgets('un parking laissé vide reste « non renseigné », pas zéro', (
@@ -550,7 +564,7 @@ void main() {
 
       expect(find.textContaining('Cette wilaya n’existe pas'), findsOneWidget);
       // On n'a navigué nulle part, et le formulaire est intact.
-      expect(recapitulatifs, isEmpty);
+      expect(etapesPhotos, isEmpty);
       expect(find.text('Inscrire ma salle'), findsOneWidget);
 
       await tester.tap(find.byType(BackButton));
@@ -659,13 +673,22 @@ void main() {
       expect(complete.estEnvoyable, isTrue);
     });
 
-    test('« étape N sur 4 » suit le nombre réel d’étapes', () {
-      // Le jour où les photos arriveront, elles s'ajouteront à l'énumération et
-      // ce compte suivra. On n'annonce jamais une étape qui n'existe pas.
-      expect(EtapePublication.total, EtapePublication.values.length);
-      expect(EtapePublication.identite.rang, 1);
-      expect(EtapePublication.equipements.rang, EtapePublication.total);
-    });
+    test(
+      '« étape N sur 5 » compte les écrans, pas les valeurs de l’énumération',
+      () {
+        // CINQ, ET L'ÉNUMÉRATION N'EN PORTE QUE QUATRE, depuis que les photos
+        // existent (OWN-02). Elles ont leur propre écran et leur propre route,
+        // parce qu'elles écrivent dans une salle qui existe déjà — mais le
+        // propriétaire, lui, traverse bien cinq écrans, et c'est ce qu'on lui
+        // annonce. Ce test est là pour que la différence reste voulue : si un
+        // jour une cinquième valeur entre dans l'énumération, il tombera.
+        expect(EtapePublication.total, 5);
+        expect(EtapePublication.values, hasLength(4));
+        expect(EtapePublication.identite.rang, 1);
+        expect(EtapePublication.equipements.rang, 4);
+        expect(EtapePublication.rangDesPhotos, EtapePublication.total);
+      },
+    );
   });
 
   // ---------------------------------------------------------------------------
@@ -676,6 +699,6 @@ void main() {
     await ouvre(tester, theme: FerhaTheme.dark());
 
     expect(tester.takeException(), isNull);
-    expect(find.text('Étape 1 sur 4'), findsOneWidget);
+    expect(find.text('Étape 1 sur 5'), findsOneWidget);
   });
 }

@@ -12,6 +12,7 @@ import '../../features/booking/demande_screen.dart';
 import '../../features/booking/mes_reservations_screen.dart';
 import '../../features/owner/agenda_screen.dart';
 import '../../features/owner/detail_demande_screen.dart';
+import '../../features/owner/photos_salle_screen.dart';
 import '../../features/owner/publier_salle_screen.dart';
 import '../../features/owner/recapitulatif_salle_screen.dart';
 import '../../features/owner/tableau_de_bord_screen.dart';
@@ -237,6 +238,24 @@ final routerProvider = Provider<GoRouter>((ref) {
                 },
               ).toString(),
         builder: (context, state) => const PublierSalleScreen(),
+      ),
+      // L'ÉTAPE DES PHOTOS EST DÉCLARÉE AVANT LE RÉCAPITULATIF, et ce n'est pas
+      // décoratif : `/proprietaire/publier/:id` filerait `photos` comme
+      // identifiant de salle si `/proprietaire/publier/:id/photos` était
+      // déclaré après lui.
+      GoRoute(
+        path: FerhaRoutes.publierPhotos,
+        parentNavigatorKey: _rootNavigatorKey,
+        redirect: (context, state) => ref.read(estConnecteProvider)
+            ? null
+            : Uri(
+                path: FerhaRoutes.connexion,
+                queryParameters: <String, String>{
+                  FerhaRoutes.parametreRetour: state.matchedLocation,
+                },
+              ).toString(),
+        builder: (context, state) =>
+            PhotosSalleScreen(venueId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: FerhaRoutes.publierRecapitulatif,

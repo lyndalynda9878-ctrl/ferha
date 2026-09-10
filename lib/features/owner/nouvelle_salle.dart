@@ -160,9 +160,12 @@ class NouvelleSalle {
 /// Les étapes du formulaire, dans l'ordre d'OWN-01.
 ///
 /// « Formulaire en 5 étapes courtes : identité, localisation, capacité,
-/// équipements, photos. » Les quatre premières sont ici ; les photos (OWN-02)
-/// viennent avec leur propre écran et leur propre compression, et se glisseront
-/// en cinquième position — avant l'envoi, après la création du brouillon.
+/// équipements, photos. » Les quatre premières sont ici. La cinquième, les
+/// photos (OWN-02), a son propre écran et n'est PAS dans cette énumération :
+/// elle ne remplit pas une [NouvelleSalle] mais une salle qui existe déjà, et
+/// les valeurs de ce fichier sont exactement celles que `creer_salle()` reçoit.
+/// L'y faire entrer donnerait à `ceQuiManque()` une étape sur laquelle elle n'a
+/// rien à dire.
 ///
 /// L'ÉCRAN 10 DES MAQUETTES DIT « ÉTAPE 4 SUR 5 » POUR LES PHOTOS, et c'est le
 /// cahier des charges qui gagne : il les met en cinquième. Une maquette montre
@@ -205,12 +208,17 @@ enum EtapePublication {
   /// « Étape 2 sur 5 » — le rang lu par un humain.
   int get rang => index + 1;
 
-  /// Le nombre d'étapes, tel qu'on l'annonce — « étape 2 sur 4 ».
+  /// Le nombre d'étapes, tel qu'on l'annonce — « étape 2 sur 5 ».
   ///
-  /// CINQ, ALORS QUE QUATRE EXISTENT, et c'est un mensonge qu'on n'écrit pas :
-  /// [total] vaut le nombre réel d'étapes du formulaire d'aujourd'hui. Le jour
-  /// où les photos arriveront, elles s'ajouteront à cette énumération et le
-  /// compte suivra tout seul. Annoncer « sur 5 » maintenant ferait chercher une
-  /// cinquième étape qui n'existe pas.
-  static int get total => EtapePublication.values.length;
+  /// CINQ, ET NON `values.length`, DEPUIS QUE LES PHOTOS EXISTENT. Le
+  /// propriétaire compte les écrans qu'il traverse, pas nos énumérations : il
+  /// en traverse cinq, dont quatre sont ici et la cinquième dans
+  /// `photos_salle_screen.dart`. Écrire `values.length` annoncerait « sur 4 »
+  /// et ferait croire, à l'étape 4, qu'on a fini — juste avant de demander des
+  /// photos. C'est la seule constante de ce fichier qui ne se déduit pas de
+  /// l'énumération, et c'est pour cela qu'elle porte ce commentaire.
+  static const int total = 5;
+
+  /// Le rang de l'étape des photos, la cinquième et dernière.
+  static const int rangDesPhotos = total;
 }

@@ -1,11 +1,18 @@
+import 'dart:async';
+import 'dart:typed_data';
+
+import 'package:image_picker/image_picker.dart';
+
 import 'package:ferha/core/preferences/preferences_affichage.dart';
 import 'package:ferha/features/booking/reservation.dart';
+import 'package:ferha/features/owner/compression_photo.dart';
 import 'package:ferha/features/owner/creneau_agenda.dart';
 import 'package:ferha/features/owner/demande_detail.dart';
 import 'package:ferha/features/owner/demande_en_attente.dart';
 import 'package:ferha/features/owner/indicateurs_salle.dart';
 import 'package:ferha/features/owner/nouvelle_salle.dart';
 import 'package:ferha/features/owner/owner_repository.dart';
+import 'package:ferha/features/owner/photo_de_salle.dart';
 import 'package:ferha/features/owner/salle_du_proprietaire.dart';
 import 'package:ferha/features/search/search_filters.dart';
 
@@ -218,6 +225,218 @@ class DepotDeTest implements OwnerRepository {
   Future<void> envoyerEnValidation(String venueId, String telephone) async {
     if (erreurDePublication != null) throw erreurDePublication!;
     envoyees.add((venueId: venueId, telephone: telephone));
+  }
+
+  // ---------------------------------------------------------------------------
+  // Les photos (§4.3, OWN-02)
+  //
+  // CETTE MOITIÉ-LÀ DU DÉPÔT NE SE CONTENTE PAS DE RENDRE CE QU'ON LUI A DONNÉ :
+  // elle REJOUE les règles de rang de la migration 021. Les trois autres
+  // lectures sont des consultations, et une doublure peut y répondre par une
+  // constante ; ici, ce que l'écran affiche dépend de ce que la base a écrit —
+  // la photo qu'on déplace en tête devient la couverture, et supprimer la
+  // première en donne une nouvelle. Une doublure qui rendrait une liste figée
+  // laisserait passer un écran qui n'affiche jamais la bonne couverture.
+  //
+  // La règle rejouée est exactement celle du `check (is_cover = (position = 0))`
+  // et des deux fonctions qui renumérotent : rangs contigus à partir de zéro,
+  // couverture au rang zéro, et nulle part ailleurs.
+  // ---------------------------------------------------------------------------
+
+  /// La galerie de chaque salle, dans l'ordre.
+  final Map<String, List<PhotoDeSalle>> galeries =
+      <String, List<PhotoDeSalle>>{};
+
+  /// Ce que lèvent les quatre gestes sur les photos, s'il y a lieu.
+  ///
+  /// SÉPARÉE DES DEUX AUTRES ERREURS, pour la même raison qu'elles le sont
+  /// entre elles : FE038 ne peut pas sortir d'une acceptation de demande, et
+  /// FE013 ne peut pas sortir d'un ajout de photo.
+  Object? erreurDePhotos;
+
+  /// De quoi retenir un envoi EN VOL, le temps de regarder l'écran.
+  ///
+  /// Sans elle, aucun test ne peut voir un envoi en cours : la doublure répond
+  /// dans le même tour de boucle, et la photo est déjà arrivée au premier
+  /// `pump`. Or « Continuer » doit rester éteint TANT QU'un envoi n'est pas
+  /// fini — c'est une règle qui ne vit qu'entre deux instants, et il faut donc
+  /// pouvoir tenir l'un des deux.
+  Completer<void>? envoiRetenu;
+
+  /// Les photos envoyées, avec le format réellement produit.
+  final List<({String venueId, FormatPhoto format, int octets})>
+  envoyeesPhotos = <({String venueId, FormatPhoto format, int octets})>[];
+
+  /// Les ordres reçus par `reordonner_photos()`.
+  final List<List<String>> ordresRecus = <List<String>>[];
+
+  /// Les photos supprimées, dans l'ordre.
+  final List<String> supprimees = <String>[];
+
+  int _photosCreees = 0;
+
+  @override
+  Future<List<PhotoDeSalle>> photos(String venueId) async {
+    if (erreurDePhotos != null) throw erreurDePhotos!;
+    return List<PhotoDeSalle>.unmodifiable(
+      galeries[venueId] ?? const <PhotoDeSalle>[],
+    );
+  }
+
+  @override
+  Future<PhotoDeSalle> ajouterPhoto(
+    String venueId,
+    PhotoCompressee photo,
+  ) async {
+    if (erreurDePhotos != null) throw erreurDePhotos!;
+    if (envoiRetenu != null) await envoiRetenu!.future;
+
+    envoyeesPhotos.add((
+      venueId: venueId,
+      format: photo.format,
+      octets: photo.octets.lengthInBytes,
+    ));
+
+    final galerie = galeries.putIfAbsent(venueId, () => <PhotoDeSalle>[]);
+    final rang = galerie.length;
+    // UN PRÉFIXE QUI N'EST PAS CELUI DE `photoDeTest()`, et ce n'est pas une
+    // coquetterie : une photo envoyée pendant le test ne doit pas hériter de
+    // l'identifiant d'une photo qui était déjà là. Deux `photo-0` dans la même
+    // galerie donnent deux `ValueKey` identiques dans le `ReorderableListView`,
+    // et Flutter lève « Multiple widgets used the same GlobalKey ».
+    final ajoutee = PhotoDeSalle(
+      id: 'photo-envoyee-${_photosCreees++}',
+      chemin: cheminDePhoto(venueId, photo.format),
+      position: rang,
+      estCouverture: rang == 0,
+    );
+    galerie.add(ajoutee);
+    return ajoutee;
+  }
+
+  @override
+  Future<void> supprimerPhoto(String photoId) async {
+    if (erreurDePhotos != null) throw erreurDePhotos!;
+    supprimees.add(photoId);
+
+    for (final entree in galeries.entries) {
+      if (entree.value.any((p) => p.id == photoId)) {
+        entree.value.removeWhere((p) => p.id == photoId);
+        galeries[entree.key] = _renumerote(entree.value);
+        return;
+      }
+    }
+  }
+
+  @override
+  Future<List<PhotoDeSalle>> reordonnerPhotos(
+    String venueId,
+    List<String> photoIds,
+  ) async {
+    if (erreurDePhotos != null) throw erreurDePhotos!;
+    ordresRecus.add(List<String>.unmodifiable(photoIds));
+
+    final galerie = galeries[venueId] ?? <PhotoDeSalle>[];
+    final rangees = <PhotoDeSalle>[
+      for (final id in photoIds) galerie.firstWhere((p) => p.id == id),
+    ];
+
+    galeries[venueId] = _renumerote(rangees);
+    return List<PhotoDeSalle>.unmodifiable(galeries[venueId]!);
+  }
+
+  /// Rangs 0..n-1, et la couverture au rang zéro — la règle de 021.
+  static List<PhotoDeSalle> _renumerote(List<PhotoDeSalle> photos) =>
+      <PhotoDeSalle>[
+        for (final (index, photo) in photos.indexed)
+          PhotoDeSalle(
+            id: photo.id,
+            chemin: photo.chemin,
+            position: index,
+            estCouverture: index == 0,
+          ),
+      ];
+}
+
+/// Une photo déjà en base.
+PhotoDeSalle photoDeTest({
+  required String id,
+  required int position,
+  String? chemin,
+}) => PhotoDeSalle(
+  id: id,
+  chemin: chemin ?? 'salle/$id.webp',
+  position: position,
+  estCouverture: position == 0,
+);
+
+/// Une galerie de [nombre] photos, rangées comme la base les rendrait.
+List<PhotoDeSalle> galerieDeTest(int nombre) => <PhotoDeSalle>[
+  for (var i = 0; i < nombre; i++) photoDeTest(id: 'photo-$i', position: i),
+];
+
+/// Un sélecteur qui rend des fichiers en mémoire, sans appareil ni galerie.
+///
+/// [XFile.fromData] fabrique un fichier qui n'existe nulle part : ses octets
+/// sont dans la mémoire du test. C'est exactement ce dont l'écran a besoin — il
+/// ne fait que `readAsBytes()`.
+class SelecteurDeTest implements SelecteurDePhotos {
+  /// Crée le sélecteur.
+  SelecteurDeTest({this.aRendre = 1, this.octets = const <int>[1, 2, 3, 4]});
+
+  /// Le nombre de photos que rend [galerie].
+  int aRendre;
+
+  /// Ce que contient chaque fichier rendu.
+  List<int> octets;
+
+  /// Le dernier maximum demandé par l'écran — c'est lui qui dit si la borne de
+  /// vingt photos a bien été calculée.
+  int? dernierMaximum;
+
+  /// Le nombre d'ouvertures de l'appareil photo.
+  int ouverturesAppareil = 0;
+
+  @override
+  Future<XFile?> appareilPhoto() async {
+    ouverturesAppareil++;
+    return XFile.fromData(Uint8List.fromList(octets), name: 'prise.jpg');
+  }
+
+  @override
+  Future<List<XFile>> galerie({required int maximum}) async {
+    dernierMaximum = maximum;
+    return <XFile>[
+      for (var i = 0; i < aRendre; i++)
+        XFile.fromData(Uint8List.fromList(octets), name: 'choisie-$i.jpg'),
+    ];
+  }
+}
+
+/// Une compression qui ne compresse rien, et rend le format qu'on lui dit.
+///
+/// Elle existe parce que la vraie appelle un encodeur natif sur Android et un
+/// canevas sur le web, et que `flutter test` n'a ni l'un ni l'autre. Ce qu'elle
+/// garde du contrat, c'est ce qui compte pour l'écran : un [FormatPhoto] qui
+/// voyage avec les octets jusqu'au nom du fichier.
+class CompresseurDeTest implements CompresseurDePhoto {
+  /// Crée le compresseur.
+  CompresseurDeTest({this.format = FormatPhoto.webp, this.erreur});
+
+  /// Le format que la doublure prétend avoir produit.
+  FormatPhoto format;
+
+  /// Ce qu'elle lève, s'il y a lieu.
+  Object? erreur;
+
+  /// Le nombre de compressions demandées.
+  int appels = 0;
+
+  @override
+  Future<PhotoCompressee> compresser(Uint8List origine) async {
+    appels++;
+    if (erreur != null) throw erreur!;
+    return PhotoCompressee(octets: origine, format: format);
   }
 }
 

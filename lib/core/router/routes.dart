@@ -125,6 +125,23 @@ abstract final class FerhaRoutes {
   /// jusqu'à l'inscription. Rien à partager, rien à reprendre en cours de route.
   static const String publierSalle = '/proprietaire/publier';
 
+  /// Photos d'une salle inscrite. `/proprietaire/publier/:id/photos`
+  ///
+  /// LA CINQUIÈME ÉTAPE DU FORMULAIRE, ET POURTANT UNE ROUTE À PART. Les quatre
+  /// premières vivent dans l'état de `PublierSalleScreen` et n'ont pas
+  /// d'adresse ; celle-ci en a une, parce qu'elle est la première à parler
+  /// d'une salle QUI EXISTE. C'est ce qui la rend reprenable : un brouillon
+  /// abandonné ici se rouvre exactement ici, depuis l'espace propriétaire, et
+  /// sur le web une page rechargée retrouve la bonne salle.
+  ///
+  /// Aucun paramètre de plus : les photos déjà envoyées sont en base, celles en
+  /// cours d'envoi vivent dans l'écran. Il n'y a rien à porter dans l'adresse.
+  static const String publierPhotos = '/proprietaire/publier/:id/photos';
+
+  /// Chemin de l'étape photos d'une salle donnée.
+  static String publierPhotosDe(String venueId) =>
+      '/proprietaire/publier/$venueId/photos';
+
   /// Récapitulatif d'une salle inscrite. `/proprietaire/publier/:id`
   ///
   /// LA SALLE EXISTE DÉJÀ QUAND ON ARRIVE ICI, en brouillon et invisible de
@@ -132,8 +149,8 @@ abstract final class FerhaRoutes {
   /// web, un rechargement de page perd l'un et pas l'autre — et perdre le
   /// chemin vers une salle qu'on vient de créer serait le pire moment.
   ///
-  /// C'est ici que l'écran des photos (OWN-02) viendra s'intercaler au J13 :
-  /// il a besoin du même identifiant, pour la même raison.
+  /// L'écran des photos (OWN-02) s'est intercalé juste avant, sur le même
+  /// identifiant et pour la même raison — voir [publierPhotos].
   static const String publierRecapitulatif = '/proprietaire/publier/:id';
 
   /// Chemin du récapitulatif d'une salle donnée.

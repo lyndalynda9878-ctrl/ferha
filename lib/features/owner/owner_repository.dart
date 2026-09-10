@@ -9,6 +9,7 @@ import 'demande_detail.dart';
 import 'demande_en_attente.dart';
 import 'indicateurs_salle.dart';
 import 'nouvelle_salle.dart';
+import 'photo_de_salle.dart';
 import 'salle_du_proprietaire.dart';
 
 /// Les trois lectures de l'espace propriétaire (§4.3 ; écran 9).
@@ -71,6 +72,23 @@ abstract interface class OwnerRepository {
   /// récapitulatif, et c'est lui dont les photos auront besoin au J13 pour
   /// leur chemin de Storage.
   Future<String> creerSalle(NouvelleSalle salle);
+
+  /// Les photos d'une salle, dans l'ordre d'affichage (§4.3, OWN-02).
+  Future<List<PhotoDeSalle>> photos(String venueId);
+
+  /// Téléverse une photo compressée, puis l'attache à la fin de la galerie.
+  ///
+  /// Deux gestes, dans cet ordre : le fichier dans le bucket, la ligne ensuite.
+  Future<PhotoDeSalle> ajouterPhoto(String venueId, PhotoCompressee photo);
+
+  /// Retire une photo : la ligne, puis le fichier.
+  Future<void> supprimerPhoto(String photoId);
+
+  /// Réécrit l'ordre complet de la galerie. La première devient la couverture.
+  Future<List<PhotoDeSalle>> reordonnerPhotos(
+    String venueId,
+    List<String> photoIds,
+  );
 
   /// Envoie un brouillon à la validation humaine : `draft` → `pending`.
   ///
@@ -264,6 +282,129 @@ class OwnerRepositorySupabase implements OwnerRepository {
     return (lignes.first as Map<String, dynamic>)['id'] as String;
   }
 
+  /// LA GALERIE SE LIT DIRECTEMENT DANS LA TABLE, sans fonction SQL, et c'est
+  /// le seul endroit de ce dépôt qui le fait. Ailleurs on passe par une RPC
+  /// parce qu'il y a quelque chose à assembler ou une règle à faire respecter ;
+  /// ici il n'y a qu'à lire quatre colonnes d'une table dont la politique
+  /// `venue_photos_select` (002) dit déjà exactement qui voit quoi. Une fonction
+  /// de plus ne ferait que redire `select ... order by position`.
+  @override
+  Future<List<PhotoDeSalle>> photos(String venueId) async {
+    final lignes = await _client
+        .from('venue_photos')
+        .select('id, storage_path, position, is_cover')
+        .eq('venue_id', venueId)
+        .order('position');
+
+    return lignes.map(PhotoDeSalle.depuisJson).toList(growable: false);
+  }
+
+  /// LE FICHIER D'ABORD, LA LIGNE ENSUITE, et le ménage si la seconde échoue.
+  ///
+  /// L'ordre inverse — la ligne puis le fichier — laisserait, le temps de
+  /// l'envoi, une galerie qui montre une photo qui n'existe pas. Dans cet
+  /// ordre-ci, l'accident laisse au pire un fichier que personne ne voit ; et
+  /// comme on peut faire mieux que « au pire », le `catch` le retire.
+  ///
+  /// LE NOM DU FICHIER SUIT LE FORMAT RÉELLEMENT PRODUIT. `cheminDePhoto()`
+  /// prend le format en paramètre parce que le WebP n'est pas garanti : un
+  /// navigateur qui ne sait pas l'encoder donne du JPEG, et le fichier s'appelle
+  /// alors `.jpg`. Le `contentType` vient de la même source — le bucket (021)
+  /// n'accepte que `image/webp` et `image/jpeg`, et refuserait un en-tête qui
+  /// ne correspond pas.
+  @override
+  Future<PhotoDeSalle> ajouterPhoto(
+    String venueId,
+    PhotoCompressee photo,
+  ) async {
+    final chemin = cheminDePhoto(venueId, photo.format);
+    final bucket = _client.storage.from(_bucketDesPhotos);
+
+    await bucket.uploadBinary(
+      chemin,
+      photo.octets,
+      // `upsert: false` : un chemin porte un uuid neuf à chaque envoi, deux
+      // photos ne peuvent pas se marcher dessus. Si cela arrivait quand même,
+      // mieux vaut un refus qu'une photo écrasée en silence.
+      fileOptions: FileOptions(contentType: photo.format.typeMime),
+    );
+
+    try {
+      final lignes = await _client.rpc<List<dynamic>>(
+        'ajouter_photo',
+        params: <String, dynamic>{
+          'p_venue_id': venueId,
+          'p_storage_path': chemin,
+        },
+      );
+
+      if (lignes.isEmpty) {
+        throw StateError('ajouter_photo() n’a renvoyé aucune ligne.');
+      }
+
+      return PhotoDeSalle.depuisJson(lignes.first as Map<String, dynamic>);
+    } on Object {
+      // La 21e photo (FE038), une salle qui n'est plus la vôtre, un réseau qui
+      // coupe : le fichier est déjà là et plus rien ne le désigne. On le retire
+      // avant de laisser passer le refus, qui reste celui que l'écran doit
+      // afficher — d'où le `rethrow` et non un second échec.
+      try {
+        await bucket.remove(<String>[chemin]);
+      } on Object catch (_) {
+        // Le ménage a échoué à son tour. Il ne remplace pas le refus d'origine,
+        // qui est la seule chose que le propriétaire a besoin de savoir.
+      }
+      rethrow;
+    }
+  }
+
+  /// LA LIGNE D'ABORD, LE FICHIER ENSUITE — l'inverse de l'ajout, et pour la
+  /// même raison : on préfère toujours la panne qu'on ne voit pas.
+  ///
+  /// Si le réseau coupe entre les deux, il reste un fichier orphelin dans le
+  /// bucket : deux cents kilo-octets que personne ne regarde. L'ordre inverse
+  /// laisserait un trou dans la galerie d'une salle publiée, visible de tous.
+  ///
+  /// C'est `supprimer_photo()` (021) qui rend le chemin : le SQL ne touche pas
+  /// au Storage, il dit seulement quel fichier va avec la ligne qu'il vient
+  /// d'effacer.
+  @override
+  Future<void> supprimerPhoto(String photoId) async {
+    final chemin = await _client.rpc<String?>(
+      'supprimer_photo',
+      params: <String, dynamic>{'p_photo_id': photoId},
+    );
+
+    if (chemin == null || chemin.isEmpty) return;
+
+    // Une photo de démonstration porte une URL complète et non un chemin de
+    // bucket (voir `urlPhoto()`) : il n'y a alors aucun fichier à nous à
+    // effacer.
+    if (chemin.startsWith('http')) return;
+
+    await _client.storage.from(_bucketDesPhotos).remove(<String>[chemin]);
+  }
+
+  /// L'ORDRE COMPLET, ET NON « CETTE PHOTO PASSE EN TROISIÈME ». C'est ce
+  /// qu'attend `reordonner_photos()` (021), qui refuse une liste partielle
+  /// (FE040) — et ce refus est justement ce qui protège une photo ajoutée
+  /// depuis un second appareil pendant qu'on réordonnait sur le premier.
+  @override
+  Future<List<PhotoDeSalle>> reordonnerPhotos(
+    String venueId,
+    List<String> photoIds,
+  ) async {
+    final lignes = await _client.rpc<List<dynamic>>(
+      'reordonner_photos',
+      params: <String, dynamic>{'p_venue_id': venueId, 'p_photo_ids': photoIds},
+    );
+
+    return lignes
+        .cast<Map<String, dynamic>>()
+        .map(PhotoDeSalle.depuisJson)
+        .toList(growable: false);
+  }
+
   /// LE NUMÉRO PART TEL QUE LE PROPRIÉTAIRE L'A TAPÉ, espaces compris : c'est
   /// `telephone_normalise()` (020) qui les retire, en base, pour que les deux
   /// écrans qui écrivent un numéro le rangent forcément pareil. Le nettoyer ici
@@ -275,6 +416,10 @@ class OwnerRepositorySupabase implements OwnerRepository {
       params: <String, dynamic>{'p_venue_id': venueId, 'p_phone': telephone},
     );
   }
+
+  /// Le bucket du §7.3. Il est écrit ici et dans `urlPhoto()`, qui le lit pour
+  /// résoudre un chemin en URL publique ; les deux se répondent.
+  static const String _bucketDesPhotos = 'venue-photos';
 
   /// `date` en SQL n'a pas d'heure : on envoie le premier du mois, en clair.
   static String _premierDuMois(DateTime d) =>

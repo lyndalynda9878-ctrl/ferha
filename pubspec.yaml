@@ -48,6 +48,27 @@ dependencies:
   # acceptee. Deja resolu comme dependance transitive de supabase_flutter :
   # cette ligne ne telecharge rien, elle rend l'import legitime.
   url_launcher: ^6.3.2
+  # Choisir des photos : l'appareil photo, ou plusieurs images d'un coup dans la
+  # galerie (OWN-02). Sur Android, c'est le selecteur systeme d'Android 13+ et
+  # ACTION_IMAGE_CAPTURE pour l'appareil ; sur le web, un <input type="file">
+  # avec multiple, et capture="environment" qui n'a d'effet que sur un
+  # navigateur mobile. On ne peut pas s'en passer sur Android : ouvrir
+  # l'appareil photo est un Intent, donc du code natif -- ce serait le meme
+  # code, ecrit ici, sans les correctifs de personne.
+  image_picker: ^1.2.1
+  # Reduire et reencoder une photo AVANT l'envoi (§7.3 : 1600 px, 80 %, WebP).
+  # Sur Android : Bitmap.compress(WEBP), l'encodeur du systeme, quelques
+  # centaines de millisecondes par photo. Sur le web : createImageBitmap +
+  # <canvas> + toDataURL('image/webp'), l'encodeur du navigateur, sans JS
+  # ajoute. Sur le web on saurait s'en passer -- quinze lignes avec package:web,
+  # deja present. Sur Android non : la seule autre voie est package:image, en
+  # Dart pur, un ordre de grandeur plus lent ET sans encodeur WebP.
+  #
+  # ATTENTION, ET C'EST DIT DANS compression_photo.dart : sur le web,
+  # toDataURL retombe SILENCIEUSEMENT sur du PNG quand le navigateur ne sait pas
+  # encoder du WebP, et ce paquet jette le prefixe qui l'aurait dit. On renifle
+  # donc nous-memes les octets rendus -- jamais un PNG deguise en .webp.
+  flutter_image_compress: ^2.5.1
   # Retenir les PREFERENCES D'AFFICHAGE d'un appareil a l'autre demarrage : la
   # salle choisie dans l'espace proprietaire, la langue. Rien d'autre n'y entre
   # -- ni donnee metier, ni jeton, ni identifiant sensible (voir CLAUDE.md).

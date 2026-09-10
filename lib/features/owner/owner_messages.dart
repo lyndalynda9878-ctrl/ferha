@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../auth/auth_messages.dart';
+import 'compression_photo.dart';
 
 /// Traduit le refus d'une réponse du propriétaire en une phrase qui dit quoi
 /// faire.
@@ -131,11 +132,11 @@ String? _parCodeAgenda(String? hint) {
 /// téléphone éteignent chacun leur bouton avant qu'on appuie.
 ///
 /// Les six premiers codes sont documentés en tête de
-/// `017_publier_une_salle.sql`, FE036 en tête de `019_adresse_de_la_salle.sql`
-/// et FE037 en tête de `020_telephone_joignable.sql`.
-/// `supabase/tests/005_publier_une_salle.sql` et
-/// `supabase/tests/007_adresse_et_telephone.sql` vérifient que la base les pose
-/// bien — ce sont ces tests qui empêchent ce fichier de mentir.
+/// `017_publier_une_salle.sql`, FE036 en tête de `019_adresse_de_la_salle.sql`,
+/// FE037 en tête de `020_telephone_joignable.sql` et FE041 en tête de
+/// `021_photos_de_la_salle.sql`. `supabase/tests/005_publier_une_salle.sql`,
+/// `007_adresse_et_telephone.sql` et `008_photos_de_la_salle.sql` vérifient que
+/// la base les pose bien — ce sont ces tests qui empêchent ce fichier de mentir.
 String messageErreurPublication(Object erreur) {
   if (erreur is PostgrestException) {
     final traduit = _parCodePublication(erreur.hint);
@@ -185,6 +186,116 @@ String? _parCodePublication(String? hint) {
     case 'FE037':
       return 'Un numéro de téléphone valide est nécessaire : 0770 11 22 33 '
           'pour un mobile, 041 23 45 67 pour un fixe.';
+
+    // FE041 — les photos (021). Il arrive sur le récapitulatif, pas sur l'écran
+    // des photos : c'est « Envoyer pour validation » qui le déclenche, et la
+    // phrase dit donc où retourner.
+    case 'FE041':
+      return 'Il faut au moins 5 photos pour envoyer votre salle. Revenez à '
+          'l’étape des photos pour en ajouter.';
+
+    default:
+      return null;
+  }
+}
+
+/// Traduit le refus d'un geste sur les photos (§4.3, OWN-02 ; §7.3).
+///
+/// QUATRIÈME TABLE DE CODES DE CE FICHIER, et quatrième vocabulaire disjoint —
+/// voir [messageErreurAgenda] pour la raison de ce découpage. Elle a en plus
+/// quelque chose qu'aucune des trois autres n'a : deux sources d'échec qui ne
+/// sont PAS des `PostgrestException`.
+///
+///   * [EchecDeCompression] — l'encodeur du navigateur n'a rien rendu
+///     d'acceptable. Cela n'a jamais touché la base : rien n'est parti.
+///   * [StorageException] — le bucket a refusé le fichier lui-même. Ses deux
+///     refus attendus sont ceux que 021 pose sur le bucket : le poids et le
+///     type. Ils ne devraient pas arriver après une compression réussie ; s'ils
+///     arrivent, c'est que la compression n'a pas fait son travail, et le dire
+///     vaut mieux que « une erreur est survenue ».
+///
+/// Les cinq codes FE sont documentés en tête de `021_photos_de_la_salle.sql`, et
+/// `supabase/tests/008_photos_de_la_salle.sql` vérifie que la base les pose
+/// bien — c'est ce test qui empêche ce fichier de mentir.
+String messageErreurPhotos(Object erreur) {
+  if (erreur is EchecDeCompression) return erreur.message;
+
+  if (erreur is StorageException) {
+    final traduit = _parRefusDuBucket(erreur);
+    if (traduit != null) return traduit;
+  }
+
+  if (erreur is PostgrestException) {
+    final traduit = _parCodePhotos(erreur.hint);
+    if (traduit != null) return traduit;
+  }
+
+  return messageErreurAuth(erreur);
+}
+
+/// Les refus du bucket lui-même (021), et non ceux du SQL.
+String? _parRefusDuBucket(StorageException erreur) {
+  // 413 : le fichier dépasse `file_size_limit`. Après une compression à 1600 px
+  // c'est presque impossible — donc si cela arrive, la photo est passée à côté
+  // de la compression, et la refaire est la bonne suite.
+  if (erreur.statusCode == '413') {
+    return 'Cette photo est trop lourde même après compression. Essayez-en '
+        'une autre.';
+  }
+
+  // Le type refusé : `allowed_mime_types` ne connaît que WebP et JPEG. C'est le
+  // filet sous le reniflement de `compression_photo.dart` ; l'atteindre veut
+  // dire que le navigateur a produit un format qu'on n'avait pas prévu.
+  final message = erreur.message.toLowerCase();
+  if (message.contains('mime type')) {
+    return 'Le format de cette photo n’est pas accepté. Essayez une autre '
+        'photo, ou un autre navigateur.';
+  }
+
+  return null;
+}
+
+/// Les refus de 021, et ce qu'ils veulent dire pour quelqu'un qui vient
+/// d'ajouter, de déplacer ou de supprimer une photo.
+String? _parCodePhotos(String? hint) {
+  switch (hint) {
+    // FE030 ne devrait jamais atteindre l'écran : on n'y entre que connecté. Il
+    // reste traduit pour le cas où la session expire pendant un envoi — ce qui
+    // est justement le moment où l'écran reste ouvert longtemps.
+    case 'FE030':
+      return 'Votre session a expiré. Reconnectez-vous, puis renvoyez cette '
+          'photo.';
+
+    case 'FE034':
+      return 'Cette salle n’est pas la vôtre.';
+
+    // FE038 — la borne haute d'OWN-02. Elle n'est presque jamais une surprise :
+    // l'écran cesse de proposer « Ajouter » à vingt photos. Elle arrive quand
+    // deux appareils ajoutent en même temps.
+    case 'FE038':
+      return 'Votre salle a déjà 20 photos, le maximum. Supprimez-en une pour '
+          'en ajouter une autre.';
+
+    // FE039 — la photo a disparu entre-temps, supprimée depuis un autre
+    // appareil. Ce n'est pas une faute : la phrase le dit et propose la suite.
+    case 'FE039':
+      return 'Cette photo n’existe plus. Tirez la liste vers le bas pour la '
+          'remettre à jour.';
+
+    // FE040 — l'ordre envoyé ne correspond plus. Même cause que FE039, vue de
+    // l'autre bout : quelqu'un a ajouté ou retiré une photo pendant qu'on
+    // réordonnait. On ne gronde personne, on dit quoi faire.
+    case 'FE040':
+      return 'Vos photos ont changé depuis un autre appareil. Tirez la liste '
+          'vers le bas, puis reprenez le classement.';
+
+    // FE042 ne devrait jamais s'afficher : le chemin est fabriqué par
+    // l'application, à partir de l'identifiant de la salle qu'elle affiche.
+    // S'il arrive, c'est un défaut de programme, et le taire ferait chercher
+    // une panne de réseau.
+    case 'FE042':
+      return 'Cette photo a été envoyée au mauvais endroit. Réessayez ; si cela '
+          'se reproduit, signalez-le.';
 
     default:
       return null;

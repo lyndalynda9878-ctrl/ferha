@@ -246,8 +246,7 @@ class _Contenu extends ConsumerWidget {
         children: <Widget>[
           // Le bandeau reste en tête dans les deux cas : il dit pourquoi tout
           // ce qui suit est à zéro.
-          if (!salle.statut.estAuCatalogue)
-            _BandeauStatut(statut: salle.statut),
+          if (!salle.statut.estAuCatalogue) _BandeauStatut(salle: salle),
 
           // L'ENTRÉE DE L'AGENDA, ET PAS UN ONGLET. La maquette de l'écran 9
           // dessine une barre — Tableau, Agenda, Messages, Ma salle — dont deux
@@ -375,10 +374,21 @@ Future<void> _rafraichir(WidgetRef ref, String venueId) async {
 /// Un brouillon n'a pas de mauvais taux d'occupation : il n'est visible de
 /// personne, donc réservable par personne. Sans cette ligne, un zéro se lirait
 /// comme un échec commercial.
+///
+/// ET SUR UN BROUILLON, LE CHEMIN DU RETOUR. C'est ici qu'on retrouve une
+/// inscription abandonnée en route — presque toujours à l'étape des photos,
+/// qui est la seule à demander d'aller chercher quelque chose ailleurs que
+/// dans sa tête. Le bouton rouvre donc directement cette étape-là, et non le
+/// formulaire, dont les quatre premières étapes sont déjà enregistrées.
+///
+/// LES TROIS AUTRES STATUTS N'ONT PAS DE BOUTON, et c'est le même raisonnement
+/// que `StatutSalle.estBrouillon` : « en attente », « publiée » et
+/// « suspendue » attendent quelqu'un d'autre. Mettre un geste là où le
+/// propriétaire n'en a aucun lui ferait croire qu'il en reste un à faire.
 class _BandeauStatut extends StatelessWidget {
-  const _BandeauStatut({required this.statut});
+  const _BandeauStatut({required this.salle});
 
-  final StatutSalle statut;
+  final SalleDuProprietaire salle;
 
   @override
   Widget build(BuildContext context) {
@@ -392,18 +402,39 @@ class _BandeauStatut extends StatelessWidget {
         color: colors.roseSoft,
         borderRadius: FerhaRadii.cardBorder,
       ),
-      child: Row(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Icon(Icons.visibility_off_outlined, size: 18, color: colors.roseInk),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              '${statut.libelle} — cette salle n’apparaît pas dans les '
-              'recherches, et ne peut donc recevoir aucune demande.',
-              style: text.bodySmall?.copyWith(color: colors.roseInk),
-            ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Icon(
+                Icons.visibility_off_outlined,
+                size: 18,
+                color: colors.roseInk,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  '${salle.statut.libelle} — cette salle n’apparaît pas dans '
+                  'les recherches, et ne peut donc recevoir aucune demande.',
+                  style: text.bodySmall?.copyWith(color: colors.roseInk),
+                ),
+              ),
+            ],
           ),
+          if (salle.statut.estBrouillon) ...<Widget>[
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: () =>
+                    context.push(FerhaRoutes.publierPhotosDe(salle.id)),
+                icon: const Icon(Icons.photo_library_outlined, size: 18),
+                label: const Text('Reprendre l’inscription'),
+              ),
+            ),
+          ],
         ],
       ),
     );

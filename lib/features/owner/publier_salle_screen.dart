@@ -11,6 +11,7 @@ import '../search/widgets/etats.dart';
 import 'nouvelle_salle.dart';
 import 'owner_messages.dart';
 import 'owner_providers.dart';
+import 'widgets/progression_publication.dart';
 
 /// Inscrire une salle — écran 10 des maquettes (§4.3, OWN-01).
 ///
@@ -19,12 +20,14 @@ import 'owner_providers.dart';
 /// Quatre questions posées une par une valent mieux qu'un formulaire de trente
 /// champs — celui-là, on le referme.
 ///
-/// QUATRE ÉTAPES AUJOURD'HUI, CINQ DEMAIN. OWN-01 en annonce cinq : identité,
-/// localisation, capacité, équipements, photos. Les photos (OWN-02) demandent
-/// leur propre écran, leur compression et un `venue_id` pour leur chemin de
-/// Storage : elles viennent à l'étape suivante et se glisseront ici sans rien
-/// déplacer. On n'affiche donc PAS « étape 1 sur 5 » aujourd'hui : annoncer une
-/// cinquième étape qui n'existe pas ferait chercher ce qui manque.
+/// QUATRE ÉTAPES ICI, LA CINQUIÈME AILLEURS. OWN-01 en annonce cinq : identité,
+/// localisation, capacité, équipements, photos. Les quatre premières vivent
+/// dans cet écran, sans route ni identifiant, puisqu'elles décrivent une salle
+/// qui n'existe pas encore. Les photos (OWN-02) ont leur propre écran et leur
+/// propre route, parce qu'elles ont besoin d'un `venue_id` pour leur chemin de
+/// Storage — d'où l'ordre : ce formulaire d'abord, `creer_salle()` ensuite,
+/// puis `photos_salle_screen.dart`. La barre de progression, elle, compte bien
+/// cinq étapes : c'est ce que le propriétaire traverse.
 ///
 /// TOUT L'ÉTAT VIT DANS CE `State`, ET C'EST CE QUI FAIT QUE REVENIR NE PERD
 /// RIEN. Les étapes ne sont pas des routes : changer d'étape ne démonte rien,
@@ -130,10 +133,10 @@ class _PublierSalleScreenState extends ConsumerState<PublierSalleScreen> {
           .creer(_salle);
       if (!mounted) return;
 
-      // pushReplacement : le récapitulatif prend la place du formulaire. La
+      // pushReplacement : l'étape des photos prend la place du formulaire. La
       // salle existe maintenant, et le bouton retour ne doit pas ramener sur un
       // formulaire qui la recréerait en double.
-      context.pushReplacement(FerhaRoutes.publierRecapitulatifDe(venueId));
+      context.pushReplacement(FerhaRoutes.publierPhotosDe(venueId));
     } on Object catch (erreur) {
       if (!mounted) return;
       setState(() => _erreur = messageErreurPublication(erreur));
@@ -159,7 +162,7 @@ class _PublierSalleScreenState extends ConsumerState<PublierSalleScreen> {
       ),
       body: Column(
         children: <Widget>[
-          _Progression(etape: _etape),
+          ProgressionPublication(rang: _etape.rang),
           Expanded(
             child: ListView(
               padding: const EdgeInsetsDirectional.fromSTEB(20, 8, 20, 24),
@@ -216,49 +219,6 @@ class _PublierSalleScreenState extends ConsumerState<PublierSalleScreen> {
 // =============================================================================
 // L'enveloppe : la progression, et le bouton du bas
 // =============================================================================
-
-/// « Étape 2 sur 4 », et une barre qui se remplit.
-///
-/// Le chiffre ET la barre, pas l'un ou l'autre : la barre dit d'un coup d'œil
-/// combien il reste, le chiffre dit exactement où l'on est. C'est ce que fait
-/// l'écran 10, qui écrit « Étape 4 sur 5 » en toutes lettres.
-class _Progression extends StatelessWidget {
-  const _Progression({required this.etape});
-
-  final EtapePublication etape;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.ferhaColors;
-    final text = Theme.of(context).textTheme;
-
-    return Padding(
-      padding: const EdgeInsetsDirectional.fromSTEB(20, 0, 20, 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Text(
-            'Étape ${etape.rang} sur ${EtapePublication.total}',
-            style: text.labelSmall?.copyWith(
-              color: colors.inkTertiary,
-              letterSpacing: 1,
-            ),
-          ),
-          const SizedBox(height: 8),
-          ClipRRect(
-            borderRadius: FerhaRadii.chipBorder,
-            child: LinearProgressIndicator(
-              value: etape.rang / EtapePublication.total,
-              minHeight: 6,
-              backgroundColor: colors.surfaceSecondary,
-              color: colors.primary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 /// Le bouton du bas, et ce qui l'empêche de s'allumer.
 ///
