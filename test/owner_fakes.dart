@@ -119,6 +119,9 @@ class DepotDeTest implements OwnerRepository {
   final List<String> acceptees = <String>[];
 
   /// Les demandes refusées, avec leur motif.
+  /// Les encaissements en espèces confirmés, dans l'ordre.
+  final List<String> encaissementsConfirmes = <String>[];
+
   final List<({String id, String? motif})> refusees =
       <({String id, String? motif})>[];
 
@@ -188,6 +191,12 @@ class DepotDeTest implements OwnerRepository {
   Future<void> refuser(String bookingId, {String? motif}) async {
     if (erreurDeReponse != null) throw erreurDeReponse!;
     refusees.add((id: bookingId, motif: motif));
+  }
+
+  @override
+  Future<void> confirmerEncaissementEspeces(String bookingId) async {
+    if (erreurDeReponse != null) throw erreurDeReponse!;
+    encaissementsConfirmes.add(bookingId);
   }
 
   @override
@@ -557,6 +566,8 @@ DemandeDetail detailDeTest({
   List<OptionChoisie> options = const <OptionChoisie>[],
   num montant = 205000,
   num? acompte,
+  int? acompteDu,
+  bool especesEnAttente = false,
   EtatReservation etat = EtatReservation.enAttente,
   String? motif,
   String? telephone,
@@ -578,6 +589,8 @@ DemandeDetail detailDeTest({
   options: options,
   montant: montant,
   acompte: acompte,
+  acompteDu: acompteDu,
+  especesEnAttente: especesEnAttente,
   etat: etat,
   motif: motif,
   creeLe: creeLe ?? DateTime.now().subtract(const Duration(hours: 2)),

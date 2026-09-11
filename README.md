@@ -307,16 +307,64 @@ réservation reste **acceptée**. Seul le webhook signé — le J16 — la fera 
 en « confirmée ». Le paramètre de retour s'appelle d'ailleurs `verification` et
 non `succes` : le nom dit déjà qu'on ne sait pas encore.
 
+### Ce qui confirme vraiment : le webhook
+
+`chargily-webhook` est la seule chose qui fasse passer une réservation en
+**confirmée**. Il tourne sans jeton Supabase — Chargily n'en a pas — et ce qui
+le protège est **la signature**, vérifiée sur le corps brut avant tout décodage,
+en HMAC-SHA256 avec la clé secrète. Signature fausse ou absente : 401, et rien
+n'est écrit.
+
+Il ne décide de rien d'autre. Le montant, l'option, le créneau, l'idempotence :
+tout se joue en SQL, en une transaction, sur une ligne verrouillée. Recevoir
+deux fois le même événement ne confirme pas deux fois.
+
+**Un paiement encaissé ne confirme pas toujours.** Quand l'option a expiré
+pendant le trajet, quand un autre a pris le créneau, ou quand la réservation
+était déjà réglée, l'argent est arrivé et la date n'est pas prise. La base
+marque la ligne « à rembourser », prévient les deux parties et
+l'administration — et **ne rembourse rien toute seule**. Le détail est dans
+[supabase/README.md](supabase/README.md).
+
+### L'acompte en espèces
+
+Le troisième choix de l'écran 6, et il marche maintenant. La légende de la
+maquette dit pourquoi il compte : « elle sauve les utilisateurs réticents au
+paiement en ligne ».
+
+**Annoncer n'est pas payer.** Le client dit qu'il apportera les billets ; la
+réservation reste acceptée, l'option de 72 h continue de courir, et le
+propriétaire est prévenu. C'est lui qui confirme, depuis le détail de la
+demande, une fois l'argent compté — et ce bouton demande confirmation, parce
+qu'il prend la date pour de bon.
+
+Le propriétaire lit le **même montant** que sa cliente : l'entier de
+`montant_acompte()`, et non les centimes du montant convenu.
+
+### Tester le paiement sans la page Chargily
+
+La page de paiement n'est pas joignable depuis toutes les connexions
+algériennes. Le webhook, lui, se teste entièrement sans elle :
+
+```powershell
+$env:CHARGILY_SECRET_KEY = 'test_sk_...'
+.\supabase\tests\webhook_chargily.ps1 -Cas tout
+```
+
+Le script signe avec la vraie clé et vise la fonction déployée ; le décor se
+pose et s'efface par `supabase/tests/013_webhook_bac_a_sable.sql`. La clé est
+lue dans une variable d'environnement et n'entre dans aucun fichier.
+
 ### Ce qui manque encore
 
-Le webhook `chargily-webhook`, qui confirmera vraiment, et le parcours
-**« espèces sur place »** que la maquette dessine comme troisième moyen de
-paiement. Il n'est pas affiché tant qu'il ne mène nulle part : c'est justement
-celui qui hésite à payer en ligne qui le pousserait.
-
-Sur téléphone, le paiement renvoie pour l'instant à un navigateur — le lien
+Sur téléphone, le paiement par carte renvoie à un navigateur — le lien
 d'application Android n'est pas déclaré, et une page de paiement dont on ne
-revient pas vaut moins qu'un refus qui le dit.
+revient pas vaut moins qu'un refus qui le dit. Le parcours espèces, lui, marche
+partout : il ne quitte jamais l'application.
+
+Il n'y a pas encore d'écran d'administration pour les paiements à rembourser :
+la vue `paiements_a_examiner` existe, et se lit pour l'instant dans l'éditeur
+SQL.
 
 ## Identité visuelle
 

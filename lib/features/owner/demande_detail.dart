@@ -76,6 +76,8 @@ class DemandeDetail {
     this.message,
     this.telephone,
     this.acompte,
+    this.acompteDu,
+    this.especesEnAttente = false,
     this.motif,
   });
 
@@ -100,6 +102,10 @@ class DemandeDetail {
         .toList(growable: false),
     montant: j['quoted_amount'] as num,
     acompte: j['deposit_amount'] as num?,
+    // L'entier encaissable (024) : le propriétaire compte ses billets d'après
+    // le MÊME nombre que celui affiché à sa cliente.
+    acompteDu: (j['acompte_du'] as num?)?.toInt(),
+    especesEnAttente: (j['especes_en_attente'] as bool?) ?? false,
     // La MÊME énumération que côté client, et c'est voulu : « accepted » est un
     // seul état de la base, pas deux. Ses libellés sont écrits du point de vue
     // du client — l'écran du propriétaire ne les affiche donc pas tels quels,
@@ -108,6 +114,21 @@ class DemandeDetail {
     motif: j['status_reason'] as String?,
     creeLe: DateTime.parse(j['created_at'] as String).toLocal(),
   );
+
+  /// L'acompte en dinars entiers, tel que le client le voit.
+  ///
+  /// C'est celui qu'il faut compter. `acompte` porte les centimes du montant
+  /// convenu ; celui-ci est ce que la caisse encaisse, et ce que le client
+  /// apportera s'il vient en espèces.
+  final int? acompteDu;
+
+  /// Vrai quand le client a annoncé un versement en main propre, et que
+  /// personne ne l'a encore confirmé.
+  ///
+  /// C'est ce qui fait apparaître le bouton « J'ai reçu l'acompte » : tant
+  /// qu'il est faux, il n'y a rien à confirmer, et le montrer inviterait le
+  /// propriétaire à prendre une date pour de l'argent qu'on ne lui a pas promis.
+  final bool especesEnAttente;
 
   /// L'identifiant de la demande — un groupe, une ou deux lignes.
   final String groupId;

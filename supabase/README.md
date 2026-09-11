@@ -35,6 +35,7 @@ seulement :
 | 22 | `migrations/022_delais_et_alertes.sql` | pg_cron, les notifications lisibles et le temps réel — **redéfinit `notify_user()`, `request_booking()` et `expire_options()`** | 004, 006, 012, 020 |
 | 23 | `migrations/023_une_option_tient_la_date.sql` | `tient_la_date()` — LA règle de disponibilité, écrite une seule fois — **redéfinit `search_venues()`, `venue_calendar()`, `request_booking()`, `accepter_demande()`, `owner_agenda()` et `bloquer_date()`** | 004, 008, 010, 011, 012, 014, 015, 016 |
 | 24 | `migrations/024_acompte_chargily.sql` | `montant_acompte()`, `acompte_a_verser()`, `enregistrer_checkout()` — le versement de l'acompte — **redéfinit `client_bookings()`** | 004, 006, 013, 015, 023 |
+| 25 | `migrations/025_paiement_confirme.sql` | `confirmer_paiement_chargily()`, le parcours espèces, `payments.anomalie` et la vue `paiements_a_examiner` — **redéfinit `owner_request_detail()` et `acompte_a_verser()`** | 004, 006, 014, 022, 023, 024 |
 
 `002` a besoin des tables de `001`. `003` a besoin de la table `amenities` de
 `001`, mais pas de `002`. Appliquer `002` avant `003` reste le bon ordre : le
@@ -80,9 +81,10 @@ psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/021_photos_de_la_
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/022_delais_et_alertes.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/023_une_option_tient_la_date.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/024_acompte_chargily.sql
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/025_paiement_confirme.sql
 ```
 
-Les vingt-quatre fichiers sont **rejouables** : les relancer sur une base déjà à jour
+Les vingt-cinq fichiers sont **rejouables** : les relancer sur une base déjà à jour
 ne produit ni erreur ni doublon. `003` va plus loin et met à jour les libellés
 existants — c'est le moyen prévu pour corriger une traduction.
 
@@ -112,7 +114,9 @@ Les fonctions appelées en RPC depuis Flutter :
 | `booking_quote()` (012) | demande — le devis | droits de l'appelant, ouvert à `anon` |
 | `request_booking()` (**020**) | demande — l'envoi | `SECURITY DEFINER`, fermée à `anon` |
 | `client_bookings()` (**024**) | mes réservations | `SECURITY DEFINER`, fermée à `anon` |
-| `acompte_a_verser()` (024) | verser l'acompte — l'écran 6 | `SECURITY DEFINER`, fermée à `anon` |
+| `acompte_a_verser()` (**025**) | verser l'acompte — l'écran 6 | `SECURITY DEFINER`, fermée à `anon` |
+| `payer_en_especes()` (025) | écran 6 — « espèces sur place » | `SECURITY DEFINER`, fermée à `anon` |
+| `confirmer_encaissement_especes()` (025) | détail d'une demande — « j'ai reçu l'acompte » | `SECURITY DEFINER`, fermée à `anon` |
 | `mes_notifications()` (022) | notifications, et le badge de la cloche | droits de l'appelant, fermée à `anon` |
 | `marquer_notifications_lues()` (022) | notifications — une, ou toutes | droits de l'appelant, fermée à `anon` |
 
@@ -674,6 +678,7 @@ groupe : jamais deux paiements « pending » sur une même réservation.
 | Fonction | Appelée par | Ce qu'elle fait | `verify_jwt` |
 |---|---|---|---|
 | `create-checkout` | l'application, avec le jeton de l'utilisateur | ouvre la page de paiement Chargily de l'acompte et range sa trace dans `payments` | oui |
+| `chargily-webhook` | Chargily | vérifie la signature du corps brut, puis laisse la base trancher | **non** — voir ci-dessous |
 
 Le code est versionné dans `supabase/functions/`. Elle se déploie avec la CLI :
 
@@ -699,6 +704,100 @@ le paiement en ligne n'est pas encore ouvert — sans nommer aucune clé.
 L'URL de base est `https://pay.chargily.net/test/api/v2`, et `payments.is_test`
 vaut `true` sur chaque ligne écrite. Le passage en réel changera cette constante
 et la clé du secret, pas le reste du fichier.
+
+### Le webhook, et ce qui le protège
+
+`chargily-webhook` tourne avec **`verify_jwt = false`**, et il le faut :
+Chargily n'a aucun jeton Supabase et n'en aura jamais. La fonction est donc
+ouverte sur Internet, et ce qui la protège est **la signature, et elle seule**.
+
+En-tête `signature`, **HMAC-SHA256 du corps avec la clé secrète d'API**, en
+hexadécimal minuscule — c'est la documentation de Chargily, pas un choix. Ce
+n'est pas le format de Stripe : ni horodatage, ni préfixe, ni version.
+
+**La signature se vérifie sur le CORPS BRUT, avant tout décodage.** Un
+`JSON.parse` puis `JSON.stringify` rendrait un texte différent de celui qui a
+été signé. La comparaison se fait en **temps constant** : une comparaison
+ordinaire s'arrête au premier caractère qui diffère, et le temps qu'elle met à
+répondre dit combien de caractères étaient justes.
+
+La fonction ne décide de rien d'autre. Tout ce qui compte — le montant,
+l'option, le créneau, l'idempotence — se joue dans
+`confirmer_paiement_chargily()` (025), **en une seule transaction, sur une ligne
+`payments` verrouillée** (`for update`). C'est ce verrou qui rend l'idempotence
+vraie : deux livraisons simultanées du même événement ne confirment pas deux
+fois, la seconde attend et lit un état déjà réglé.
+
+L'adresse du webhook part avec **chaque checkout** (`webhook_endpoint`), plutôt
+que d'être réglée à la main dans le tableau de bord Chargily. Le guide
+« Webhooks » de Chargily appelle ce champ `webhook_url` ; la **référence API**
+l'appelle `webhook_endpoint`, et l'objet Checkout qu'elle rend porte un attribut
+de ce nom. C'est la référence qui fait foi.
+
+### Les quatre façons de mal finir
+
+Un paiement encaissé ne confirme pas toujours. Quatre fois sur cinq il confirme ;
+la cinquième, `payments.anomalie` dit pourquoi.
+
+| `anomalie` | `suite` | Ce qui s'est passé |
+|---|---|---|
+| `montant_different` | `a_examiner` | Chargily annonce un montant qui n'est pas le nôtre |
+| `option_expiree` | `a_rembourser` | l'argent est arrivé après les 72 h |
+| `creneau_pris` | `a_rembourser` | un autre a confirmé le même créneau entre-temps |
+| `deja_paye` | `a_rembourser` | la réservation était déjà réglée — en espèces, ou par une autre page |
+| `confirmation_impossible` | `a_examiner` | la base a refusé pour une autre raison |
+
+Les trois `a_rembourser` veulent dire la même chose pour le client : **son argent
+est parti et sa date n'est pas prise**. Les deux parties ET l'administration sont
+prévenues, et la vue `paiements_a_examiner` les rassemble.
+
+**Aucun remboursement automatique.** La base marque, notifie, et s'arrête. Un
+remboursement se décide en regardant, depuis le tableau de bord Chargily.
+
+**Le paiement est marqué `paid` même quand la réservation ne l'est pas**, et
+c'est délibéré : Chargily affirme que l'argent a bougé, et l'écrire `pending`
+parce que la suite nous déplaît serait tenir une comptabilité fausse. C'est
+`anomalie` qui porte le « mais ».
+
+**La fonction SQL ne lève jamais sur un cas métier.** Un webhook qui échoue est
+un webhook que Chargily renvoie ; redemander indéfiniment un événement dont le
+problème est « cette date est déjà vendue » ne réglerait rien. Chaque issue a un
+nom, rendu en texte : `confirme`, `echec`, `deja_traite`, `inconnu`, et les cinq
+anomalies.
+
+### L'acompte en espèces
+
+Deux fonctions, et la première ne confirme rien.
+
+`payer_en_especes()` — le client annonce qu'il apportera les billets. La
+réservation **reste `accepted`**, l'option de 72 h **continue de courir**, une
+ligne `payments` `method = 'cash'` en `pending` est créée (sans `checkout_id` :
+l'index partiel de `004` le permet expressément), et le propriétaire est
+prévenu. Idempotente : rappuyer rend l'intention déjà posée, sans renotifier.
+
+`confirmer_encaissement_especes()` — le propriétaire a compté l'argent. Elle
+vérifie `owns_booking()`, passe le paiement en `paid`, puis appelle
+`confirm_booking()`. **Le même chemin que Chargily**, et donc le même index du
+§6.1 pour dernier mot : il n'y a qu'une porte vers `confirmed`.
+
+Elle n'éteint pas une page Chargily ouverte — on ne peut pas empêcher Chargily
+d'encaisser. Si la carte aboutit après coup, le webhook voit la réservation déjà
+réglée et marque `deja_paye` : à rembourser.
+
+### Tester sans la page de paiement
+
+La page Chargily n'est pas joignable depuis toutes les connexions algériennes.
+Le webhook, lui, se teste entièrement sans elle : il ne demande qu'un corps JSON
+et une signature, et la signature se calcule avec la même clé, où qu'on soit.
+
+```powershell
+$env:CHARGILY_SECRET_KEY = 'test_sk_...'
+.\supabase\tests\webhook_chargily.ps1 -Cas tout
+```
+
+Le décor se pose par la **section 1** de `tests/013_webhook_bac_a_sable.sql`, se
+lit par la **section 2**, et s'efface par la **section 3**. Le script signe avec
+la vraie clé et vise la fonction déployée : seul le formulaire de carte manque.
 
 ### Revenir sur `success_url` ne confirme rien
 
@@ -882,7 +981,7 @@ sur un avis déjà publié.
 
 ## Tests
 
-Onze fichiers, qui se collent tels quels dans l'éditeur SQL de Supabase et
+Quatorze fichiers, qui se collent tels quels dans l'éditeur SQL de Supabase et
 annulent tout par un `ROLLBACK` final. Une erreur rouge commençant par « ÉCHEC »
 signale la règle qui ne tient plus.
 
@@ -899,6 +998,9 @@ signale la règle qui ne tient plus.
 | `tests/009_delais_et_alertes.sql` | une option échue s'éteint et rend la date, une option vivante et une réservation confirmée ne bougent pas, une journée entière expire d'un bloc, relancer le cron ne notifie pas deux fois, le payload se suffit à lui-même, **un compte ne lit jamais les notifications d'un autre**, et chacun des six changements d'état prévient la bonne personne une seule fois |
 | `tests/010_une_option_tient_la_date.sql` | une option en cours ferme la date partout, une option échue la rouvre à la minute sans attendre le cron, et les demandes `pending` ne bloquent toujours rien |
 | `tests/011_acompte_chargily.sql` | la caisse ne s'ouvre que pour son client et tant que l'option tient, **le montant est celui de la base arrondi une seule fois**, une seule page de paiement court par réservation, et **aucune écriture cliente n'atteint `payments`** |
+| `tests/012_especes_sur_place.sql` | annoncer n'est pas payer, **un autre compte ne confirme pas un encaissement** — ni la cliente, ni une inconnue, ni un propriétaire d'une AUTRE salle —, et une réservation confirmée ne se reconfirme pas |
+| `tests/013_webhook_bac_a_sable.sql` | le décor du test de bout en bout, sa lecture et son nettoyage — **il ne fait pas de ROLLBACK**, voir en tête du fichier |
+| `tests/014_webhook_confirme.sql` | les huit situations d'un webhook : confirmation, rejeu, montant faux, option échue, créneau pris, carte refusée, checkout inconnu, double paiement — **et aucune ne lève** |
 
 Le huitième va plus loin encore : pour mesurer les politiques du bucket, il
 lève au passage `storage.allow_delete_query`, le verrou de Supabase qui refuse

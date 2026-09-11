@@ -34,6 +34,7 @@ void main() {
     int montant = 51334,
     num solde = 153999,
     bool paiementEnCours = false,
+    bool especesEnAttente = false,
     Duration reste = const Duration(hours: 71, minutes: 12, seconds: 30),
   }) => AcompteAVerser(
     groupId: 'grp-011',
@@ -52,6 +53,7 @@ void main() {
     solde: solde,
     optionExpireLe: DateTime.now().add(reste),
     paiementEnCours: paiementEnCours,
+    especesEnAttente: especesEnAttente,
   );
 
   Future<void> ouvre(
@@ -150,16 +152,16 @@ void main() {
   });
 
   group('Le moyen de paiement', () {
-    testWidgets('deux cartes, et pas d’espèces tant qu’elles ne marchent pas', (
+    testWidgets('les trois choix de la maquette, espèces comprises', (
       tester,
     ) async {
       await ouvre(tester);
 
       expect(find.text('Carte CIB'), findsOneWidget);
       expect(find.text('Carte Edahabia'), findsOneWidget);
-      // La maquette en dessine une troisième ; l'afficher avant qu'elle
-      // fonctionne promettrait une porte qui ne s'ouvre pas.
-      expect(find.textContaining('Espèces'), findsNothing);
+      // Le troisième mène maintenant quelque part — payer_en_especes() (025).
+      // Tant qu'il ne menait nulle part, il n'était pas là.
+      expect(find.text('Espèces sur place'), findsOneWidget);
     });
 
     testWidgets(
@@ -184,7 +186,78 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byIcon(Icons.radio_button_checked), findsOneWidget);
-      expect(find.byIcon(Icons.radio_button_unchecked), findsOneWidget);
+      expect(find.byIcon(Icons.radio_button_unchecked), findsNWidgets(2));
+    });
+  });
+
+  group('Les espèces sur place', () {
+    testWidgets(
+      'le bouton ne dit plus « Payer » : on annonce, on ne paie pas',
+      (tester) async {
+        await ouvre(tester);
+        await tester.tap(find.text('Espèces sur place'));
+        await tester.pumpAndSettle();
+
+        // « Payer 51 334 DA » devant un choix « espèces » promettrait que
+        // l'argent part maintenant. Il ne part pas.
+        expect(find.text('Payer 51 334 DA'), findsNothing);
+        expect(find.text('Annoncer un versement de 51 334 DA'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'le mode test ne s’affiche plus : un billet est un vrai billet',
+      (tester) async {
+        await ouvre(tester);
+
+        expect(
+          find.textContaining('aucune somme n’est réellement débitée'),
+          findsOneWidget,
+        );
+
+        await tester.tap(find.text('Espèces sur place'));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.textContaining('aucune somme n’est réellement débitée'),
+          findsNothing,
+        );
+      },
+    );
+
+    testWidgets('une annonce déjà posée se voit, et n’est pas reproposée', (
+      tester,
+    ) async {
+      await ouvre(tester, du: acompte(especesEnAttente: true));
+
+      expect(find.text('Versement en espèces annoncé'), findsOneWidget);
+      expect(find.textContaining('vous attend avec 51 334 DA'), findsOneWidget);
+      // L'option court toujours : le bandeau ne doit pas laisser croire
+      // l'inverse.
+      expect(find.textContaining('l’option court toujours'), findsOneWidget);
+
+      await tester.tap(find.text('Espèces sur place'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Versement déjà annoncé'), findsOneWidget);
+      final bouton = tester.widget<FilledButton>(
+        find.widgetWithText(FilledButton, 'Versement déjà annoncé'),
+      );
+      expect(bouton.onPressed, isNull);
+    });
+
+    testWidgets('annoncer des espèces ne dit jamais « confirmée »', (
+      tester,
+    ) async {
+      await ouvre(tester, du: acompte(especesEnAttente: true));
+
+      expect(find.textContaining('Réservation confirmée'), findsNothing);
+      // « Solde … réglé sur place le jour J » reste, et c'est juste : c'est le
+      // SOLDE. Ce qu'on ne doit jamais lire, c'est que l'ACOMPTE est réglé.
+      expect(find.textContaining('acompte est déjà réglé'), findsNothing);
+      expect(find.textContaining('Paiement reçu'), findsNothing);
+      // Le compte à rebours, lui, est toujours là : c'est le rappel qui compte.
+      expect(find.text('71 h 12 min'), findsOneWidget);
     });
   });
 

@@ -51,6 +51,14 @@ abstract interface class OwnerRepository {
   /// Refuse une demande, avec un motif facultatif.
   Future<void> refuser(String bookingId, {String? motif});
 
+  /// Confirme avoir reçu l'acompte en main propre (§3, écran 6).
+  ///
+  /// Le même aboutissement que Chargily : le paiement passe « paid » et la
+  /// réservation est confirmée par `confirm_booking()`. Il n'y a qu'un chemin
+  /// vers « confirmed », et c'est pour cela que l'index du §6.1 protège
+  /// celui-ci aussi.
+  Future<void> confirmerEncaissementEspeces(String bookingId);
+
   /// L'agenda d'une salle sur un mois : un état par jour et par créneau.
   Future<AgendaDuMois> agenda(String venueId, DateTime mois);
 
@@ -189,6 +197,14 @@ class OwnerRepositorySupabase implements OwnerRepository {
     await _client.rpc<List<dynamic>>(
       'refuser_demande',
       params: <String, dynamic>{'p_booking_id': bookingId, 'p_motif': motif},
+    );
+  }
+
+  @override
+  Future<void> confirmerEncaissementEspeces(String bookingId) async {
+    await _client.rpc<dynamic>(
+      'confirmer_encaissement_especes',
+      params: <String, dynamic>{'p_booking_id': bookingId},
     );
   }
 

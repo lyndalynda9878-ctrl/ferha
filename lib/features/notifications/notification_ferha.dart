@@ -62,6 +62,27 @@ enum TypeNotification {
   /// L'option de 72 h est passée sans acompte (§5.1).
   expiree('booking_expired'),
 
+  /// La carte a été refusée, ou le paiement abandonné. Côté client.
+  ///
+  /// L'OPTION N'EST PAS PERDUE POUR AUTANT, et le titre doit le laisser
+  /// entendre : une carte refusée ne retire pas les 72 h. Le client peut
+  /// réessayer, ou porter l'acompte en espèces.
+  paiementEchoue('payment_failed'),
+
+  /// L'argent est arrivé, et la date n'est pas prise (025).
+  ///
+  /// Les trois façons d'en arriver là — option expirée, créneau pris par un
+  /// autre, réservation déjà payée — se disent de la même façon au client :
+  /// son versement va lui être rendu. Le détail est dans `payments.anomalie`,
+  /// et il regarde l'administration, pas lui.
+  paiementARembourser('payment_to_refund'),
+
+  /// Un paiement qu'un humain doit regarder. Côté administration (§4.4).
+  paiementAExaminer('payment_anomaly'),
+
+  /// Le client a annoncé un versement en espèces. Côté propriétaire.
+  especesAnnoncees('cash_pending'),
+
   /// Rappel à sept jours. Pas encore émis — voir « Ce qui manque encore ».
   rappelJ7('reminder_j7'),
 
@@ -230,6 +251,16 @@ class NotificationFerha {
       role == RoleNotification.proprietaire
           ? 'Option expirée, la date se relibère'
           : 'Option expirée, la date est repartie',
+    // On ne dit pas « échec » tout court : l'option court toujours, et c'est la
+    // seule chose que le client ait besoin de savoir à cet instant.
+    TypeNotification.paiementEchoue =>
+      'Paiement non abouti, votre option court',
+    TypeNotification.paiementARembourser =>
+      role == RoleNotification.proprietaire
+          ? 'Un paiement reçu n’a pas pu être confirmé'
+          : 'Votre paiement va vous être remboursé',
+    TypeNotification.paiementAExaminer => 'Paiement à examiner',
+    TypeNotification.especesAnnoncees => 'Acompte en espèces annoncé',
     TypeNotification.rappelJ7 => 'Votre événement dans une semaine',
     TypeNotification.rappelJ1 => 'Votre événement, c’est demain',
     TypeNotification.invitationAvis => 'Racontez votre soirée',

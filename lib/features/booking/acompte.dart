@@ -4,33 +4,52 @@ import '../search/search_filters.dart';
 
 /// Les moyens de paiement de l'écran 6.
 ///
-/// DEUX, ET PAS TROIS. La maquette en dessine un troisième — « Espèces sur
-/// place (72 h) » — et sa légende explique pourquoi il compte : « elle sauve
-/// les utilisateurs réticents au paiement en ligne ». Il arrivera, avec le
-/// parcours qui va avec : une confirmation par le propriétaire, et une ligne
-/// `payments` de méthode « cash » sans checkout. L'afficher aujourd'hui, éteint
-/// ou sans suite, promettrait au client une porte qui ne s'ouvre pas — et c'est
-/// exactement celui qui hésite à payer en ligne qui la pousserait.
+/// TROIS, COMME LA MAQUETTE — et le troisième n'est pas une politesse. Sa
+/// légende dit pourquoi il compte : « l'option espèces sur place est offerte
+/// dès le MVP : elle sauve les utilisateurs réticents au paiement en ligne ».
+/// Il est resté absent tant qu'il ne menait nulle part ; il mène maintenant à
+/// `payer_en_especes()` (025), et le propriétaire confirme l'encaissement
+/// depuis son espace.
+///
+/// [especes] N'OUVRE AUCUNE CAISSE, et c'est ce qui le distingue des deux
+/// autres. Les cartes partent chez Chargily ; les espèces ne font qu'annoncer
+/// une intention — la réservation reste « acceptée », l'option de 72 h continue
+/// de courir, et l'argent changera de mains dans la salle. C'est pour cela que
+/// le bouton ne dit pas « Payer » quand il est choisi.
 ///
 /// LES CODES SONT CEUX DE `payments.method` (004). Ils ne s'affichent jamais :
-/// c'est [libelle] qui va à l'écran, et [code] qui part vers la Edge Function.
+/// c'est [libelle] qui va à l'écran, et [code] qui part vers la base.
 enum MoyenDePaiement {
   /// La carte interbancaire, SATIM.
   cib('cib', 'Carte CIB', 'La carte de votre banque'),
 
   /// La carte d'Algérie Poste.
-  edahabia('edahabia', 'Carte Edahabia', 'La carte d’Algérie Poste');
+  edahabia('edahabia', 'Carte Edahabia', 'La carte d’Algérie Poste'),
+
+  /// L'acompte en main propre, dans les 72 h.
+  especes(
+    'cash',
+    'Espèces sur place',
+    'Vous portez l’acompte à la salle, sous 72 h',
+  );
 
   const MoyenDePaiement(this.code, this.libelle, this.explication);
 
-  /// La valeur attendue par `payments.method` et par Chargily.
+  /// La valeur attendue par `payments.method`, et par Chargily pour les cartes.
   final String code;
 
-  /// Le nom de la carte, tel qu'il s'affiche.
+  /// Le nom du moyen, tel qu'il s'affiche.
   final String libelle;
 
-  /// De quelle carte on parle, pour qui ne reconnaît pas le nom.
+  /// Ce que cela veut dire concrètement, en une ligne.
   final String explication;
+
+  /// Vrai quand ce moyen passe par une page de paiement Chargily.
+  ///
+  /// C'est la seule question que l'écran ait à poser : les deux cartes ouvrent
+  /// une caisse et quittent l'application, les espèces posent une intention et
+  /// restent sur place.
+  bool get passeParChargily => this != especes;
 }
 
 /// L'acompte à verser, tel que le rend `acompte_a_verser()` (024).
@@ -61,6 +80,7 @@ class AcompteAVerser {
     required this.solde,
     required this.optionExpireLe,
     required this.paiementEnCours,
+    required this.especesEnAttente,
     this.wilayaNom,
     this.typeEvenement,
     this.proprietaire,
@@ -88,6 +108,7 @@ class AcompteAVerser {
     solde: j['solde'] as num,
     optionExpireLe: DateTime.parse(j['option_expires_at'] as String).toLocal(),
     paiementEnCours: j['paiement_en_cours'] as bool? ?? false,
+    especesEnAttente: j['especes_en_attente'] as bool? ?? false,
   );
 
   /// La réservation — un groupe, une ou deux lignes de `bookings`.
@@ -143,6 +164,14 @@ class AcompteAVerser {
   /// par la caisse, on ne sait pas encore avec quel résultat » — et c'est
   /// exactement ce que l'écran doit dire au retour de Chargily.
   final bool paiementEnCours;
+
+  /// Vrai quand un versement en espèces est annoncé et attend le propriétaire.
+  ///
+  /// Elle ne veut pas dire « payé » non plus : elle veut dire que le client a
+  /// dit qu'il apporterait les billets, et que personne ne les a encore comptés.
+  /// La réservation reste « acceptée », et l'option de 72 h court toujours —
+  /// c'est le compte à rebours en haut de l'écran qui le rappelle.
+  final bool especesEnAttente;
 
   /// « Oran, Oran (31) » n'a pas de sens : la commune suffit quand la wilaya
   /// porte le même nom.

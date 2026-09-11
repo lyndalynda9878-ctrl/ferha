@@ -290,6 +290,105 @@ void main() {
     });
   });
 
+  group('L’acompte en espèces', () {
+    DemandeDetail annonce({bool especes = true}) => detailDeTest(
+      id: 'esp',
+      venueId: bahia,
+      etat: EtatReservation.acceptee,
+      acompte: 51333.25,
+      acompteDu: 51334,
+      especesEnAttente: especes,
+      telephone: '0770 11 22 33',
+      telephoneDisponible: true,
+    );
+
+    testWidgets('rien à confirmer tant que rien n’est annoncé', (tester) async {
+      // Un bouton « J'ai reçu l'acompte » toujours visible inviterait le
+      // propriétaire à prendre une date pour de l'argent que personne ne lui a
+      // promis.
+      await ouvre(tester, annonce(especes: false));
+
+      expect(find.byKey(cleEncaissementEspeces), findsNothing);
+      expect(find.text('Acompte en espèces annoncé'), findsNothing);
+    });
+
+    testWidgets('annoncé, le bloc dit le montant que le client apportera', (
+      tester,
+    ) async {
+      await ouvre(tester, annonce());
+
+      expect(find.text('Acompte en espèces annoncé'), findsOneWidget);
+      // 51 334, l'entier — le MÊME nombre que celui lu par la cliente sur
+      // l'écran 6. Compter d'après 51 333,25 ferait deux comptes.
+      expect(
+        find.textContaining('vous apportera 51${fine}334 DA'),
+        findsOneWidget,
+      );
+      expect(find.byKey(cleEncaissementEspeces), findsOneWidget);
+    });
+
+    testWidgets('confirmer demande confirmation : ce tap prend la date', (
+      tester,
+    ) async {
+      final depot = await ouvre(tester, annonce());
+
+      await tester.tap(find.byKey(cleEncaissementEspeces));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Confirmer l’encaissement ?'), findsOneWidget);
+      expect(find.textContaining('ne pourra plus être rendue'), findsOneWidget);
+      // Rien n'est parti tant qu'on n'a pas répondu.
+      expect(depot.encaissementsConfirmes, isEmpty);
+    });
+
+    testWidgets('« Pas encore » referme sans rien confirmer', (tester) async {
+      final depot = await ouvre(tester, annonce());
+
+      await tester.tap(find.byKey(cleEncaissementEspeces));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Pas encore'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Confirmer l’encaissement ?'), findsNothing);
+      expect(depot.encaissementsConfirmes, isEmpty);
+    });
+
+    testWidgets('« Oui, j’ai reçu » confirme, et une seule fois', (
+      tester,
+    ) async {
+      final depot = await ouvre(tester, annonce());
+
+      await tester.tap(find.byKey(cleEncaissementEspeces));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(cleConfirmerEspeces));
+      await tester.pumpAndSettle();
+
+      expect(depot.encaissementsConfirmes, <String>['bkg-esp']);
+      expect(find.text('Acompte encaissé. La date est prise.'), findsOneWidget);
+    });
+
+    testWidgets('un refus de la base se dit en français, par son code', (
+      tester,
+    ) async {
+      // FE063 : l'option est morte pendant qu'il comptait les billets. Le
+      // propriétaire a l'argent en main et la date est repartie à la vente —
+      // la phrase doit dire quoi faire de cet argent.
+      await ouvre(
+        tester,
+        annonce(),
+        erreur: PostgrestException(message: 'peu importe', hint: 'FE063'),
+      );
+
+      await tester.tap(find.byKey(cleEncaissementEspeces));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(cleConfirmerEspeces));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Ne gardez pas l’acompte'), findsOneWidget);
+      expect(find.textContaining('FE063'), findsNothing);
+    });
+  });
+
   testWidgets('le thème sombre s’affiche aussi', (tester) async {
     await ouvre(
       tester,

@@ -76,11 +76,49 @@ class _AcompteScreenState extends ConsumerState<AcompteScreen> {
             // d'un essai qui n'existe plus.
             _refus = null;
           }),
-          onPayer: _payer,
+          onAgir: _agir,
         ),
         _ => const _EnAttente(),
       },
     );
+  }
+
+  /// Le geste du bouton — et il y en a deux, selon le moyen choisi.
+  ///
+  /// Les cartes ouvrent une caisse chez Chargily et quittent l'application ; les
+  /// espèces posent une intention et restent ici. Un seul bouton, deux gestes :
+  /// c'est le moyen sélectionné qui décide, et son libellé le dit déjà.
+  Future<void> _agir() async {
+    if (_moyen.passeParChargily) return _payer();
+    return _annoncerEspeces();
+  }
+
+  /// Annonce un versement en main propre.
+  ///
+  /// ON RECHARGE APRÈS, ET C'EST CE QUI FAIT L'ÉCRAN. `acompte_a_verser()` rend
+  /// alors `especes_en_attente` à vrai, et le bandeau qui l'annonce apparaît de
+  /// lui-même — plutôt qu'un état local qu'il faudrait tenir d'accord avec la
+  /// base.
+  Future<void> _annoncerEspeces() async {
+    if (_enRoute) return;
+    setState(() {
+      _enRoute = true;
+      _refus = null;
+    });
+
+    try {
+      await ref.read(paiementServiceProvider).annoncerEspeces(widget.bookingId);
+
+      if (!mounted) return;
+      ref.invalidate(acompteProvider(widget.bookingId));
+      setState(() => _enRoute = false);
+    } on Object catch (erreur) {
+      if (!mounted) return;
+      setState(() {
+        _enRoute = false;
+        _refus = refusAcompte(erreur);
+      });
+    }
   }
 
   /// Ouvre la page de paiement, et y envoie le client.
@@ -192,7 +230,7 @@ class _Contenu extends StatelessWidget {
     required this.enRoute,
     required this.refus,
     required this.onMoyen,
-    required this.onPayer,
+    required this.onAgir,
   });
 
   final AcompteAVerser acompte;
@@ -200,7 +238,25 @@ class _Contenu extends StatelessWidget {
   final bool enRoute;
   final RefusAcompte? refus;
   final ValueChanged<MoyenDePaiement> onMoyen;
-  final VoidCallback onPayer;
+  final VoidCallback onAgir;
+
+  /// Vrai quand le geste proposé a déjà été fait.
+  bool get _annonceFaite => !moyen.passeParChargily && acompte.especesEnAttente;
+
+  /// Ce que dit le bouton — et il ne dit pas « Payer » pour des espèces.
+  ///
+  /// « Payer 51 334 DA » devant un choix « espèces sur place » promettrait que
+  /// l'argent part maintenant. Il ne part pas : le client annonce, et portera
+  /// les billets. Le libellé doit dire le geste qu'on fait, pas celui qu'on
+  /// fera.
+  String get _libelleDuBouton {
+    if (moyen.passeParChargily) {
+      return 'Payer ${montantEnDinars(acompte.acompte)} DA';
+    }
+    if (acompte.especesEnAttente) return 'Versement déjà annoncé';
+    return 'Annoncer un versement de '
+        '${montantEnDinars(acompte.acompte)} DA';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -211,6 +267,11 @@ class _Contenu extends StatelessWidget {
       padding: const EdgeInsetsDirectional.fromSTEB(16, 16, 16, 32),
       children: <Widget>[
         _Accepte(acompte: acompte),
+
+        if (acompte.especesEnAttente) ...<Widget>[
+          const SizedBox(height: 12),
+          _EspecesAnnoncees(montant: acompte.acompte),
+        ],
 
         if (acompte.paiementEnCours) ...<Widget>[
           const SizedBox(height: 12),
@@ -272,9 +333,13 @@ class _Contenu extends StatelessWidget {
           child: FilledButton(
             // Un refus définitif éteint le bouton : rappuyer rendrait mot pour
             // mot la même phrase. Même règle qu'à l'envoi d'une demande.
-            onPressed: (enRoute || (refus?.definitif ?? false))
+            //
+            // Une intention d'espèces déjà posée l'éteint aussi quand c'est le
+            // moyen choisi : la base est idempotente, mais un bouton qui reste
+            // vif laisse croire que le premier appui n'a rien fait.
+            onPressed: (enRoute || (refus?.definitif ?? false) || _annonceFaite)
                 ? null
-                : onPayer,
+                : onAgir,
             child: enRoute
                 ? const SizedBox(
                     width: 20,
@@ -282,7 +347,8 @@ class _Contenu extends StatelessWidget {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : Text(
-                    'Payer ${montantEnDinars(acompte.acompte)} DA',
+                    _libelleDuBouton,
+                    textAlign: TextAlign.center,
                     style: text.titleMedium?.copyWith(
                       fontWeight: FontWeight.w700,
                       color: colors.onPrimary,
@@ -299,14 +365,18 @@ class _Contenu extends StatelessWidget {
           style: text.bodySmall?.copyWith(color: colors.inkTertiary),
         ),
 
-        const SizedBox(height: 8),
-        Text(
-          // Le mode test, dit au client plutôt que caché (v2.0, CLI-06). Il vaut
-          // mieux qu'il l'apprenne ici que devant un relevé bancaire vide.
-          'Paiement en mode test : aucune somme n’est réellement débitée.',
-          textAlign: TextAlign.center,
-          style: text.bodySmall?.copyWith(color: colors.inkTertiary),
-        ),
+        // Le mode test ne concerne que Chargily : un versement en main propre
+        // est un vrai versement, et le dire « en mode test » serait faux.
+        if (moyen.passeParChargily) ...<Widget>[
+          const SizedBox(height: 8),
+          Text(
+            // Dit au client plutôt que caché (v2.0, CLI-06). Il vaut mieux
+            // qu'il l'apprenne ici que devant un relevé bancaire vide.
+            'Paiement en mode test : aucune somme n’est réellement débitée.',
+            textAlign: TextAlign.center,
+            style: text.bodySmall?.copyWith(color: colors.inkTertiary),
+          ),
+        ],
       ],
     );
   }
@@ -392,6 +462,66 @@ class _Accepte extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// « Vous avez annoncé un versement en espèces » — et ce que cela veut dire.
+///
+/// CE BANDEAU NE DIT PAS QUE C'EST RÉGLÉ, et il porte le compte à rebours du
+/// haut de l'écran comme un rappel : l'option de 72 h continue de courir, et
+/// elle s'éteindra si les billets n'arrivent pas. C'est la différence avec une
+/// carte — une carte payée prend la date dans la minute ; une promesse de
+/// billets ne prend rien du tout tant que le propriétaire n'a pas compté.
+///
+/// Il dit donc le montant et le geste qui reste à faire, sans rassurer plus que
+/// de raison.
+class _EspecesAnnoncees extends StatelessWidget {
+  const _EspecesAnnoncees({required this.montant});
+
+  final int montant;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.ferhaColors;
+    final text = Theme.of(context).textTheme;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsetsDirectional.all(12),
+      decoration: BoxDecoration(
+        color: colors.primarySoft,
+        borderRadius: FerhaRadii.cardBorder,
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Icon(Icons.payments_outlined, size: 18, color: colors.primaryDeep),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  'Versement en espèces annoncé',
+                  style: text.titleSmall?.copyWith(
+                    color: colors.primaryDeep,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Le propriétaire vous attend avec '
+                  '${montantEnDinars(montant)} DA. La date sera confirmée '
+                  'quand il aura reçu l’acompte — et l’option court toujours '
+                  'd’ici là.',
+                  style: text.bodySmall?.copyWith(color: colors.inkSecondary),
+                ),
+              ],
+            ),
           ),
         ],
       ),

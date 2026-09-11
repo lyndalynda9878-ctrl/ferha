@@ -230,6 +230,23 @@ class ReponseADemandeService {
     await _rafraichir(demande);
   }
 
+  /// Confirme avoir reçu l'acompte en main propre (§3, écran 6).
+  ///
+  /// LE MÊME ABOUTISSEMENT QU'UN PAIEMENT CHARGILY, et par le même chemin :
+  /// `confirmer_encaissement_especes()` (025) passe le paiement en « paid »
+  /// puis appelle `confirm_booking()`. Il n'y a qu'une porte vers
+  /// « confirmed », et c'est pour cela que l'index du §6.1 protège celle-ci
+  /// aussi bien que l'autre.
+  ///
+  /// On rafraîchit exactement comme après une réponse : l'état de la demande a
+  /// changé, la file des demandes en attente aussi, et le revenu du mois avec.
+  Future<void> confirmerEspeces(DemandeDetail demande) async {
+    await _ref
+        .read(ownerRepositoryProvider)
+        .confirmerEncaissementEspeces(demande.bookingId);
+    await _rafraichir(demande);
+  }
+
   /// Ce que la réponse vient de rendre faux, et rien d'autre.
   Future<void> _rafraichir(DemandeDetail demande) async {
     // Le détail lui-même : l'écran doit montrer le nouvel état, l'acompte fixé

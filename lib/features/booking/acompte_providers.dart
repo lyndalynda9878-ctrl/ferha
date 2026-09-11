@@ -111,6 +111,14 @@ class PaiementService {
     required String bookingId,
     required MoyenDePaiement moyen,
   }) async {
+    // Les espèces ne passent pas par ici : elles n'ouvrent aucune caisse. Une
+    // assertion plutôt qu'une branche — l'écran choisit déjà lequel des deux
+    // gestes il déclenche, et se tromper serait une erreur de programme.
+    assert(
+      moyen.passeParChargily,
+      'Les espèces passent par annoncerEspeces(), pas par Chargily.',
+    );
+
     final retour = adressesDeRetour();
     if (retour == null) {
       throw const PaiementHorsDuWebException();
@@ -128,6 +136,27 @@ class PaiementService {
 
     return PageDePaiement.depuisJson(
       (reponse.data as Map).cast<String, dynamic>(),
+    );
+  }
+
+  /// Annonce que l'acompte sera versé en main propre (§3, écran 6).
+  ///
+  /// ELLE NE CONFIRME RIEN, et c'est tout le sens du geste : la réservation
+  /// reste « acceptée », l'option de 72 h continue de courir, et le
+  /// propriétaire est prévenu qu'on va lui apporter l'argent. C'est lui qui
+  /// confirmera, une fois les billets comptés.
+  ///
+  /// AUCUNE EDGE FUNCTION ICI. Il n'y a pas de secret à protéger et personne à
+  /// appeler dehors : `payer_en_especes()` (025) est une fonction SQL, appelée
+  /// avec le jeton du client, qui vérifie elle-même à qui est la réservation et
+  /// que l'option court encore.
+  ///
+  /// Idempotente côté base : rappuyer rend l'intention déjà posée, sans
+  /// renotifier le propriétaire.
+  Future<void> annoncerEspeces(String bookingId) async {
+    await _client.rpc<dynamic>(
+      'payer_en_especes',
+      params: <String, dynamic>{'p_booking_id': bookingId},
     );
   }
 }

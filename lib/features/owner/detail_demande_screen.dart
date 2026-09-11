@@ -44,6 +44,13 @@ const Key cleAccepter = Key('demande-accepter');
 const Key cleRefuser = Key('demande-refuser');
 
 /// Le champ de motif de la fenêtre de confirmation.
+/// Le bouton « J'ai reçu l'acompte », sur une demande où le client a annoncé
+/// un versement en espèces.
+const Key cleEncaissementEspeces = Key('demande-especes-confirmer');
+
+/// La fenêtre qui le confirme.
+const Key cleConfirmerEspeces = Key('demande-especes-oui');
+
 const Key cleMotif = Key('demande-motif');
 
 /// Le bouton qui refuse pour de bon, dans la fenêtre.
@@ -106,6 +113,10 @@ class _Detail extends StatelessWidget {
               _Devis(demande: demande),
               const SizedBox(height: 20),
               _Contact(demande: demande),
+              if (demande.especesEnAttente) ...<Widget>[
+                const SizedBox(height: 20),
+                _EspecesAConfirmer(demande: demande),
+              ],
             ],
           ),
         ),
@@ -489,6 +500,162 @@ class _Contact extends StatelessWidget {
 // =============================================================================
 // Les deux boutons
 // =============================================================================
+
+/// « Le client vient vous apporter l'acompte » — et le bouton qui le constate.
+///
+/// IL N'APPARAÎT QUE QUAND UN VERSEMENT EST ANNONCÉ (`especes_en_attente`), et
+/// jamais autrement. Un bouton « J'ai reçu l'acompte » toujours visible
+/// inviterait le propriétaire à prendre une date pour de l'argent que personne
+/// ne lui a promis — et c'est lui qui en porterait la conséquence le jour où
+/// deux familles se présenteraient.
+///
+/// IL DEMANDE CONFIRMATION, TOUJOURS. Ce tap prend la date : il fait passer la
+/// réservation en « confirmée », exactement comme un paiement Chargily, et rien
+/// ne la fera revenir en arrière. Un geste irréversible qui se déclenche au
+/// premier appui, sur un écran qu'on parcourt, est un geste qu'on finit par
+/// faire par erreur.
+///
+/// LE MONTANT AFFICHÉ EST `acompteDu`, l'entier — le même que celui que le
+/// client a lu sur son écran 6. C'est ce qu'il apportera, et c'est donc ce
+/// qu'il faut compter.
+class _EspecesAConfirmer extends ConsumerStatefulWidget {
+  const _EspecesAConfirmer({required this.demande});
+
+  final DemandeDetail demande;
+
+  @override
+  ConsumerState<_EspecesAConfirmer> createState() => _EspecesAConfirmerState();
+}
+
+class _EspecesAConfirmerState extends ConsumerState<_EspecesAConfirmer> {
+  bool _enCours = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.ferhaColors;
+    final text = Theme.of(context).textTheme;
+    final montant = widget.demande.acompteDu;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsetsDirectional.all(14),
+      decoration: BoxDecoration(
+        color: colors.primarySoft,
+        borderRadius: FerhaRadii.cardBorder,
+        border: Border.all(color: colors.primary),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Icon(
+                Icons.payments_outlined,
+                size: 18,
+                color: colors.primaryDeep,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Acompte en espèces annoncé',
+                  style: text.titleSmall?.copyWith(
+                    color: colors.primaryDeep,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            montant == null
+                ? '${widget.demande.client} vous apportera l’acompte à la '
+                      'salle. Confirmez une fois que vous l’aurez reçu : la '
+                      'date sera alors prise.'
+                : '${widget.demande.client} vous apportera '
+                      '${montantEnDinars(montant)} DA à la salle. Confirmez '
+                      'une fois que vous les aurez reçus : la date sera alors '
+                      'prise.',
+            style: text.bodySmall?.copyWith(color: colors.inkSecondary),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              key: cleEncaissementEspeces,
+              onPressed: _enCours ? null : _confirmer,
+              icon: _enCours
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.check, size: 18),
+              label: const Text('J’ai reçu l’acompte'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _confirmer() async {
+    final montant = widget.demande.acompteDu;
+
+    final confirme = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirmer l’encaissement ?'),
+        content: Text(
+          montant == null
+              ? 'La date sera prise et ne pourra plus être rendue. Ne '
+                    'confirmez qu’une fois l’argent en main.'
+              : 'Vous confirmez avoir reçu ${montantEnDinars(montant)} DA de '
+                    '${widget.demande.client}. La date sera prise et ne pourra '
+                    'plus être rendue — ne confirmez qu’une fois l’argent en '
+                    'main.',
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Pas encore'),
+          ),
+          FilledButton(
+            key: cleConfirmerEspeces,
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Oui, j’ai reçu'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirme != true || !mounted) return;
+
+    setState(() => _enCours = true);
+    try {
+      // Le service, et non le dépôt en direct : c'est lui qui sait ce que cette
+      // confirmation vient de rendre faux — le détail, la file des demandes,
+      // le revenu du mois. L'écran se recharge donc tout seul, l'état passe à
+      // « confirmée » sous les yeux, et ce bloc disparaît : il n'y a plus rien
+      // à confirmer.
+      await ref
+          .read(reponseADemandeServiceProvider)
+          .confirmerEspeces(widget.demande);
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Acompte encaissé. La date est prise.')),
+      );
+    } on Object catch (erreur) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(messageErreurReponse(erreur))));
+    } finally {
+      if (mounted) setState(() => _enCours = false);
+    }
+  }
+}
 
 class _Actions extends ConsumerStatefulWidget {
   const _Actions({required this.demande});

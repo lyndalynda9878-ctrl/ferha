@@ -15,7 +15,8 @@ import 'compression_photo.dart';
 /// cet écran.
 ///
 /// Les quatre premiers codes sont documentés en tête de
-/// `015_repondre_a_une_demande.sql`, et FE014 en tête de
+/// `015_repondre_a_une_demande.sql`, FE060 à FE064 en tête de
+/// `025_paiement_confirme.sql`, et FE014 en tête de
 /// `023_une_option_tient_la_date.sql`. `supabase/tests/003_reponse_proprietaire.sql`
 /// et `010_une_option_tient_la_date.sql` vérifient que la base les pose bien —
 /// ce sont ces tests qui empêchent ce fichier de mentir.
@@ -76,6 +77,41 @@ String? _parCodeFerha(String? hint) {
           'option de 72 h court encore. Vous pourrez répondre à celle-ci '
           'quand l’option aura expiré — l’agenda en donne l’échéance — ou '
           'vous pouvez la refuser dès maintenant.';
+
+    // ------------------------------------------------------------------------
+    // Les refus de l'encaissement en espèces (025). Ils arrivent par le même
+    // écran — le détail d'une demande — et donc par la même fonction.
+    // ------------------------------------------------------------------------
+
+    // FE060 ne devrait pas atteindre l'écran : on n'entre pas dans l'espace
+    // propriétaire sans session. Il reste traduit pour la session qui expire
+    // entre l'ouverture de l'écran et l'appui.
+    case 'FE060':
+      return 'Votre session a expiré. Reconnectez-vous, la demande vous '
+          'attend.';
+
+    case 'FE061':
+      return 'Cette demande ne concerne pas vos salles.';
+
+    // FE062 — il n'y a rien à confirmer. Le cas courant est le double appui :
+    // l'encaissement vient d'être confirmé, et l'écran n'a pas encore fini de
+    // se rafraîchir. La phrase ne gronde donc personne.
+    case 'FE062':
+      return 'Aucun versement en espèces n’est en attente pour cette '
+          'réservation. Elle a peut-être déjà été confirmée.';
+
+    // FE063 — L'OPTION EST MORTE PENDANT QU'IL COMPTAIT LES BILLETS. C'est le
+    // refus le plus délicat de la liste : le propriétaire a l'argent en main,
+    // et la date est repartie à la vente. La phrase doit dire les deux, et
+    // dire quoi faire — parce qu'il y a quelqu'un devant lui qui attend.
+    case 'FE063':
+      return 'Le délai de 72 h est passé et la date est repartie à la vente. '
+          'Ne gardez pas l’acompte : rendez-le, et demandez à la famille de '
+          'refaire une demande si la date est encore libre.';
+
+    case 'FE064':
+      return 'Ce créneau vient d’être confirmé par une autre réservation. '
+          'Rendez l’acompte à la famille — cette date n’est plus disponible.';
 
     default:
       return null;
