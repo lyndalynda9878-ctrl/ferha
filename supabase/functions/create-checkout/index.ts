@@ -37,7 +37,10 @@
 // REVENIR SUR success_url NE CONFIRME RIEN, et le §9 le demande explicitement
 // (« l'endpoint est idempotent », webhook signé). L'écran de retour dit
 // « paiement en cours de vérification » et la réservation reste « accepted »
-// jusqu'au webhook du J16.
+// jusqu'à ce que chargily-webhook parle — c'est lui, et lui seul, qui confirme.
+//
+// L'ADRESSE DE CE WEBHOOK PART AVEC CHAQUE CHECKOUT (webhook_endpoint), pour
+// n'avoir rien à régler à la main dans le tableau de bord Chargily.
 //
 // SECRETS ET VARIABLES
 //   CHARGILY_SECRET_KEY   obligatoire, posée à la main dans le tableau de bord
@@ -308,6 +311,20 @@ Deno.serve(async (requete: Request): Promise<Response> => {
       success_url: retourSucces,
       failure_url: retourEchec,
       locale: LOCALE_CHARGILY,
+      // OÙ NOUS PRÉVENIR — et le nom du champ se joue ici.
+      //
+      // Le guide « Webhooks » dit « webhook_url » ; la RÉFÉRENCE API dit
+      // « webhook_endpoint », et l'objet Checkout qu'elle rend porte un
+      // attribut de ce nom. C'est la référence qui fait foi : un objet ne
+      // renvoie pas un champ sous un nom qu'il n'accepte pas. Le guide est
+      // resté en arrière.
+      //
+      // Le déclarer ICI plutôt que dans le tableau de bord Chargily est
+      // délibéré : l'adresse suit le projet. Un projet Supabase recréé, une
+      // clé regénérée, et le reglage fait à la main un jour dans une interface
+      // serait faux sans que personne ne s'en aperçoive — les paiements
+      // partiraient, et aucune reservation ne se confirmerait.
+      webhook_endpoint: `${supabaseUrl}/functions/v1/chargily-webhook`,
       description: `Acompte Ferha — ${du.venue_name}, le ${du.event_date}`,
       // Le rapprochement comptable du §4.4 (ADM-03) : le webhook du J16
       // retrouvera la réservation par checkout_id, et ces deux clés font la
