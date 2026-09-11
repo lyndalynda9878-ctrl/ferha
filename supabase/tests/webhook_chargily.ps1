@@ -154,8 +154,13 @@ function Send-Evenement {
         }
     }
 
-    $couleur = if ($Attendu -and ($texte -notlike "*$Attendu*") -and
-                   ($code -ne [int]$Attendu)) { 'Red' } else { 'Green' }
+    # On compare EN TEXTE, des deux cotes. $Attendu vaut tantot un code HTTP
+    # (« 401 »), tantot un resultat rendu par la base (« confirme ») : forcer
+    # un cast en entier fait exploser le script sur le second — c'est arrive.
+    $reussi = (-not $Attendu) -or
+              ($texte -like "*$Attendu*") -or
+              ("$code" -eq $Attendu)
+    $couleur = if ($reussi) { 'Green' } else { 'Red' }
 
     Write-Host "   HTTP $code  $texte" -ForegroundColor $couleur
     if ($Attendu) { Write-Host "   attendu : $Attendu" -ForegroundColor DarkGray }
