@@ -32,6 +32,7 @@ seulement :
 | 19 | `migrations/019_adresse_de_la_salle.sql` | `venues.address` — **redéfinit `creer_salle()`**, et retire `address` du SELECT public | 001, 002, 017 |
 | 20 | `migrations/020_telephone_joignable.sql` | la règle du téléphone — **redéfinit `handle_new_user()`, `envoyer_salle_en_validation()` et `request_booking()`** | 001, 004, 006, 007, 012, 019 |
 | 21 | `migrations/021_photos_de_la_salle.sql` | le bucket `venue-photos`, ses politiques, `ajouter_photo()`, `supprimer_photo()`, `reordonner_photos()` — **redéfinit `envoyer_salle_en_validation()`** | 001, 002, 017, 020 |
+| 22 | `migrations/022_delais_et_alertes.sql` | pg_cron, les notifications lisibles et le temps réel — **redéfinit `notify_user()`, `request_booking()` et `expire_options()`** | 004, 006, 012, 020 |
 
 `002` a besoin des tables de `001`. `003` a besoin de la table `amenities` de
 `001`, mais pas de `002`. Appliquer `002` avant `003` reste le bon ordre : le
@@ -74,9 +75,10 @@ psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/018_garde_privile
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/019_adresse_de_la_salle.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/020_telephone_joignable.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/021_photos_de_la_salle.sql
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/022_delais_et_alertes.sql
 ```
 
-Les vingt-et-un fichiers sont **rejouables** : les relancer sur une base déjà à jour
+Les vingt-deux fichiers sont **rejouables** : les relancer sur une base déjà à jour
 ne produit ni erreur ni doublon. `003` va plus loin et met à jour les libellés
 existants — c'est le moyen prévu pour corriger une traduction.
 
@@ -106,6 +108,8 @@ Les fonctions appelées en RPC depuis Flutter :
 | `booking_quote()` (012) | demande — le devis | droits de l'appelant, ouvert à `anon` |
 | `request_booking()` (**020**) | demande — l'envoi | `SECURITY DEFINER`, fermée à `anon` |
 | `client_bookings()` (013) | mes réservations | `SECURITY DEFINER`, fermée à `anon` |
+| `mes_notifications()` (022) | notifications, et le badge de la cloche | droits de l'appelant, fermée à `anon` |
+| `marquer_notifications_lues()` (022) | notifications — une, ou toutes | droits de l'appelant, fermée à `anon` |
 
 `booking_quote()` est ouverte aux visiteurs et `request_booking()` ne l'est pas :
 c'est toute la règle du parcours (§3). On montre un prix à qui le demande ; on ne
@@ -128,6 +132,113 @@ refused                       expired                         completed ──> 
 cliente** : il n'existe volontairement aucune politique `UPDATE` ni `DELETE` sur
 `bookings`. Les six fonctions sont `SECURITY DEFINER` et vérifient chacune qui
 appelle et d'où l'on part (§9).
+
+**Une seule de ces flèches ne part de personne** : `expire_options()`. Voir
+ci-dessous.
+
+## L'option de 72 h s'éteint toute seule (022)
+
+Le §5.1 pose une option de 72 h sur une demande acceptée, et dit qu'elle expire
+« automatiquement » sans acompte. Deux tâches **pg_cron**, posées par la
+migration 022, portent ce mot :
+
+| Tâche | Quand | Ce qu'elle fait |
+|---|---|---|
+| `ferha-expire-options` | toutes les 15 min | `select public.expire_options();` |
+| `ferha-purge-cron-history` | tous les jours à 3 h 20 | efface les exécutions de plus de 7 jours dans `cron.job_run_details` |
+
+```sql
+-- Ce que fait le cron, à la main :
+select public.expire_options();      -- rend le nombre de RÉSERVATIONS expirées
+
+-- Les deux tâches, et leurs dernières exécutions :
+select jobname, schedule, active from cron.job;
+select j.jobname, d.status, d.start_time, d.return_message
+from cron.job_run_details d join cron.job j using (jobid)
+order by d.start_time desc limit 10;
+```
+
+**Pas d'Edge Function**, alors que le §7.2 en dessine une (`expire-options`,
+cron horaire). Elle n'aurait fait qu'appeler par HTTP une fonction SQL qui
+existe déjà : un secret de plus à garder, et une panne possible entre deux
+morceaux qui vivent dans la même base.
+
+**Toutes les 15 minutes et non toutes les heures.** Une heure de retard sur une
+option échue, c'est une heure pendant laquelle une date libre se lit « prise »
+dans `owner_agenda()` — et c'est justement le moment où une autre famille
+regarde.
+
+**Les demandes `pending` n'expirent pas**, et ce n'est pas un oubli : le §5.1
+n'y pose aucune échéance, et une demande en attente ne coûte la date à
+personne. Un propriétaire parti en voyage retrouve ses demandes au retour
+plutôt qu'un écran vide.
+
+## Les notifications (§4.1, CORE-04)
+
+`notify_user()` est le **seul** chemin vers `notifications` : la table n'a
+aucune politique `INSERT`. Depuis 022, la fonction ne se contente plus de
+déposer deux identifiants — elle **remplit le payload** à partir de
+`booking_groups` :
+
+```json
+{
+  "booking_id": "…", "group_id": "…", "venue_id": "…",
+  "venue_name": "Salle El Bahia", "commune": "Oran",
+  "event_date": "2027-08-14", "requested_slot": "journee",
+  "slots": ["midi", "soir"], "guest_count": 400,
+  "role": "client"
+}
+```
+
+Trois conséquences, et elles se voient toutes à l'écran :
+
+- **Le texte ne demande aucune seconde requête.** L'écran écrit « Salle El
+  Bahia · 14 août 2027, journée · 400 invités » avec ce qu'il a reçu — pas une
+  requête par ligne, et pas un nom de salle écrit en dur côté Flutter.
+- **Le texte est figé.** Une salle renommée demain ne réécrit pas l'annonce
+  d'hier. C'est la différence entre une notification et une vue.
+- **`role` décide de l'écran d'arrivée.** `booking_confirmed` part aux deux
+  parties, avec le même type et le même identifiant de demande ; seul le rôle
+  distingue « Mes réservations » du détail de la demande côté propriétaire.
+
+`booking_id` est toujours **normalisé** vers la ligne représentative du groupe
+(`slots[1]`), celle qu'attendent `owner_request_detail()`, `accepter_demande()`
+et `refuser_demande()`. Une journée entière s'ouvre donc toujours par la même
+de ses deux lignes.
+
+### Qui est prévenu, et une seule fois
+
+| Changement d'état | Qui reçoit | Type |
+|---|---|---|
+| nouvelle demande | le propriétaire | `booking_requested` |
+| acceptation, contre-proposition | le client | `booking_answered` (`status: accepted`) |
+| refus | le client | `booking_answered` (`status: refused`) |
+| acompte reçu | **les deux** | `booking_confirmed` |
+| annulation | **l'autre** partie, pas celle qui a cliqué | `booking_cancelled` |
+| option de 72 h échue | **les deux** | `booking_expired` |
+| événement honoré | le client | `review_invitation` |
+
+**Une réservation, une notification — jamais une par ligne.** Une journée
+entière occupe deux lignes de `bookings` ; elle ne s'annonce, ne s'accepte et
+n'expire qu'une fois. `tests/009_delais_et_alertes.sql` compte chacun de ces
+sept gestes, et c'est le seul test qui attrape la notification **en trop** —
+celle qu'on ajoute « pour être sûr » et qui ne casse rien en apparence.
+
+`booking_expired` est un type à part et non un `booking_cancelled` portant un
+motif : « votre réservation a été annulée » laisse croire que quelqu'un l'a
+annulée, alors que personne n'a rien fait — et que c'est justement le problème.
+
+### `notifications` en temps réel
+
+La table est dans la publication `supabase_realtime` depuis 022, comme
+`bookings` depuis 013. **La politique `notifications_select_own` (006) est le
+seul garde-fou** : Realtime l'évalue pour chaque abonné avant de lui livrer une
+ligne. Ouvrir la publication n'ouvre donc pas la table.
+
+C'est le point que `tests/009` vérifie le plus sérieusement : une politique
+relâchée ne se verrait nulle part dans l'application — chacun continuerait de
+voir sa liste — et enverrait pourtant les demandes des uns sur le téléphone des
+autres.
 
 ## Règles portées par la base
 
@@ -509,6 +620,25 @@ un client connecté, la lecture par un inconnu, et la signature de
 
 ## Ce qui manque encore
 
+- **LES ALERTES QUI SORTENT DE L'APPLICATION N'EXISTENT PAS.** L'étape J14 a
+  posé les notifications *dans* l'application — table, temps réel, cloche, écran
+  — et rien au-delà. Le §4.1 (CORE-04) et le §6 en prévoient plus :
+
+  1. **le push téléphone (FCM)**, prévu en V1 « par-dessus le reste sans rien
+     changer » : il lira la même table `notifications`, et c'est pour cela que
+     le payload s'y suffit à lui-même depuis 022 ;
+  2. **les e-mails**, pour ce qui doit survivre à une application désinstallée ;
+  3. **les rappels J-7 et J-1** : les deux types `reminder_j7` et `reminder_j1`
+     existent dans la contrainte `CHECK` depuis `004`, et **personne ne les
+     dépose**. Ce sera une troisième tâche pg_cron, quotidienne, à côté des deux
+     de 022 — et elle devra retenir ce qu'elle a déjà envoyé, sans quoi elle
+     rappellera le même mariage chaque jour ;
+  4. **l'invitation à laisser un avis** : `complete_booking()` dépose déjà
+     `review_invitation`, mais l'écran qui la reçoit n'existe pas encore (J17).
+     La notification s'affiche et mène au suivi des réservations, faute de
+     mieux ;
+  5. **le bouton WhatsApp**, qui n'est écrit nulle part encore.
+
 - **UNE SALLE NE PEUT PAS ÊTRE PUBLIÉE SANS GRILLE TARIFAIRE, ET RIEN NE
   L'EMPÊCHE ENCORE.** C'est le trou ouvert par l'étape J12, et il est écrit ici
   pour qu'on ne le découvre pas par un propriétaire qui attend des demandes.
@@ -564,6 +694,11 @@ un client connecté, la lecture par un inconnu, et la signature de
   salle, par une **vue distincte n'exposant que le prénom** des propriétaires
   ayant au moins une salle publiée. Prénom seul, pas de nom de famille, pas
   d'e-mail, pas de numéro.
+- **`notifications` n'est jamais purgée.** Rien n'efface une notification lue de
+  2026, et la table grossira d'autant. Elle est petite et indexée sur
+  `(user_id, created_at desc) where read_at is null` — le badge ne lit que les
+  non lues —, mais une purge des lues de plus de six mois fera une troisième
+  tâche pg_cron le jour où cela se verra. Il n'y a rien à décider avant.
 - **`bookings` a la `REPLICA IDENTITY` par défaut**, c'est-à-dire la clé
   primaire. Les événements Realtime portent donc la nouvelle ligne entière mais
   un `old_record` réduit à l'identifiant. Cela suffit ici — l'écran recharge par
@@ -619,7 +754,7 @@ sur un avis déjà publié.
 
 ## Tests
 
-Huit fichiers, qui se collent tels quels dans l'éditeur SQL de Supabase et
+Neuf fichiers, qui se collent tels quels dans l'éditeur SQL de Supabase et
 annulent tout par un `ROLLBACK` final. Une erreur rouge commençant par « ÉCHEC »
 signale la règle qui ne tient plus.
 
@@ -633,6 +768,7 @@ signale la règle qui ne tient plus.
 | `tests/006_garde_privileges_profil.sql` | un compte connecté ne se fait pas administrateur, ne se déclare pas propriétaire sans salle — et `creer_salle()` marche toujours |
 | `tests/007_adresse_et_telephone.sql` | une salle sans adresse est refusée, le numéro est exigé aux deux endroits où quelqu'un décrochera, **l'adresse ne se lit pas même en interrogeant la table**, et un inconnu ne lit toujours aucun numéro |
 | `tests/008_photos_de_la_salle.sql` | la couverture EST la première photo, réordonner la déplace, **un autre compte n'écrit ni ligne ni fichier dans mon dossier**, la 21e est refusée et une salle de moins de 5 photos ne part pas en validation |
+| `tests/009_delais_et_alertes.sql` | une option échue s'éteint et rend la date, une option vivante et une réservation confirmée ne bougent pas, une journée entière expire d'un bloc, relancer le cron ne notifie pas deux fois, le payload se suffit à lui-même, **un compte ne lit jamais les notifications d'un autre**, et chacun des six changements d'état prévient la bonne personne une seule fois |
 
 Le huitième va plus loin encore : pour mesurer les politiques du bucket, il
 lève au passage `storage.allow_delete_query`, le verrou de Supabase qui refuse
