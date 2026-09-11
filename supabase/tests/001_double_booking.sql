@@ -22,7 +22,9 @@
 -- CE QU'IL LAISSE : rien. Tout est fait dans une transaction annulée à la fin,
 -- et la dernière requête, hors transaction, le prouve.
 --
--- Prérequis : migrations 001 à 006 appliquées.
+-- Prérequis : migrations 001 à 007 appliquées.
+-- (007 crée un profil au premier auth.users : le décor le remplace au lieu
+--  de se heurter à lui)
 -- =============================================================================
 
 begin;
@@ -69,7 +71,13 @@ begin
   insert into public.profiles (id, full_name, email, is_owner) values
     (c_owner,    'Propriétaire de test', 'test-owner@ferha.test',    true),
     (c_client_a, 'Cliente A de test',    'test-client-a@ferha.test', false),
-    (c_client_b, 'Client B de test',     'test-client-b@ferha.test', false);
+    (c_client_b, 'Client B de test',     'test-client-b@ferha.test', false)
+  -- Le déclencheur de 007 crée déjà un profil à l'insertion dans auth.users, avec
+  -- un nom déduit de l'e-mail. On repose le nôtre par-dessus : ce test-ci ne
+  -- porte pas sur les profils, il a seulement besoin des trois comptes.
+  on conflict (id) do update
+    set full_name = excluded.full_name,
+        is_owner  = excluded.is_owner;
 
   insert into public.venues (id, owner_id, name, wilaya_code, commune,
                              capacity_seated, status)

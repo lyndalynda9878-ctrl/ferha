@@ -46,7 +46,8 @@
 --
 -- CE QU'IL LAISSE : rien. Tout est fait dans une transaction annulée à la fin.
 --
--- Prérequis : migrations 001 à 017 appliquées, et les référentiels remplis
+-- Prérequis : migrations 001 à 021 appliquées, et les référentiels remplis
+-- (021 ajoute la borne des photos : le décor du test 4 les pose désormais)
 --             (003 équipements, 009 wilayas, 010 types d'événement).
 -- =============================================================================
 
@@ -280,6 +281,19 @@ begin
   perform set_config('request.jwt.claims',
                      json_build_object('sub', c_amina, 'role', 'authenticated')::text,
                      true);
+
+  -- LES PHOTOS, PARCE QUE 021 LES EXIGE. `envoyer_salle_en_validation()` refuse
+  -- sous photos_min() photos (FE041) : une salle qu'un modérateur ne peut pas
+  -- regarder n'est pas prête à être regardée. Ce test-ci ne porte pas sur cette
+  -- règle — 008_photos_de_la_salle.sql s'en charge — il a seulement besoin
+  -- d'une salle en état d'être envoyée.
+  --
+  -- LA BORNE EST LUE, PAS ÉCRITE : photos_min() dit 5 aujourd'hui, et ce test
+  -- suivra le jour où elle dira autre chose.
+  for v_lignes in 1..public.photos_min() loop
+    perform * from public.ajouter_photo(
+      v_salle, v_salle || '/' || gen_random_uuid() || '.webp');
+  end loop;
 
   select v.status into v_statut
   from public.envoyer_salle_en_validation(v_salle, '0770 11 22 33') v;

@@ -52,7 +52,8 @@
 --
 -- CE QU'IL LAISSE : rien. Tout est fait dans une transaction annulée à la fin.
 --
--- Prérequis : migrations 001 à 020 appliquées, et les référentiels remplis
+-- Prérequis : migrations 001 à 021 appliquées, et les référentiels remplis
+-- (021 ajoute la borne des photos : le décor du test 3 les pose désormais)
 --             (003 équipements, 009 wilayas, 010 types d'événement).
 -- =============================================================================
 
@@ -75,6 +76,7 @@ declare
   v_phone    text;
   v_bool     boolean;
   v_texte    text;
+  v_rang     integer;
 begin
   insert into auth.users (instance_id, id, aud, role, email,
                           encrypted_password, email_confirmed_at,
@@ -208,7 +210,18 @@ begin
   -- Karim tape son numéro comme il est écrit sur sa carte de visite. Ce qui
   -- part en validation, c'est la salle ; ce qui reste dans le profil, c'est un
   -- numéro sans espaces.
+  --
+  -- LES PHOTOS D'ABORD, PARCE QUE 021 LES EXIGE. Le numéro est contrôlé avant
+  -- elles — c'est pour cela que les tests 1 et 2 tiennent sans photo — mais
+  -- l'envoi, lui, en demande photos_min(). Ce test ne porte pas sur cette
+  -- règle (008_photos_de_la_salle.sql s'en charge) : il a seulement besoin
+  -- d'une salle en état de partir. La borne est lue, jamais écrite.
   -- ---------------------------------------------------------------------------
+  for v_rang in 1..public.photos_min() loop
+    perform * from public.ajouter_photo(
+      v_salle, v_salle || '/' || gen_random_uuid() || '.webp');
+  end loop;
+
   select v.status into v_texte
   from public.envoyer_salle_en_validation(v_salle, '0770 11 22 33') v;
 
@@ -323,7 +336,8 @@ begin
       'booking_contact() ne rendrait rien au propriétaire (§9).', coalesce(v_phone, 'NULL');
   end if;
 
-  raise notice 'OK 5 — sans numéro valide, pas de demande : FE007, sqlstate %. Avec, le profil suit.';
+  raise notice 'OK 5 — sans numéro valide, pas de demande : FE007, sqlstate %. Avec, le profil suit.',
+    v_sqlstate;
 end $$;
 
 -- =============================================================================
