@@ -7,6 +7,13 @@
 --   accepter_demande()  pending → accepted, option de 72 h posée
 --   refuser_demande()   pending → refused, motif facultatif
 --
+-- ⚠ LA VERSION COURANTE DE accepter_demande() EST DANS
+--   023_une_option_tient_la_date.sql. Le garde-fou d'ici ne regardait que
+--   « confirmed » et « completed » : le propriétaire pouvait accepter DEUX
+--   familles sur le même créneau, chacune avec son option de 72 h. 023 ajoute
+--   le refus FE014 et fait venir la règle de tient_la_date(). refuser_demande(),
+--   elle, est toujours celle d'ici.
+--
 -- CES DEUX FONCTIONS NE REFONT PAS LA TRANSITION — ELLES Y MÈNENT.
 --
 -- accept_booking() et refuse_booking() existent depuis 004. Elles vérifient

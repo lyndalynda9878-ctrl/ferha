@@ -23,13 +23,16 @@
 --     Le calendrier dit qu'un créneau est pris. Pas par qui.
 --
 -- ⚠ LA VERSION COURANTE DE venue_detail() EST DANS 012_booking_request.sql.
+-- ⚠ LA VERSION COURANTE DE venue_calendar() EST DANS
+--   023_une_option_tient_la_date.sql : une date sous option de 72 h s'y affiche
+--   « reserve » (§5.1), et la règle vient de tient_la_date().
 --
 -- Celle d'ici ne renvoyait ni les options de la salle — l'écran 5 n'existait
 -- pas encore — ni le référentiel des types d'événement quand le propriétaire
 -- n'en a déclaré aucun. Le fichier reste tel qu'il a été appliqué — on ne
 -- réécrit pas une migration passée — mais c'est 012 qui fait foi pour
--- venue_detail(), et c'est lui qu'il faut modifier. venue_calendar(), elle,
--- est toujours celle d'ici.
+-- venue_detail(), et 023 pour venue_calendar() : ce sont ceux-là qu'il faut
+-- modifier.
 --
 -- Rejouable : les fonctions sont remplacées.
 -- =============================================================================

@@ -24,6 +24,12 @@
 -- dépassée : elle ne pouvait pas filtrer sur une table qui n'existait pas
 -- encore. C'est la version d'ici qui fait foi.
 --
+-- ⚠ CE N'EST PLUS VRAI DEPUIS 023_une_option_tient_la_date.sql. La version
+-- courante de search_venues() est là-bas : son filtre de disponibilité passe
+-- désormais par creneau_est_pris(), pour qu'une option de 72 h en cours retire
+-- la salle des résultats (§5.1). Le fichier reste tel qu'il a été appliqué —
+-- on ne réécrit pas une migration passée — mais c'est 023 qu'il faut modifier.
+--
 -- Rejouable : chaque objet est créé sous condition d'absence, le référentiel
 -- est posé en ON CONFLICT, et la fonction est remplacée.
 -- =============================================================================

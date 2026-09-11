@@ -248,6 +248,19 @@ void main() {
       expect(message, contains('refuser'));
     });
 
+    test('FE014 dit son propre engagement, et les deux issues', () {
+      final message = phrase('FE014');
+      // Ce n'est pas une course perdue : c'est lui qui a déjà dit oui. La
+      // phrase doit donc parler de SON acceptation, pas d'une confirmation
+      // venue d'ailleurs — sans quoi Karim chercherait un coupable qui n'existe
+      // pas.
+      expect(message, contains('déjà accepté'));
+      expect(message, isNot(contains('confirmé entre-temps')));
+      // Et les deux gestes qui lui restent : attendre l'échéance, ou refuser.
+      expect(message, contains('option'));
+      expect(message, contains('refuser'));
+    });
+
     test('FE012 ne gronde personne', () {
       expect(phrase('FE012'), contains('déjà reçu une réponse'));
     });
@@ -258,7 +271,13 @@ void main() {
     });
 
     test('aucun code Ferha n’atteint l’écran', () {
-      for (final code in <String>['FE010', 'FE011', 'FE012', 'FE013']) {
+      for (final code in <String>[
+        'FE010',
+        'FE011',
+        'FE012',
+        'FE013',
+        'FE014',
+      ]) {
         expect(
           phrase(code),
           isNot(contains('FE')),

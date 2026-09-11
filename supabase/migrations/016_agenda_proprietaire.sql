@@ -9,6 +9,12 @@
 --   bloquer_date()    le propriétaire ferme un créneau, avec son motif
 --   debloquer_date()  il le rouvre
 --
+-- ⚠ LES VERSIONS COURANTES DE owner_agenda() ET DE bloquer_date() SONT DANS
+--   023_une_option_tient_la_date.sql : l'état d'une réservation y vient de
+--   tient_la_date(), qui regarde l'échéance de l'option. Une option ÉCHUE que
+--   le cron n'a pas encore rangée ne se peint donc plus « option » et n'empêche
+--   plus de fermer la date. debloquer_date() est toujours celle d'ici.
+--
 -- UN SEUL ALLER-RETOUR POUR UN MOIS, ET DEUX CRÉNEAUX DEDANS. C'est la
 -- contrainte du §7.3 — la 4G algérienne — appliquée à un écran qu'on feuillette.
 -- owner_agenda() rend la GRILLE COMPLÈTE : une ligne par jour et par créneau,

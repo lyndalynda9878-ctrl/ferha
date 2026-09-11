@@ -14,9 +14,11 @@ import 'compression_photo.dart';
 /// traduit en arabe, et peut être réécrit demain sans que personne ne pense à
 /// cet écran.
 ///
-/// Les quatre codes sont documentés en tête de `015_repondre_a_une_demande.sql`,
-/// et `supabase/tests/003_reponse_proprietaire.sql` vérifie que la base les
-/// pose bien — c'est ce test qui empêche ce fichier de mentir.
+/// Les quatre premiers codes sont documentés en tête de
+/// `015_repondre_a_une_demande.sql`, et FE014 en tête de
+/// `023_une_option_tient_la_date.sql`. `supabase/tests/003_reponse_proprietaire.sql`
+/// et `010_une_option_tient_la_date.sql` vérifient que la base les pose bien —
+/// ce sont ces tests qui empêchent ce fichier de mentir.
 String messageErreurReponse(Object erreur) {
   if (erreur is PostgrestException) {
     final traduit = _parCodeFerha(erreur.hint);
@@ -59,6 +61,21 @@ String? _parCodeFerha(String? hint) {
       return 'Ce créneau a été confirmé entre-temps par une autre '
           'réservation. Vous ne pouvez plus accepter celle-ci — vous pouvez '
           'la refuser en expliquant pourquoi.';
+
+    // FE014 — CE N'EST PAS UNE COURSE PERDUE, C'EST SON PROPRE ENGAGEMENT.
+    // Karim a déjà dit oui à une autre famille sur ce créneau, et l'option de
+    // 72 h du §5.1 court encore : la date est tenue, et la tenir est
+    // précisément ce qu'on lui a promis. La phrase se garde donc de tout
+    // reproche, et dit les deux choses qu'il peut faire — attendre l'échéance,
+    // que l'agenda affiche, ou refuser tout de suite pour libérer la famille
+    // qui attend. Elle ne nomme pas l'autre cliente : son nom est dans
+    // l'agenda, sur la case du jour, et n'a rien à faire dans un message
+    // d'erreur.
+    case 'FE014':
+      return 'Vous avez déjà accepté une autre demande sur ce créneau, et son '
+          'option de 72 h court encore. Vous pourrez répondre à celle-ci '
+          'quand l’option aura expiré — l’agenda en donne l’échéance — ou '
+          'vous pouvez la refuser dès maintenant.';
 
     default:
       return null;

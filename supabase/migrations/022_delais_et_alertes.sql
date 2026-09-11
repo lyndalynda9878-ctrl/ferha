@@ -10,6 +10,10 @@
 --   request_booking()             notifie APRÈS l'insertion, avec l'identifiant
 --                                 de la demande — sans lui, la notification du
 --                                 propriétaire n'ouvrait rien
+--                                 ⚠ VERSION COURANTE DANS 023 : son garde-fou
+--                                 de créneau passe par creneau_est_pris(), et
+--                                 une option de 72 h en cours refuse désormais
+--                                 la demande (FE001, §5.1)
 --   expire_options()              une journée entière expire d'un bloc et ne
 --                                 prévient qu'une fois, les DEUX parties
 --   deux tâches pg_cron           l'expiration toutes les 15 min, la purge de
