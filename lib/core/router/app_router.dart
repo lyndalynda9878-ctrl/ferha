@@ -10,6 +10,7 @@ import '../../features/booking/booking_providers.dart';
 import '../../features/booking/demande_envoyee_screen.dart';
 import '../../features/booking/demande_screen.dart';
 import '../../features/booking/mes_reservations_screen.dart';
+import '../../features/notifications/notifications_screen.dart';
 import '../../features/owner/agenda_screen.dart';
 import '../../features/owner/detail_demande_screen.dart';
 import '../../features/owner/photos_salle_screen.dart';
@@ -170,6 +171,16 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: FerhaRoutes.mesReservations,
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) => const MesReservationsScreen(),
+      ),
+
+      // Les notifications. Pas de redirection ici non plus : c'est la cloche
+      // qui appelle `exigerConnexion` avant d'ouvrir l'écran, et
+      // `mes_notifications()` qui ne rend rien sans session. Une `redirect`
+      // ferait un troisième gardien pour la même règle.
+      GoRoute(
+        path: FerhaRoutes.notifications,
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const NotificationsScreen(),
       ),
 
       // LE TABLEAU DE BORD DU PROPRIÉTAIRE, ET LA SEULE REDIRECTION DU ROUTEUR.

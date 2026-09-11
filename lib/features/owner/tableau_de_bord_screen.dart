@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/router/routes.dart';
 import '../../core/theme/ferha_colors.dart';
 import '../../core/theme/ferha_radii.dart';
+import '../notifications/widgets/cloche_notifications.dart';
 import '../search/search_filters.dart';
 import '../search/widgets/etats.dart';
 import 'demande_en_attente.dart';
@@ -59,6 +60,11 @@ class TableauDeBordScreen extends ConsumerWidget {
         title: salle == null
             ? const Text('Tableau de bord')
             : _TitreSalle(espace: espace.requireValue),
+        // LA MÊME CLOCHE QUE SUR L'ACCUEIL, et pas une autre : Karim reçoit ses
+        // demandes ici, mais il peut aussi avoir réservé une salle ailleurs.
+        // Deux cloches qui compteraient chacune la moitié des notifications
+        // donneraient deux nombres, et aucun des deux ne serait le bon.
+        actions: const <Widget>[ClocheNotifications(), SizedBox(width: 4)],
       ),
       body: switch (espace) {
         AsyncError(:final error) => EtatErreur(

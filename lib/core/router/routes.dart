@@ -78,6 +78,20 @@ abstract final class FerhaRoutes {
   /// `auth.uid()`.
   static const String mesReservations = '/mes-reservations';
 
+  /// Les notifications de l'utilisateur connecté. `/notifications`
+  ///
+  /// HORS DE LA BARRE D'ONGLETS, ET HORS DU PRÉFIXE PROPRIÉTAIRE. Elle sert les
+  /// deux côtés : la cloche de l'accueil (écran 1) et celle du tableau de bord
+  /// mènent ici, et la même liste contient les réponses d'un propriétaire à ses
+  /// demandes et les demandes reçues sur ses salles. La ranger sous
+  /// `/proprietaire/` la ferait disparaître le jour où cet espace prendra sa
+  /// barre d'onglets — pour quelqu'un qui n'est peut-être pas propriétaire.
+  ///
+  /// Aucun paramètre : la liste est celle de l'utilisateur connecté, et
+  /// personne d'autre ne peut la demander — `mes_notifications()` ne voit que
+  /// ce que la politique RLS lui laisse voir.
+  static const String notifications = '/notifications';
+
   /// Tableau de bord du propriétaire. `/proprietaire/tableau`
   ///
   /// SOUS UN PRÉFIXE DÈS AUJOURD'HUI, ALORS QU'IL N'Y A QU'UN ÉCRAN. C'est le
