@@ -33,6 +33,8 @@ seulement :
 | 20 | `migrations/020_telephone_joignable.sql` | la règle du téléphone — **redéfinit `handle_new_user()`, `envoyer_salle_en_validation()` et `request_booking()`** | 001, 004, 006, 007, 012, 019 |
 | 21 | `migrations/021_photos_de_la_salle.sql` | le bucket `venue-photos`, ses politiques, `ajouter_photo()`, `supprimer_photo()`, `reordonner_photos()` — **redéfinit `envoyer_salle_en_validation()`** | 001, 002, 017, 020 |
 | 22 | `migrations/022_delais_et_alertes.sql` | pg_cron, les notifications lisibles et le temps réel — **redéfinit `notify_user()`, `request_booking()` et `expire_options()`** | 004, 006, 012, 020 |
+| 23 | `migrations/023_une_option_tient_la_date.sql` | `tient_la_date()` — LA règle de disponibilité, écrite une seule fois — **redéfinit `search_venues()`, `venue_calendar()`, `request_booking()`, `accepter_demande()`, `owner_agenda()` et `bloquer_date()`** | 004, 008, 010, 011, 012, 014, 015, 016 |
+| 24 | `migrations/024_acompte_chargily.sql` | `montant_acompte()`, `acompte_a_verser()`, `enregistrer_checkout()` — le versement de l'acompte — **redéfinit `client_bookings()`** | 004, 006, 013, 015, 023 |
 
 `002` a besoin des tables de `001`. `003` a besoin de la table `amenities` de
 `001`, mais pas de `002`. Appliquer `002` avant `003` reste le bon ordre : le
@@ -76,9 +78,11 @@ psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/019_adresse_de_la
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/020_telephone_joignable.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/021_photos_de_la_salle.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/022_delais_et_alertes.sql
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/023_une_option_tient_la_date.sql
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/024_acompte_chargily.sql
 ```
 
-Les vingt-deux fichiers sont **rejouables** : les relancer sur une base déjà à jour
+Les vingt-quatre fichiers sont **rejouables** : les relancer sur une base déjà à jour
 ne produit ni erreur ni doublon. `003` va plus loin et met à jour les libellés
 existants — c'est le moyen prévu pour corriger une traduction.
 
@@ -107,7 +111,8 @@ Les fonctions appelées en RPC depuis Flutter :
 | `venue_calendar()` (011) | calendrier | `SECURITY DEFINER` |
 | `booking_quote()` (012) | demande — le devis | droits de l'appelant, ouvert à `anon` |
 | `request_booking()` (**020**) | demande — l'envoi | `SECURITY DEFINER`, fermée à `anon` |
-| `client_bookings()` (013) | mes réservations | `SECURITY DEFINER`, fermée à `anon` |
+| `client_bookings()` (**024**) | mes réservations | `SECURITY DEFINER`, fermée à `anon` |
+| `acompte_a_verser()` (024) | verser l'acompte — l'écran 6 | `SECURITY DEFINER`, fermée à `anon` |
 | `mes_notifications()` (022) | notifications, et le badge de la cloche | droits de l'appelant, fermée à `anon` |
 | `marquer_notifications_lues()` (022) | notifications — une, ou toutes | droits de l'appelant, fermée à `anon` |
 
@@ -598,6 +603,110 @@ connaît que des requêtes — à la seule exception de `demo_accounts.dart`, qu
 porte les deux adresses parce que le cahier des charges demande un accès en un
 tap.
 
+## Le versement de l'acompte (024)
+
+### Un seul arrondi, trois lecteurs
+
+Chargily encaisse des **dinars entiers**. `bookings.deposit_amount` est un
+`numeric(12,2)` : 25 % d'un devis de 205 333 DA font 51 333,25 DA. Il faut donc
+choisir un entier, et le choisir **une seule fois**.
+
+C'est `montant_acompte(group_id)`, et elle arrondit au dinar **supérieur** :
+l'acompte est un minimum convenu, et le rogner de 99 centimes ferait verser au
+client moins que ce que le propriétaire a accepté. Le solde affiché — montant
+convenu moins acompte — absorbe la différence et reste exact au centime.
+
+Trois lecteurs, une seule fonction :
+
+| Qui | Pourquoi |
+|---|---|
+| `acompte_a_verser()` | le « Payer X DA » de l'écran 6 |
+| `client_bookings()` | le « Verser l'acompte — X DA » de la liste |
+| `enregistrer_checkout()` | `payments.amount`, la trace comptable |
+
+Sans cela, le bouton de la liste dirait 51 333 et la caisse en demanderait
+51 334 — un dinar d'écart, au pire moment du parcours.
+
+`montant_acompte()` **ne calcule aucun prix** : `deposit_amount` est déjà en
+base, posée par `accepter_demande()` (015) depuis `deposit_rate()`. Elle n'en
+change que l'unité. Il n'y a toujours qu'une seule formule de prix, et c'est
+`estimate_price()`.
+
+### Les refus, et pourquoi il y en a cinq
+
+`acompte_a_verser()` demande à `tient_la_date()` (023) ce qu'elle doit penser du
+statut — elle ne le relit pas elle-même.
+
+| Code | HTTP | Ce qu'il refuse |
+|---|---|---|
+| `FE050` | 401 | aucune session |
+| `FE051` | 403 | la réservation d'un autre — **ou une réservation inconnue** |
+| `FE052` | 409 | le propriétaire n'a pas encore répondu |
+| `FE053` | 409 | l'option est échue, ou la demande n'est plus en course |
+| `FE054` | 409 | l'acompte est déjà réglé |
+| `FE055` | 400 | moyen de paiement inattendu |
+
+`FE051` ne distingue pas « inconnue » de « pas la vôtre », à dessein : deux
+phrases différentes diraient à un curieux quels identifiants existent.
+
+`FE052`, `FE053` et `FE054` refusent la même chose, mais la **suite à faire**
+diffère — attendre, refaire une demande, ou ne rien faire du tout. Trois
+phrases à l'écran, donc trois codes.
+
+### `payments` reste fermée en écriture au client
+
+Le §9 dit « aucune écriture cliente », et la table n'a **aucune politique
+d'INSERT** : ce n'est pas un oubli. `enregistrer_checkout()` est
+`SECURITY DEFINER` et n'est donnée **qu'au `service_role`** — celui de la Edge
+Function. L'application Flutter ne peut pas l'appeler.
+
+Elle ne prend **pas de montant en paramètre** : elle relit `montant_acompte()`
+au moment d'écrire. Elle revérifie aussi l'option — entre la lecture par la Edge
+Function et son écriture, il s'est écoulé un aller-retour chez Chargily, et une
+option peut s'éteindre pendant ce temps-là.
+
+Elle est **idempotente** sur `checkout_id` (l'index partiel de `004`), comme le
+webhook du J16 devra l'être, et elle éteint les pages abandonnées du même
+groupe : jamais deux paiements « pending » sur une même réservation.
+
+## Les Edge Functions
+
+| Fonction | Appelée par | Ce qu'elle fait | `verify_jwt` |
+|---|---|---|---|
+| `create-checkout` | l'application, avec le jeton de l'utilisateur | ouvre la page de paiement Chargily de l'acompte et range sa trace dans `payments` | oui |
+
+Le code est versionné dans `supabase/functions/`. Elle se déploie avec la CLI :
+
+```bash
+supabase functions deploy create-checkout
+```
+
+### Le secret, et lui seul
+
+**`CHARGILY_SECRET_KEY`** se pose à la main dans le tableau de bord Supabase —
+*Edge Functions › Secrets* —, jamais dans le dépôt, jamais dans `env.json`,
+jamais dans l'application. `SUPABASE_URL`, `SUPABASE_ANON_KEY` et
+`SUPABASE_SERVICE_ROLE_KEY` sont fournies d'office par la plateforme.
+
+**`APP_ORIGIN`** est facultative : posée, elle restreint les adresses de retour
+à ce domaine (les origines locales restent acceptées pour le développement).
+
+Sans `CHARGILY_SECRET_KEY`, la fonction répond `FE058` et l'application dit que
+le paiement en ligne n'est pas encore ouvert — sans nommer aucune clé.
+
+### Mode test, et rien d'autre
+
+L'URL de base est `https://pay.chargily.net/test/api/v2`, et `payments.is_test`
+vaut `true` sur chaque ligne écrite. Le passage en réel changera cette constante
+et la clé du secret, pas le reste du fichier.
+
+### Revenir sur `success_url` ne confirme rien
+
+C'est la règle de cette étape. La fonction écrit une ligne `pending`, et **rien
+de plus** : la réservation reste `accepted`. Seul le webhook signé — le J16 —
+la fera passer en `confirmed`. Tant qu'il n'a pas parlé, l'application dit
+« paiement en cours de vérification ».
+
 ## Ce que lit le calendrier
 
 | Objet | Qui lit | Contenu |
@@ -619,6 +728,25 @@ un client connecté, la lecture par un inconnu, et la signature de
 `venue_calendar()`.
 
 ## Ce qui manque encore
+
+- **LE WEBHOOK CHARGILY N'EXISTE PAS ENCORE, ET DONC RIEN NE PASSE EN
+  `confirmed`.** L'étape J15 a posé la caisse : `create-checkout` ouvre la page
+  de paiement et écrit une ligne `payments` en `pending`. Personne ne la fait
+  avancer. Concrètement, une cliente peut payer et voir sa réservation rester
+  « acceptée » jusqu'à l'expiration de son option.
+
+  Le J16 apportera `chargily-webhook` : signature vérifiée à chaque appel,
+  endpoint **idempotent** (§9), passage par `confirm_booking()` (004) — jamais
+  un `UPDATE` direct sur `bookings` —, et les deux parties prévenues. Il devra
+  aussi traiter les paiements **échoués**, que rien ne range aujourd'hui :
+  `enregistrer_checkout()` n'éteint une ligne `pending` que lorsqu'une page
+  neuve s'ouvre.
+
+- **LE RÈGLEMENT EN ESPÈCES (`payments.method = 'cash'`) N'A PAS DE PARCOURS.**
+  La colonne l'accepte depuis `004` et la maquette de l'écran 6 le dessine en
+  troisième choix ; `enregistrer_checkout()` le **refuse** explicitement, parce
+  qu'un règlement en espèces n'a pas de checkout. Il lui faudra sa propre
+  fonction et une confirmation par le propriétaire.
 
 - **LES ALERTES QUI SORTENT DE L'APPLICATION N'EXISTENT PAS.** L'étape J14 a
   posé les notifications *dans* l'application — table, temps réel, cloche, écran
@@ -754,7 +882,7 @@ sur un avis déjà publié.
 
 ## Tests
 
-Neuf fichiers, qui se collent tels quels dans l'éditeur SQL de Supabase et
+Onze fichiers, qui se collent tels quels dans l'éditeur SQL de Supabase et
 annulent tout par un `ROLLBACK` final. Une erreur rouge commençant par « ÉCHEC »
 signale la règle qui ne tient plus.
 
@@ -769,6 +897,8 @@ signale la règle qui ne tient plus.
 | `tests/007_adresse_et_telephone.sql` | une salle sans adresse est refusée, le numéro est exigé aux deux endroits où quelqu'un décrochera, **l'adresse ne se lit pas même en interrogeant la table**, et un inconnu ne lit toujours aucun numéro |
 | `tests/008_photos_de_la_salle.sql` | la couverture EST la première photo, réordonner la déplace, **un autre compte n'écrit ni ligne ni fichier dans mon dossier**, la 21e est refusée et une salle de moins de 5 photos ne part pas en validation |
 | `tests/009_delais_et_alertes.sql` | une option échue s'éteint et rend la date, une option vivante et une réservation confirmée ne bougent pas, une journée entière expire d'un bloc, relancer le cron ne notifie pas deux fois, le payload se suffit à lui-même, **un compte ne lit jamais les notifications d'un autre**, et chacun des six changements d'état prévient la bonne personne une seule fois |
+| `tests/010_une_option_tient_la_date.sql` | une option en cours ferme la date partout, une option échue la rouvre à la minute sans attendre le cron, et les demandes `pending` ne bloquent toujours rien |
+| `tests/011_acompte_chargily.sql` | la caisse ne s'ouvre que pour son client et tant que l'option tient, **le montant est celui de la base arrondi une seule fois**, une seule page de paiement court par réservation, et **aucune écriture cliente n'atteint `payments`** |
 
 Le huitième va plus loin encore : pour mesurer les politiques du bucket, il
 lève au passage `storage.allow_delete_query`, le verrou de Supabase qui refuse
