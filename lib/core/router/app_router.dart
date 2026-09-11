@@ -6,6 +6,7 @@ import '../../features/auth/auth_providers.dart';
 import '../../features/auth/connexion_screen.dart';
 import '../../features/auth/inscription_screen.dart';
 import '../../features/auth/profil_screen.dart';
+import '../../features/booking/acompte_screen.dart';
 import '../../features/booking/booking_providers.dart';
 import '../../features/booking/demande_envoyee_screen.dart';
 import '../../features/booking/demande_screen.dart';
@@ -163,14 +164,38 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
 
+      // LE VERSEMENT DE L'ACOMPTE EST DÉCLARÉ AVANT « Mes réservations », par
+      // la même prudence qu'entre les photos et le récapitulatif d'une salle :
+      // les deux chemins partagent leur début, et l'ordre lève tout doute.
+      //
+      // Pas de redirection ici non plus. `acompte_a_verser()` (024) refuse
+      // d'elle-même un appel sans session (FE050) et la réservation d'un autre
+      // (FE051) ; l'écran traduit ses refus en une phrase et propose le geste
+      // qui reste. Une `redirect` ferait un second gardien pour la même règle,
+      // et renverrait vers la connexion quelqu'un dont le seul tort est d'avoir
+      // gardé un onglet ouvert trois jours.
+      GoRoute(
+        path: FerhaRoutes.acompte,
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) =>
+            AcompteScreen(bookingId: state.pathParameters['id']!),
+      ),
+
       // Le suivi des réservations. Pas de redirection ici non plus : c'est le
       // profil qui n'offre l'entrée qu'à un compte connecté, et
       // `client_bookings()` qui refuse un appel sans session. Une `redirect`
       // ferait un troisième gardien pour la même règle.
+      //
+      // Le paramètre `paiement` est ce que Chargily renvoie après la caisse :
+      // il ne dit pas qu'un paiement a réussi, il dit qu'il a eu lieu. Voir
+      // [FerhaRoutes.parametrePaiement].
       GoRoute(
         path: FerhaRoutes.mesReservations,
         parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) => const MesReservationsScreen(),
+        builder: (context, state) => MesReservationsScreen(
+          retourDePaiement:
+              state.uri.queryParameters[FerhaRoutes.parametrePaiement],
+        ),
       ),
 
       // Les notifications. Pas de redirection ici non plus : c'est la cloche

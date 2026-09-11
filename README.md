@@ -74,6 +74,7 @@ lib/
     venue/         fiche salle, galerie, calendrier
   main.dart
 supabase/
+  functions/    les Edge Functions (Deno) — create-checkout aujourd'hui
   migrations/   le schéma : tables, RLS, prix
   seed/         15 salles de démonstration
   tests/        le test de double réservation
@@ -245,6 +246,77 @@ recevra l'invitation à laisser un avis (J17) et le bouton WhatsApp ne sont pas
 faits. Les deux types `reminder_j7` et `reminder_j1` existent en base et
 personne ne les dépose encore ; `review_invitation`, elle, est déjà déposée par
 `complete_booking()` et mène au suivi des réservations faute d'écran dédié.
+
+## Le paiement de l'acompte
+
+Une demande acceptée propose « Verser l'acompte » dans « Mes réservations ». On
+arrive sur l'écran 6 des maquettes : le compte à rebours des 72 h, le
+récapitulatif, le montant, CIB ou Edahabia, et un bouton qui ouvre la vraie page
+de paiement Chargily.
+
+**En mode test, et seulement en mode test.** L'URL est celle du mode test de
+Chargily Pay v2, `payments.is_test` vaut `true` sur chaque ligne écrite, et
+l'écran le dit au client plutôt que de le cacher : « aucune somme n'est
+réellement débitée ». Mieux vaut qu'il l'apprenne là que devant son relevé.
+
+### La clé secrète ne quitte jamais le serveur
+
+Elle vit dans les secrets de la Edge Function `create-checkout`, sous le nom
+**`CHARGILY_SECRET_KEY`**, et nulle part ailleurs — ni dans `env.json`, ni dans
+le dépôt, ni dans l'application. Flutter appelle la fonction avec **le jeton de
+l'utilisateur** et n'apprend jamais qu'une clé existe. Le §9.4 du cahier des
+charges le demande en toutes lettres : « un APK se décompile en quelques
+minutes ».
+
+Sans ce secret, la fonction répond `FE058` et l'écran dit que le paiement en
+ligne n'est pas encore ouvert — sans nommer aucune clé.
+
+Une seconde variable, **`APP_ORIGIN`**, est facultative. Posée, elle restreint
+les adresses de retour à celles de ce domaine (les origines locales restent
+acceptées, pour le développement). Le jour où l'application aura un domaine,
+elle se remplit sans qu'une ligne de code change.
+
+### Le montant vient de la base, et d'un seul arrondi
+
+Chargily encaisse des **dinars entiers** ; `bookings.deposit_amount` est un
+`numeric(12,2)`, parce que 25 % d'un devis tombe rarement rond. Il faut donc
+arrondir, et **une seule fois** : c'est `montant_acompte()` (migration 024), au
+dinar **supérieur** — l'acompte est un minimum convenu, et le solde du jour J
+absorbe la différence au centime.
+
+Trois endroits annoncent ce montant, et les trois lisent cette même fonction :
+le bouton de « Mes réservations », l'écran 6, et la ligne `payments`. Sans cela,
+le bouton dirait « 51 333 DA » et la caisse en demanderait 51 334.
+
+Flutter n'envoie **aucun montant** : la Edge Function le lit dans la base pour
+créer le checkout, et la base le relit une seconde fois au moment d'écrire.
+
+### Une seule page de paiement par réservation
+
+Un second « Payer » — double tap, retour arrière, page rechargée — ne crée pas
+un second checkout. La fonction retrouve celui qui est déjà ouvert chez
+Chargily et rend **la même URL**, tant qu'il est encore en attente et toujours
+du bon montant. Une page neuve éteint la précédente : jamais deux paiements
+« en cours » sur la même date.
+
+### Revenir de Chargily ne confirme rien
+
+C'est le point le plus important de cette étape. `success_url` ramène sur « Mes
+réservations » avec un bandeau **« Paiement en cours de vérification »**, et la
+réservation reste **acceptée**. Seul le webhook signé — le J16 — la fera passer
+en « confirmée ». Le paramètre de retour s'appelle d'ailleurs `verification` et
+non `succes` : le nom dit déjà qu'on ne sait pas encore.
+
+### Ce qui manque encore
+
+Le webhook `chargily-webhook`, qui confirmera vraiment, et le parcours
+**« espèces sur place »** que la maquette dessine comme troisième moyen de
+paiement. Il n'est pas affiché tant qu'il ne mène nulle part : c'est justement
+celui qui hésite à payer en ligne qui le pousserait.
+
+Sur téléphone, le paiement renvoie pour l'instant à un navigateur — le lien
+d'application Android n'est pas déclaré, et une page de paiement dont on ne
+revient pas vaut moins qu'un refus qui le dit.
 
 ## Identité visuelle
 

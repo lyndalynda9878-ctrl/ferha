@@ -32,7 +32,16 @@ import 'widgets/compte_a_rebours.dart';
 /// ferait donc apparaître aucun numéro : il n'y en a pas dans la charge utile.
 class MesReservationsScreen extends ConsumerWidget {
   /// Crée l'écran.
-  const MesReservationsScreen({super.key});
+  const MesReservationsScreen({this.retourDePaiement, super.key});
+
+  /// Ce que Chargily vient de faire, quand on arrive de sa page.
+  ///
+  /// C'est le paramètre `paiement` de l'adresse, et il vaut
+  /// [FerhaRoutes.paiementEnVerification] ou [FerhaRoutes.paiementEchoue]. NI
+  /// L'UN NI L'AUTRE NE CONFIRME QUOI QUE CE SOIT : le premier dit qu'un
+  /// paiement est parti, pas qu'il est passé — seul le webhook Chargily le
+  /// dira, et la réservation reste « acceptée » jusque-là.
+  final String? retourDePaiement;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -48,7 +57,10 @@ class MesReservationsScreen extends ConsumerWidget {
               ref.read(mesReservationsProvider.notifier).reessayer(),
         ),
         AsyncData(:final value) when value.isEmpty => const _AucuneDemande(),
-        AsyncData(:final value) => _Liste(reservations: value),
+        AsyncData(:final value) => _Liste(
+          reservations: value,
+          retourDePaiement: retourDePaiement,
+        ),
         _ => const _EnAttente(),
       },
     );
@@ -56,22 +68,122 @@ class MesReservationsScreen extends ConsumerWidget {
 }
 
 class _Liste extends StatelessWidget {
-  const _Liste({required this.reservations});
+  const _Liste({required this.reservations, this.retourDePaiement});
 
   final List<Reservation> reservations;
+  final String? retourDePaiement;
 
   @override
   Widget build(BuildContext context) {
+    final bandeau = _bandeauDeRetour(retourDePaiement);
+
     return ListView.separated(
       padding: const EdgeInsetsDirectional.fromSTEB(16, 16, 16, 32),
-      itemCount: reservations.length,
+      // Le bandeau de retour occupe la première place de la liste quand il y en
+      // a un : il parle du geste qui vient d'être fait, et c'est la première
+      // chose qu'on cherche en revenant.
+      itemCount: reservations.length + (bandeau == null ? 0 : 1),
       separatorBuilder: (_, _) => const SizedBox(height: 14),
-      itemBuilder: (context, i) => _CarteReservation(
-        reservation: reservations[i],
-        // La clé porte le groupe : quand le temps réel remplace la liste, la
-        // carte d'une réservation retrouve son élément — et le compte à rebours
-        // qu'elle contient ne repart pas de zéro.
-        key: ValueKey<String>(reservations[i].groupId),
+      itemBuilder: (context, i) {
+        if (bandeau != null) {
+          if (i == 0) return bandeau;
+          i -= 1;
+        }
+        return _CarteReservation(
+          reservation: reservations[i],
+          // La clé porte le groupe : quand le temps réel remplace la liste, la
+          // carte d'une réservation retrouve son élément — et le compte à
+          // rebours qu'elle contient ne repart pas de zéro.
+          key: ValueKey<String>(reservations[i].groupId),
+        );
+      },
+    );
+  }
+}
+
+/// Le mot qu'on lit en revenant de Chargily — et celui qu'on ne lit pas.
+///
+/// « PAIEMENT REÇU » N'EST PAS ÉCRIT ICI, ET NE DOIT PAS L'ÊTRE. Revenir sur
+/// `success_url` veut seulement dire que le client a quitté la page de paiement
+/// par la bonne porte : ni la banque ni Chargily ne nous ont encore rien dit.
+/// C'est le webhook, signé et idempotent, qui fera passer la réservation en
+/// « confirmée » — et tant qu'il n'a pas parlé, la carte juste au-dessous
+/// affiche toujours « Acceptée — acompte à verser ». Un bandeau qui annoncerait
+/// le contraire se contredirait lui-même, à trois centimètres d'écart.
+Widget? _bandeauDeRetour(String? retour) => switch (retour) {
+  FerhaRoutes.paiementEnVerification => const _BandeauRetour(
+    icone: Icons.schedule_outlined,
+    titre: 'Paiement en cours de vérification',
+    texte:
+        'Votre versement a bien été transmis. La réservation sera confirmée '
+        'dès que la banque aura répondu — cela prend en général quelques '
+        'minutes.',
+    alerte: false,
+  ),
+  FerhaRoutes.paiementEchoue => const _BandeauRetour(
+    icone: Icons.info_outline,
+    titre: 'Paiement non abouti',
+    texte:
+        'Rien n’a été débité, et rien n’est perdu : votre option court '
+        'toujours. Vous pouvez reprendre le versement ci-dessous.',
+    alerte: true,
+  ),
+  _ => null,
+};
+
+class _BandeauRetour extends StatelessWidget {
+  const _BandeauRetour({
+    required this.icone,
+    required this.titre,
+    required this.texte,
+    required this.alerte,
+  });
+
+  final IconData icone;
+  final String titre;
+  final String texte;
+  final bool alerte;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.ferhaColors;
+    final text = Theme.of(context).textTheme;
+    final (Color fond, Color encre) = alerte
+        ? (colors.slotUnavailableSoft, colors.slotUnavailable)
+        : (colors.primarySoft, colors.primaryDeep);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsetsDirectional.all(14),
+      decoration: BoxDecoration(
+        color: fond,
+        borderRadius: FerhaRadii.cardBorder,
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Icon(icone, size: 20, color: encre),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  titre,
+                  style: text.titleSmall?.copyWith(
+                    color: encre,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  texte,
+                  style: text.bodySmall?.copyWith(color: colors.inkSecondary),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -119,6 +231,39 @@ class _CarteReservation extends ConsumerWidget {
               _Contact(
                 nom: reservation.proprietaire,
                 telephone: reservation.telephone!,
+              ),
+            ],
+
+            // VERSER L'ACOMPTE — le geste de l'écran 6, et l'unique porte qui y
+            // mène. On ne l'offre que sur une option qui court encore : une
+            // option échue attend le cron `expire_options`, qui passe au quart
+            // d'heure, et proposer « Payer » pendant ces quelques minutes
+            // mènerait à un écran qui refuse (FE053). `optionEnCours` compare à
+            // l'instant présent, comme `tient_la_date()` en base — les deux
+            // disent la même chose, à la minute.
+            if (reservation.optionEnCours &&
+                !reservation.optionExpireLe!.isBefore(DateTime.now()) &&
+                reservation.acompteDu != null) ...<Widget>[
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                height: 46,
+                child: FilledButton.icon(
+                  onPressed: () => context.push(
+                    FerhaRoutes.acompteDe(reservation.bookingId),
+                  ),
+                  icon: const Icon(
+                    Icons.account_balance_wallet_outlined,
+                    size: 18,
+                  ),
+                  // acompteDu, et surtout pas acompte : c'est l'entier que la
+                  // caisse encaissera, arrondi une seule fois en base. Ce bouton
+                  // et l'écran 6 disent donc le même nombre, toujours.
+                  label: Text(
+                    'Verser l’acompte — '
+                    '${montantEnDinars(reservation.acompteDu!)} DA',
+                  ),
+                ),
               ),
             ],
 

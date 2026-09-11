@@ -844,7 +844,7 @@ class _Recapitulatif extends StatelessWidget {
   /// une règle de calendrier réécrite ici.
   String _libelleCreneauMajore(DevisReservation d) {
     final raisons = <String>[
-      if (d.jourMajore) _nomDuJour(date),
+      if (d.jourMajore) jourEnFrancais(date),
       if (d.saisonMajoree) 'haute saison',
     ];
     final base = libelleCreneau(creneau);
@@ -1064,16 +1064,3 @@ String libelleCreneau(Creneau creneau) => switch (creneau) {
   Creneau.soir => 'Soirée',
   Creneau.journee => 'Journée entière',
 };
-
-/// « samedi » — le nom du jour, pour dire quelle majoration s'applique.
-String _nomDuJour(DateTime date) => _jours[date.weekday - 1];
-
-const List<String> _jours = <String>[
-  'lundi',
-  'mardi',
-  'mercredi',
-  'jeudi',
-  'vendredi',
-  'samedi',
-  'dimanche',
-];

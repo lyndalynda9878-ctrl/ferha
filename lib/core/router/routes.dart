@@ -78,6 +78,46 @@ abstract final class FerhaRoutes {
   /// `auth.uid()`.
   static const String mesReservations = '/mes-reservations';
 
+  /// Versement de l'acompte. `/mes-reservations/:id/acompte`
+  ///
+  /// SOUS « Mes réservations », PARCE QU'ON N'Y ARRIVE QUE DE LÀ. C'est le
+  /// bouton « Verser l'acompte » d'une réservation acceptée qui ouvre cet
+  /// écran, et c'est là qu'on revient en le fermant.
+  ///
+  /// L'identifiant est celui de la LIGNE représentative du groupe, comme
+  /// partout depuis 013 : `acompte_a_verser()` remonte au groupe elle-même, et
+  /// une journée entière se paie d'un seul acompte.
+  ///
+  /// Aucun autre paramètre, et surtout PAS LE MONTANT. Il vient de la base à
+  /// chaque ouverture — le mettre dans l'adresse en ferait une valeur qu'un
+  /// curieux pourrait changer, et un écran qui afficherait autre chose que ce
+  /// que Chargily encaissera.
+  static const String acompte = '/mes-reservations/:id/acompte';
+
+  /// Chemin du versement de l'acompte d'une réservation donnée.
+  static String acompteDe(String bookingId) =>
+      '/mes-reservations/$bookingId/acompte';
+
+  /// Paramètre de requête de [mesReservations] : ce que Chargily vient de faire.
+  ///
+  /// C'est l'adresse de retour donnée à la page de paiement. Elle ne CONFIRME
+  /// rien — seul le webhook Chargily confirmera une réservation, et c'est
+  /// pourquoi la valeur de succès s'appelle [paiementEnVerification] et non
+  /// « succes » : le mot dit déjà qu'on attend encore.
+  static const String parametrePaiement = 'paiement';
+
+  /// Valeur de [parametrePaiement] au retour d'un paiement soumis.
+  ///
+  /// Le client a passé la caisse ; la banque et Chargily n'ont pas fini de se
+  /// parler. L'écran le dit, et la réservation reste « acceptée ».
+  static const String paiementEnVerification = 'verification';
+
+  /// Valeur de [parametrePaiement] au retour d'un paiement abandonné ou refusé.
+  ///
+  /// Rien n'est perdu : l'option de 72 h court toujours, et le bouton est encore
+  /// là. C'est ce que l'écran doit dire, plutôt que « échec ».
+  static const String paiementEchoue = 'echec';
+
   /// Les notifications de l'utilisateur connecté. `/notifications`
   ///
   /// HORS DE LA BARRE D'ONGLETS, ET HORS DU PRÉFIXE PROPRIÉTAIRE. Elle sert les

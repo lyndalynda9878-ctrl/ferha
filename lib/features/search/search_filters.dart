@@ -214,6 +214,25 @@ const List<String> _mois = <String>[
   'décembre',
 ];
 
+/// Les jours de la semaine en français, dans l'ordre de `DateTime.weekday`
+/// (1 = lundi, 7 = dimanche).
+///
+/// Ici et non dans un écran, pour la même raison que [_mois] : les mots d'une
+/// date s'écrivent à un seul endroit. Deux écrans qui les recopieraient
+/// finiraient par ne plus dire « août » de la même façon.
+const List<String> _jours = <String>[
+  'lundi',
+  'mardi',
+  'mercredi',
+  'jeudi',
+  'vendredi',
+  'samedi',
+  'dimanche',
+];
+
+/// « samedi » — le nom du jour.
+String jourEnFrancais(DateTime d) => _jours[d.weekday - 1];
+
 /// « 14 août 2027 ».
 String dateEnFrancais(DateTime d) => '${d.day} ${_mois[d.month - 1]} ${d.year}';
 

@@ -124,6 +124,7 @@ class Reservation {
     this.typeEvenement,
     this.motif,
     this.acompte,
+    this.acompteDu,
     this.optionExpireLe,
     this.proprietaire,
     this.telephone,
@@ -150,6 +151,8 @@ class Reservation {
     motif: j['status_reason'] as String?,
     montant: j['quoted_amount'] as num,
     acompte: j['deposit_amount'] as num?,
+    // L'entier encaissable, arrondi une seule fois — en SQL (024).
+    acompteDu: (j['acompte_du'] as num?)?.toInt(),
     optionExpireLe: j['option_expires_at'] == null
         ? null
         : DateTime.parse(j['option_expires_at'] as String).toLocal(),
@@ -204,7 +207,22 @@ class Reservation {
   final num montant;
 
   /// L'acompte fixé par le propriétaire à l'acceptation. Null avant.
+  ///
+  /// Au centime : c'est le montant convenu entre les deux parties, celui qui a
+  /// valeur d'accord. Pour un BOUTON, lire [acompteDu].
   final num? acompte;
+
+  /// Le même acompte, en dinars entiers — ce que la caisse encaissera.
+  ///
+  /// IL VIENT DE LA BASE, ET C'EST TOUT L'INTÉRÊT. `montant_acompte()` (024)
+  /// arrondit une seule fois, au dinar supérieur, et les trois endroits qui
+  /// annoncent un montant à payer — le bouton de cette liste, l'écran 6, la Edge
+  /// Function — lisent tous cette même fonction. Arrondir [acompte] ici ferait
+  /// un second arrondi, au plus près plutôt qu'au supérieur : le bouton dirait
+  /// « 51 333 DA » et Chargily en demanderait 51 334.
+  ///
+  /// Null tant que le propriétaire n'a pas répondu, comme [acompte].
+  final int? acompteDu;
 
   /// L'échéance de l'option de 72 h. Null hors de l'état « acceptée ».
   final DateTime? optionExpireLe;

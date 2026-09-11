@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:ferha/core/router/routes.dart';
 import 'package:ferha/core/theme/ferha_theme.dart';
 import 'package:ferha/features/booking/mes_reservations_providers.dart';
 import 'package:ferha/features/booking/mes_reservations_screen.dart';
@@ -21,6 +22,7 @@ void main() {
     String? telephone,
     DateTime? expire,
     num? acompte,
+    int? acompteDu,
   }) => Reservation(
     groupId: 'grp-${etat.code}',
     bookingId: 'bkg-${etat.code}',
@@ -36,6 +38,7 @@ void main() {
     etat: etat,
     montant: 238000,
     acompte: acompte,
+    acompteDu: acompteDu,
     optionExpireLe: expire,
     creeLe: DateTime(2026, 9, 9),
     proprietaire: 'Karim Belhadj',
@@ -53,6 +56,7 @@ void main() {
     WidgetTester tester,
     List<Reservation> liste, {
     ThemeData? theme,
+    String? retour,
   }) async {
     tester.view.physicalSize = const Size(1000, 2400);
     tester.view.devicePixelRatio = 1;
@@ -67,7 +71,7 @@ void main() {
         ],
         child: MaterialApp(
           theme: theme ?? FerhaTheme.light(),
-          home: const MesReservationsScreen(),
+          home: MesReservationsScreen(retourDePaiement: retour),
         ),
       ),
     );
@@ -248,6 +252,122 @@ void main() {
 
       expect(find.text('Vous n’avez pas encore de demande'), findsOneWidget);
       expect(find.text('Chercher une salle'), findsOneWidget);
+    });
+  });
+
+  group('Verser l’acompte', () {
+    testWidgets('le bouton porte l’ENTIER de la base, pas un arrondi maison', (
+      tester,
+    ) async {
+      // 51 333,25 DA d'acompte convenu, 51 334 DA à encaisser. Le bouton doit
+      // dire 51 334 — le même nombre que l'écran 6 et que la caisse Chargily.
+      // Arrondir `acompte` ici donnerait 51 333, et un dinar d'écart juste
+      // avant de payer est le pire moment pour se tromper.
+      await ouvre(tester, <Reservation>[
+        reservation(
+          etat: EtatReservation.acceptee,
+          telephone: '0770 11 22 33',
+          acompte: 51333.25,
+          acompteDu: 51334,
+          expire: DateTime.now().add(const Duration(hours: 40)),
+        ),
+      ]);
+
+      expect(find.text('Verser l’acompte — 51 334 DA'), findsOneWidget);
+      expect(find.text('Verser l’acompte — 51 333 DA'), findsNothing);
+    });
+
+    testWidgets('il n’est pas proposé sur une demande en attente', (
+      tester,
+    ) async {
+      await ouvre(tester, <Reservation>[
+        reservation(etat: EtatReservation.enAttente),
+      ]);
+
+      expect(find.textContaining('Verser l’acompte'), findsNothing);
+    });
+
+    testWidgets('il disparaît quand l’option est échue', (tester) async {
+      // Le statut dit encore « acceptée » : le cron expire-options passe au
+      // quart d'heure. L'écran ne doit pas mener à une caisse que la base
+      // refusera (FE053) — il compare à l'instant, comme tient_la_date().
+      await ouvre(tester, <Reservation>[
+        reservation(
+          etat: EtatReservation.acceptee,
+          telephone: '0770 11 22 33',
+          acompte: 59500,
+          acompteDu: 59500,
+          expire: DateTime.now().subtract(const Duration(minutes: 5)),
+        ),
+      ]);
+
+      expect(find.textContaining('Verser l’acompte'), findsNothing);
+    });
+
+    testWidgets('il n’est pas proposé sur une réservation déjà confirmée', (
+      tester,
+    ) async {
+      await ouvre(tester, <Reservation>[
+        reservation(
+          etat: EtatReservation.confirmee,
+          telephone: '0770 11 22 33',
+          acompte: 59500,
+          acompteDu: 59500,
+        ),
+      ]);
+
+      expect(find.textContaining('Verser l’acompte'), findsNothing);
+    });
+  });
+
+  group('Le retour de Chargily', () {
+    testWidgets('il dit « en cours de vérification », jamais « payé »', (
+      tester,
+    ) async {
+      await ouvre(tester, <Reservation>[
+        reservation(
+          etat: EtatReservation.acceptee,
+          telephone: '0770 11 22 33',
+          acompte: 59500,
+          acompteDu: 59500,
+          expire: DateTime.now().add(const Duration(hours: 40)),
+        ),
+      ], retour: FerhaRoutes.paiementEnVerification);
+
+      expect(find.text('Paiement en cours de vérification'), findsOneWidget);
+      // Et la carte, juste au-dessous, dit toujours « acompte à verser » : le
+      // webhook du J16 n'a pas encore parlé, et les deux ne doivent pas se
+      // contredire à trois centimètres d'écart.
+      expect(find.text('Acceptée — acompte à verser'), findsOneWidget);
+      expect(find.textContaining('Paiement reçu'), findsNothing);
+      expect(find.text('Confirmée'), findsNothing);
+    });
+
+    testWidgets('un paiement abandonné ne dit pas que tout est perdu', (
+      tester,
+    ) async {
+      await ouvre(tester, <Reservation>[
+        reservation(
+          etat: EtatReservation.acceptee,
+          telephone: '0770 11 22 33',
+          acompte: 59500,
+          acompteDu: 59500,
+          expire: DateTime.now().add(const Duration(hours: 40)),
+        ),
+      ], retour: FerhaRoutes.paiementEchoue);
+
+      expect(find.text('Paiement non abouti'), findsOneWidget);
+      expect(find.textContaining('votre option court'), findsOneWidget);
+      // Le bouton reste là : c'est tout l'objet de la phrase.
+      expect(find.textContaining('Verser l’acompte'), findsOneWidget);
+    });
+
+    testWidgets('sans retour, aucun bandeau', (tester) async {
+      await ouvre(tester, <Reservation>[
+        reservation(etat: EtatReservation.enAttente),
+      ]);
+
+      expect(find.textContaining('Paiement'), findsNothing);
     });
   });
 
