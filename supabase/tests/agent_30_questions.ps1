@@ -31,7 +31,7 @@
 
 param(
   [string]$supabaseUrl = "https://rpcrkpklrqejahztfjvu.supabase.co",
-  [string]$questions   = "..\..\Claude outputs\questions-reference-ferha.md",
+  [string]$questions   = "..\..\docs\questions-reference.md",
   [int[]]$seulement    = @(),
   [switch]$detail,
   # DEUX APPELS AU MODELE PAR QUESTION - extraction puis redaction. Le palier
