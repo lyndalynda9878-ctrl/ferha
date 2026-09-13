@@ -84,8 +84,8 @@ Write-Host ("  {0}, {1} dimensions" -f $modele, $sante.dimensions) -ForegroundCo
 # -----------------------------------------------------------------------------
 # 2. La question devient 384 nombres.
 #
-# nature = "question" pose le prefixe « query: » cote service. Les documents de
-# salle, eux, ont ete vectorises avec « passage: » par embed-venue. Intervertir
+# nature = "question" pose le prefixe "query:" cote service. Les documents de
+# salle, eux, ont ete vectorises avec "passage:" par embed-venue. Intervertir
 # les deux ne leve aucune erreur et degrade tout, silencieusement.
 # -----------------------------------------------------------------------------
 
@@ -117,17 +117,17 @@ if ($v.Count -ne 384) {
 # -----------------------------------------------------------------------------
 # 3. La base classe.
 #
-# pgvector lit le litteral « [0.1,0.2,...] ». InvariantCulture est OBLIGATOIRE :
-# sur un Windows francais, "0.1".ToString() rend « 0,1 », et le vecteur entier
+# pgvector lit le litteral "[0.1,0.2,...]". InvariantCulture est OBLIGATOIRE :
+# sur un Windows francais, "0.1".ToString() rend "0,1", et le vecteur entier
 # devient illisible pour Postgres - avec une erreur qui parlera de syntaxe, pas
 # de virgule decimale.
 # -----------------------------------------------------------------------------
 
 # LE [double] N'EST PAS DECORATIF. ConvertFrom-Json, sous Windows PowerShell 5.1,
 # rend un Decimal pour les nombres qui y tiennent et un Double pour les autres -
-# donc un melange des deux dans le meme vecteur. Or « R » (aller-retour exact)
+# donc un melange des deux dans le meme vecteur. Or "R" (aller-retour exact)
 # n'existe PAS comme format de Decimal : sans la conversion, on tombe sur
-# « Specificateur de format non valide », et seulement sur certaines questions,
+# "Specificateur de format non valide", et seulement sur certaines questions,
 # selon les valeurs rendues.
 $ic = [Globalization.CultureInfo]::InvariantCulture
 $litteral = "[" + (($v | ForEach-Object { ([double]$_).ToString("R", $ic) }) -join ",") + "]"
