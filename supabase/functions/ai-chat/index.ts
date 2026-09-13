@@ -8,6 +8,10 @@
 //   3. Le VECTEUR classe ce qui reste. Aucun seuil.
 //   4. Le MODÈLE rédige, à partir des salles trouvées et de rien d'autre.
 //
+// CE QUE LE MODÈLE NE FAIT JAMAIS : une affirmation factuelle vérifiable. La
+// comparaison de dates, le report d'année, l'annonce de l'hypothèse, le prix —
+// tout cela se calcule ici ou en SQL. Il rédige, il n'atteste pas.
+//
 // LA LIGNE DE PARTAGE EST AU §8.1 : « la similarité ne sait pas compter ».
 // Elle rapprochera « 300 personnes » de « 250 personnes » et proposera une
 // salle déjà réservée. On ne lui confie donc jamais un chiffre — seulement le
@@ -40,15 +44,13 @@
 // un journal chez nous, pas chez le fournisseur.
 //
 // =============================================================================
-// LES GARDE-FOUS (§8.5), ET CE QU'ILS COÛTENT
+// LES GARDE-FOUS (§8.5)
 //
-// TOUTE SALLE CITÉE HORS CONTEXTE FAIT REJOUER. On vérifie deux choses : les
-// identifiants que le modèle déclare, et les NOMS qu'il écrit dans sa prose —
-// car c'est par le nom qu'une salle inventée arrive chez l'utilisateur, pas par
-// un UUID. Le balayage se fait du nom le plus long au plus court, en effaçant
-// au passage ce qui a déjà été reconnu : sans cela, « Palais Dar El Feth »
-// contient « El Feth » et l'on accuserait le modèle d'avoir cité une salle
-// dont il n'a jamais parlé.
+// CONTRÔLE PRINCIPAL : LES IDENTIFIANTS que le modèle déclare. C'est le seul
+// qui ne dépende ni de la langue ni de l'écriture — une réponse en arabe
+// translitère les noms, et aucune comparaison latine ne les y retrouve.
+//
+// FILET SECONDAIRE : LES NOMS dans la prose, en écriture latine seulement.
 //
 // AU DEUXIÈME ÉCHEC, ON REND LA LISTE BRUTE. Pas de troisième essai : si le
 // modèle s'obstine, le problème est le prompt, et faire patienter
@@ -59,9 +61,7 @@
 // `salles_pour_agent()`. Le modèle reçoit des nombres, il n'en fabrique pas.
 //
 // JAMAIS UNE SALLE NON PUBLIÉE : le tri exact ne rend que des salles publiées,
-// et la validation des noms porte sur le catalogue ENTIER — brouillons
-// compris. Citer « Espace Nour El Houda » fait donc rejouer, alors même que
-// cette salle n'a jamais été dans aucun contexte.
+// et la validation des noms porte sur le catalogue ENTIER — brouillons compris.
 //
 // SECRETS À POSER DANS SUPABASE (Edge Functions → Secrets) :
 //   GEMINI_API_KEY               la clé du modèle — le seul secret à créer
@@ -77,9 +77,13 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/interactions";
 const MODELE_PAR_DEFAUT = "gemini-3.5-flash-lite";
 
-/// Combien de salles le modèle voit. Huit, comme au §8.1 : assez pour choisir,
-/// assez peu pour que la réponse reste lisible.
-const SALLES_MAX = 8;
+/// Combien de salles le modèle voit — et donc au plus combien il en cite.
+///
+/// CINQ, ET NON HUIT. Le §8.1 en suggère huit, mais une réponse qui en énumère
+/// huit n'a rien choisi : c'est un annuaire, pas un conseil. On coupe le
+/// CONTEXTE à cinq plutôt que de demander au modèle de se limiter — une
+/// consigne se néglige, un contexte absent ne se cite pas.
+const SALLES_MAX = 5;
 
 /// Un rejeu, pas deux. Voir l'en-tête.
 const REJEUX_MAX = 1;
@@ -99,6 +103,23 @@ const TYPES_EVENEMENT = [
 ];
 
 const CRENEAUX = ["midi", "soir", "journee"];
+
+/// LE PARCOURS DE RÉSERVATION, EN DUR ET EN COURT.
+///
+/// L'agent ne savait pas répondre à « comment je bloque une date ? » : personne
+/// ne le lui avait appris, et il comblait en listant des salles — hors sujet.
+///
+/// C'est l'usage « Support & FAQ » du §8.2, qui s'appuie sur `kb_documents` et
+/// n'existe pas encore. En attendant, ces six lignes suffisent, et elles ont un
+/// avantage sur un RAG : elles ne peuvent pas se tromper. Le jour où
+/// `kb_documents` arrivera, c'est cette constante qui disparaîtra.
+const PROCEDURE = `Comment réserver sur Ferha :
+1. Vous envoyez une demande à la salle : la date, le créneau, le nombre d'invités.
+2. Le propriétaire répond sous 48 heures — il accepte ou il refuse.
+3. S'il accepte, vous versez un acompte de 25 % du montant convenu.
+4. Vous avez 72 heures pour le faire : c'est l'option, et elle tient la date pour vous.
+5. L'acompte se paie par carte CIB ou Edahabia, ou en espèces sur place.
+6. La réservation est confirmée une fois l'acompte encaissé.`;
 
 const WILAYAS =
   "01 Adrar, 02 Chlef, 03 Laghouat, 04 Oum El Bouaghi, 05 Batna, 06 Béjaïa, " +
@@ -126,7 +147,12 @@ const SCHEMA_CRITERES = {
   type: "object",
   properties: {
     hors_sujet: { type: "boolean" },
+    question_procedure: { type: "boolean" },
     langue: { type: "string", enum: ["fr", "ar", "mixte"] },
+    date_origine: {
+      type: "string",
+      enum: ["aucune", "explicite", "annee_absente", "relative"],
+    },
     wilaya_code: { type: "string" },
     commune: { type: "string" },
     date: { type: "string" },
@@ -137,7 +163,10 @@ const SCHEMA_CRITERES = {
     equipements: { type: "array", items: { type: "string" } },
     soft_query: { type: "string" },
   },
-  required: ["hors_sujet", "langue", "equipements", "soft_query"],
+  required: [
+    "hors_sujet", "question_procedure", "langue", "date_origine",
+    "equipements", "soft_query",
+  ],
 };
 
 const SCHEMA_REPONSE = {
@@ -151,7 +180,11 @@ const SCHEMA_REPONSE = {
 
 type Criteres = {
   hors_sujet: boolean;
+  question_procedure: boolean;
   langue: string;
+  date_origine: string;
+  /// Vrai dès que l'année n'était pas dans la question. La réponse le dit.
+  annee_supposee: boolean;
   wilaya_code: string;
   commune: string;
   date: string;
@@ -232,6 +265,31 @@ const MOTS_COMMUNS = new Set([
 function coeurUtilisable(coeur: string): boolean {
   if (coeur.length < 5) return false;
   return !coeur.split(" ").every((mot) => MOTS_COMMUNS.has(mot));
+}
+
+/// Avance une date d'année en année jusqu'à ce qu'elle soit à venir.
+///
+/// « LE 14 AOÛT » VEUT DIRE LE PROCHAIN 14 AOÛT, jamais celui de l'an dernier.
+/// Le modèle se trompait dessus — il rendait l'année en cours, déjà passée — et
+/// l'agent répondait « cette date est passée » à quelqu'un qui demandait un prix.
+/// On ne lui confie donc plus ce calcul : il dit seulement SI l'année était dans
+/// la question, et l'arithmétique se fait ici.
+///
+/// LE 29 FÉVRIER SE RÈGLE TOUT SEUL : la date inexistante d'une année commune est
+/// refusée, et la boucle continue jusqu'à la prochaine bissextile.
+function avancerJusquAVenir(date: string, aujourdHui: string): string {
+  let annee = Number(date.slice(0, 4));
+  const jourEtMois = date.slice(4);
+
+  for (let essai = 0; essai < 10; essai++) {
+    const candidate = String(annee).padStart(4, "0") + jourEtMois;
+    // Une date inexistante ne revient pas telle quelle de `toISOString`.
+    const valide =
+      new Date(candidate + "T00:00:00Z").toISOString().slice(0, 10) === candidate;
+    if (valide && candidate >= aujourdHui) return candidate;
+    annee++;
+  }
+  return date;
 }
 
 /// Echappe ce qui a un sens dans une expression reguliere.
@@ -335,6 +393,10 @@ CHAMPS :
 - hors_sujet : true UNIQUEMENT si la question ne concerne ni une salle des fêtes,
   ni une réservation, ni le fonctionnement du service. La météo, le sport, la cuisine
   sont hors sujet. "comment réserver ?" n'est PAS hors sujet.
+- question_procedure : true quand la question porte sur le FONCTIONNEMENT du service
+  et non sur une salle en particulier : comment réserver, comment bloquer une date,
+  quel acompte, quel délai, comment payer, comment annuler. "kifach ndir bach nhabes
+  date" et "كيفاش نحجز" sont des questions de procédure.
 - langue : "fr" si la question est en français, "ar" si elle est en caractères arabes,
   "mixte" si elle mélange le français et l'arabe translittéré.
 - wilaya_code : le code à deux chiffres, depuis cette liste : ${WILAYAS}.
@@ -345,8 +407,16 @@ CHAMPS :
   Aïn El Turck, Bir El Djir, Ouled Yaïch) va dans "commune", pas dans wilaya_code.
 - commune : le nom de la commune si la question en cite une. Chaîne vide sinon.
 - date : "AAAA-MM-JJ" si la question donne une date, même relative ("demain", "hier",
-  "le 14 août"). Si l'année manque, prends la prochaine occurrence à venir.
-  Chaîne vide si aucune date.
+  "le 14 août"). Si l'année manque, prends la PROCHAINE occurrence À VENIR — jamais
+  une date déjà passée. Chaîne vide si aucune date.
+- date_origine : d'où vient cette date.
+  "aucune"        : la question ne donne aucune date.
+  "explicite"     : la question donne le jour, le mois ET l'année.
+  "annee_absente" : la question donne le jour et le mois sans l'année
+                    ("le 14 aout", "un samedi soir en aout").
+  "relative"      : la date se compte depuis aujourd'hui ("hier", "demain").
+  Ce champ compte autant que la date : c'est lui qui dit si l'on a le droit de
+  corriger l'année.
 - creneau : "midi", "soir" ou "journee". Chaîne vide si non précisé.
 - invites : le nombre de personnes attendues. 0 si non précisé.
 - budget_max : le budget maximum en dinars, en nombre entier. 0 si non précisé.
@@ -372,12 +442,25 @@ RÈGLES ABSOLUES :
 2. Les prix sont ceux du contexte, au dinar près. Tu ne calcules rien, tu ne convertis
    rien, tu n'arrondis rien. Si une salle n'a pas de prix dans le contexte, n'en donne pas.
 3. Si la liste est vide, dis franchement qu'aucune salle ne correspond, et pourquoi
-   (wilaya sans salle, capacité trop grande, budget trop bas). Ne propose RIEN d'autre.
+   (wilaya sans salle, capacité trop grande, budget trop bas). Puis ARRÊTE-TOI.
+   Ne renvoie vers rien : ni « les autres salles de cette wilaya », ni « les communes
+   voisines », ni « revenez plus tard ». Tu ne sais pas ce qu'il y a ailleurs, et
+   inviter à consulter ce qui n'existe pas est une faute aussi grave qu'inventer
+   une salle.
+3 bis. Tu cites au plus CINQ salles, les premières de la liste — elle est déjà
+   classée de la plus pertinente à la moins. Une bonne réponse choisit ; une
+   énumération de tout ce qui existe est un annuaire, pas un conseil.
 4. Tu ne promets aucune disponibilité : le propriétaire seul confirme.
 5. Réponds dans la LANGUE DE LA QUESTION. Si elle est en arabe, réponds en arabe.
    Si elle mélange français et arabe translittéré, réponds en français simple.
 6. venue_ids doit contenir, dans l'ordre où tu les cites, les identifiants exacts
-   des salles dont tu parles — et eux seuls.
+   des salles dont tu parles — et eux seuls. C'EST LE CHAMP LE PLUS IMPORTANT :
+   il est vérifié, et une réponse dont les identifiants ne correspondent pas aux
+   salles nommées est rejetée. Si tu ne nommes aucune salle, laisse-le vide.
+7. N'annonce PAS toi-même qu'une année a été supposée : la phrase est ajoutée
+   avant la tienne, avec la bonne date. Commence directement par ta réponse.
+8. Quand on te donne un texte de PROCÉDURE, réponds uniquement avec lui, dans la
+   langue de la question, et ne nomme AUCUNE salle — venue_ids reste vide.
 
 Sois concret : nomme la salle, sa commune, sa capacité et son prix. Pas de formule
 de politesse longue, pas de liste à puces, pas de titres.`;
@@ -398,11 +481,27 @@ function validerLaReponse(
   const fautes: string[] = [];
   const idsDuContexte = new Set(contexte.map((s) => s.venue_id));
 
+  // ------------------------------------------------------------------------
+  // CONTRÔLE PRINCIPAL : LES IDENTIFIANTS. Il est le seul qui ne dépende ni de
+  // la langue ni de l'écriture. Une réponse en arabe translitère les noms —
+  // « قاعة ابن خلدون » pour Salle Ibn Khaldoun — et aucune comparaison de
+  // chaînes latines ne les y retrouvera. C'est pour cela que le modèle doit
+  // déclarer ce qu'il cite, et que le prompt en fait le champ le plus important.
+  // ------------------------------------------------------------------------
   for (const id of idsDeclares) {
     if (!idsDuContexte.has(id)) fautes.push(`identifiant hors contexte : ${id}`);
   }
 
-  // LES NOMS, du plus long au plus court, en effaçant ce qui est reconnu. Sans
+  // ------------------------------------------------------------------------
+  // FILET SECONDAIRE : LES NOMS, EN ÉCRITURE LATINE SEULEMENT.
+  //
+  // Il attrape ce que la déclaration ne dit pas : une salle nommée dans la
+  // prose sans que son identifiant soit déclaré. Il ne voit RIEN d'une réponse
+  // en arabe, et ce n'est pas un oubli : écrire un détecteur de noms translitérés
+  // demanderait de deviner comment un modèle rend « Chréa » en arabe, ce qui
+  // serait une seconde source de vérité, plus fragile que celle qu'elle garde.
+  //
+  // Du nom le plus long au plus court, en effaçant ce qui est reconnu : sans
   // l'effacement, « Palais Dar El Feth » contiendrait « El Feth » et l'on
   // accuserait le modèle d'avoir cité une salle dont il n'a pas parlé.
   let reste = aplatir(texte);
@@ -448,6 +547,34 @@ const HORS_SUJET: Record<string, string> = {
   mixte: "Je ne m’occupe que des salles des fêtes : les trouver, les comparer " +
     "et expliquer comment les réserver. Je ne peux pas vous aider sur ce sujet.",
 };
+
+/// « 2027-08-01 » devient « 1er août 2027 ».
+const MOIS_FR = [
+  "janvier", "février", "mars", "avril", "mai", "juin",
+  "juillet", "août", "septembre", "octobre", "novembre", "décembre",
+];
+
+function dateEnClair(iso: string): string {
+  const [a, m, j] = iso.split("-").map(Number);
+  const jour = j === 1 ? "1er" : String(j);
+  return `${jour} ${MOIS_FR[m - 1]} ${a}`;
+}
+
+/// L'ANNONCE DE L'HYPOTHÈSE NE PASSE PAS PAR LE MODÈLE.
+///
+/// Elle y passait, avec un exemple dans le prompt — et le modèle recopiait la
+/// date de l'exemple au lieu de celle qu'il venait d'utiliser. Il annonçait
+/// « je pars sur le 14 août » en chiffrant le 1er : une phrase fausse sur un
+/// point où l'utilisateur va réserver.
+///
+/// C'est une affirmation FACTUELLE, comme la comparaison de dates plus haut :
+/// elle se construit ici, où la date est connue, et rien ne peut la déformer.
+function phraseAnneeSupposee(date: string, langue: string): string {
+  if (langue === "ar") {
+    return `أنطلق من تاريخ ${date} — أخبرني إن كنت تقصد سنة أخرى. `;
+  }
+  return `Je pars sur le ${dateEnClair(date)} — dites-moi si vous pensiez à une autre année. `;
+}
 
 const DATE_PASSEE: Record<string, string> = {
   fr: "Cette date est déjà passée. Indiquez-moi une date à venir et je vous " +
@@ -538,8 +665,13 @@ Deno.serve(async (requete: Request): Promise<Response> => {
 
     criteres = {
       hors_sujet: brut.hors_sujet === true,
+      question_procedure: brut.question_procedure === true,
       langue: ["fr", "ar", "mixte"].includes(String(brut.langue))
         ? String(brut.langue) : "fr",
+      date_origine: ["aucune", "explicite", "annee_absente", "relative"]
+        .includes(String(brut.date_origine))
+        ? String(brut.date_origine) : "aucune",
+      annee_supposee: false,
       wilaya_code: /^\d{2}$/.test(String(brut.wilaya_code ?? ""))
         ? String(brut.wilaya_code) : "",
       commune: String(brut.commune ?? "").trim(),
@@ -565,6 +697,44 @@ Deno.serve(async (requete: Request): Promise<Response> => {
         reponse: HORS_SUJET[langue] ?? HORS_SUJET.fr,
         salles: [], criteres, modele, statut: "hors_sujet",
       });
+    }
+
+    // UNE QUESTION DE PROCÉDURE NE CHERCHE AUCUNE SALLE. On ne fait donc ni
+    // empreinte ni requête : le modèle reçoit le texte du parcours, un contexte
+    // VIDE, et la validation du §8.5 garantit qu'il ne nommera personne —
+    // toute salle citée serait hors contexte, et ferait rejouer.
+    if (criteres.question_procedure) {
+      const sortie = await demanderAuModele(
+        cleGemini, modele, instructionRedaction(),
+        JSON.stringify({
+          question,
+          langue_attendue: langue,
+          texte_de_procedure: PROCEDURE,
+          salles_disponibles: [],
+        }),
+        SCHEMA_REPONSE,
+      );
+      const texteProc = String(sortie.reponse ?? "").trim() || PROCEDURE;
+      await journaliser("procedure", [], null);
+      return reponseHttp({
+        reponse: texteProc,
+        salles: [], criteres, modele, statut: "procedure",
+      });
+    }
+
+    // L'ANNÉE MANQUANTE SE RÈGLE AVANT LE TEST DE DATE PASSÉE, et seulement
+    // quand la question ne la donnait pas. « hier » reste hier ; « le 14 août »
+    // devient le prochain 14 août. La différence tient dans `date_origine`, que
+    // le modèle renseigne — c'est la seule chose qu'on lui demande ici, et c'est
+    // une observation, pas un calcul.
+    if (criteres.date && criteres.date_origine === "annee_absente") {
+      criteres.date = avancerJusquAVenir(criteres.date, aujourdHui);
+      // L'HYPOTHÈSE TIENT À L'ABSENCE DE L'ANNÉE, PAS À NOTRE CORRECTION. Le
+      // modèle choisit parfois déjà la bonne année — il n'y a alors rien à
+      // avancer, et l'on se taisait. Mais l'utilisateur n'a toujours pas dit
+      // « 2027 » : c'est nous qui l'avons décidé pour lui, et il doit pouvoir
+      // nous reprendre.
+      criteres.annee_supposee = true;
     }
 
     // LA DATE PASSÉE SE TRANCHE ICI, pas par le modèle. C'est une comparaison
@@ -689,6 +859,12 @@ Deno.serve(async (requete: Request): Promise<Response> => {
         ids = salles.map((s) => s.venue_id);
         statut = "liste_brute";
       }
+    }
+
+    // L'hypothèse d'abord, la réponse ensuite — et seulement sur une réponse
+    // rédigée : une liste brute n'a pas de première phrase où la glisser.
+    if (criteres.annee_supposee && statut !== "liste_brute") {
+      texte = phraseAnneeSupposee(criteres.date, langue) + texte;
     }
 
     await journaliser(statut, ids, salles.length);

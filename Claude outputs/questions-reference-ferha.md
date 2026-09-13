@@ -66,7 +66,7 @@ Pour chaque question : ce qu'une bonne réponse doit contenir.
 *Attendu :* Salle Ibn Khaldoun (150) ou Salle Ennour (180).
 
 **17.** نحتاج قاعة فيها ديجي وسونو
-*Attendu :* Salle Aïn Fouara, Sétif — sono et DJ compris dans le prix.
+*Attendu :* toute salle publiée disposant de DJ et sono. La nuance « compris dans le prix » n'est pas dans l'index sémantique, et le prix en est exclu par construction : l'agent ne peut pas la connaître.
 
 **18.** كاين شي قاعة قريبة من البحر في وهران؟
 *Attendu :* Résidence Les Andalouses, Aïn El Turck.
