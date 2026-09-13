@@ -142,7 +142,10 @@ la même chose (arabe, français, franco-arabe) et trois sans rapport — et com
 .\preuve-multilingue.ps1 -url "https://ferha-embeddings.onrender.com" -jeton "VOTRE_JETON"
 ```
 
-Sortie obtenue contre le service réel :
+Sortie obtenue **en local** — un `uvicorn app:app` sur ce poste, joint par le
+réseau en HTTP, avec la commande de démarrage que Render emploiera. Elle n'a
+pas encore tourné contre une instance Render : au J18, rien n'y est déployé.
+Ce qu'elle prouve est donc le modèle et le service, pas l'hébergement.
 
 ```
   0,8767   AR   arabe standard   قاعة أفراح في وهران
