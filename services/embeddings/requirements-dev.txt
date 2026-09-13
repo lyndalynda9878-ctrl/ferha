@@ -1,0 +1,7 @@
+# Pour `verifier.py` seulement, jamais sur Render.
+#
+# `fastapi.testclient` s'appuie sur httpx, et httpx n'a rien a faire dans un
+# service qui tourne sur 512 Mo : il n'y sert a rien. On le garde donc ici.
+
+-r requirements.txt
+httpx==0.28.1

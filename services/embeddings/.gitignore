@@ -1,0 +1,5 @@
+# Le modèle se télécharge à la construction — 135 Mo n'ont rien à faire dans
+# un dépôt git, et Render le reprend depuis Hugging Face à chaque build.
+modele/
+__pycache__/
+.venv/

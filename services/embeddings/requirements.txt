@@ -1,0 +1,23 @@
+# Ferha — le service des empreintes.
+#
+# CE QUI N'EST PAS LÀ EST AUSSI IMPORTANT QUE CE QUI Y EST : ni torch, ni
+# transformers, ni sentence-transformers. Le premier pèse à lui seul plus que
+# les 512 Mo de l'offre gratuite de Render, et les deux autres le tirent
+# derrière eux. `onnxruntime` fait tourner le même modèle avec numpy pour
+# seule dépendance lourde.
+#
+# Versions épinglées : une machine de construction qui résout les versions
+# toute seule finit par installer, un matin, une version qui ne tient plus
+# dans la mémoire — et le service tombe sans qu'une ligne du dépôt ait bougé.
+
+fastapi==0.141.1
+uvicorn==0.52.4
+onnxruntime==1.30.0
+# sentencepiece et NON tokenizers : le meme vocabulaire, 49 Mo de memoire au
+# lieu de 266. C'est ce qui fait tenir le service dans les 512 Mo de l'offre
+# gratuite. L'equivalence des deux a ete verifiee sur 517 textes, zero ecart.
+sentencepiece==0.2.2
+numpy==2.5.3
+
+# Construction seulement : `telecharger_modele.py` l'utilise, `app.py` jamais.
+huggingface-hub==1.31.0
