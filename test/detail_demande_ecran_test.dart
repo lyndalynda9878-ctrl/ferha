@@ -389,6 +389,141 @@ void main() {
     });
   });
 
+  /// « L'événement a eu lieu » — le geste qui débloque l'avis (§3 étape 6,
+  /// §5.4).
+  ///
+  /// IL N'EXISTAIT PAS AVANT LE J17, et c'est ce qui rendait le §5.4
+  /// inatteignable : `complete_booking()` était écrite depuis la migration 004
+  /// et aucun écran ne l'appelait. Une réservation payée restait « confirmée »
+  /// pour toujours, et personne ne pouvait noter une salle.
+  group('Marquer l’événement comme honoré', () {
+    DemandeDetail confirmee({int jours = -2}) => detailDeTest(
+      id: '1',
+      venueId: bahia,
+      etat: EtatReservation.confirmee,
+      acompte: 51334,
+      acompteDu: 51334,
+      telephone: '0770112233',
+      telephoneDisponible: true,
+      date: DateTime.now().add(Duration(days: jours)),
+    );
+
+    testWidgets('le bouton n’apparaît qu’après la date', (tester) async {
+      await ouvre(tester, confirmee(jours: 3));
+      expect(find.byKey(cleMarquerHonoree), findsNothing);
+
+      await ouvre(tester, confirmee(jours: -2));
+      expect(find.byKey(cleMarquerHonoree), findsOneWidget);
+    });
+
+    testWidgets('ni sur une demande qui n’est pas confirmée', (tester) async {
+      await ouvre(
+        tester,
+        detailDeTest(
+          id: '1',
+          venueId: bahia,
+          etat: EtatReservation.acceptee,
+          date: DateTime.now().subtract(const Duration(days: 2)),
+        ),
+      );
+
+      // La base le refuse aussi (FE072) ; le cacher évite seulement de proposer
+      // un geste qui échouerait.
+      expect(find.byKey(cleMarquerHonoree), findsNothing);
+    });
+
+    testWidgets('il annonce ce que le geste déclenche', (tester) async {
+      await ouvre(tester, confirmee());
+
+      // Le propriétaire doit savoir qu'il ouvre la porte à un avis sur SA
+      // salle : c'est la moitié de ce qu'il accepte en appuyant.
+      expect(
+        find.textContaining('pourra alors déposer un avis'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('renoncer dans la fenêtre ne marque rien', (tester) async {
+      final depot = await ouvre(tester, confirmee());
+
+      await tester.tap(find.byKey(cleMarquerHonoree));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Pas encore'));
+      await tester.pumpAndSettle();
+
+      // Marquer honoré ne se défait pas : aucune transition ne ramène de
+      // « completed » à « confirmed ». Une fenêtre qui marquerait quand même en
+      // se fermant serait pire que pas de fenêtre du tout.
+      expect(depot.honorees, isEmpty);
+    });
+
+    testWidgets('confirmer envoie la demande, et une seule fois', (
+      tester,
+    ) async {
+      final demande = confirmee();
+      final depot = await ouvre(tester, demande);
+
+      await tester.tap(find.byKey(cleMarquerHonoree));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(cleConfirmerHonoree));
+      await tester.pumpAndSettle();
+
+      expect(depot.honorees, <String>[demande.bookingId]);
+      expect(
+        find.textContaining('Votre cliente peut maintenant vous noter'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('FE073 est traduit, et dit quand revenir', (tester) async {
+      await ouvre(
+        tester,
+        confirmee(),
+        erreur: const PostgrestException(
+          message: 'L’événement n’a pas encore eu lieu.',
+          code: 'PT409',
+          hint: 'FE073',
+        ),
+      );
+
+      await tester.tap(find.byKey(cleMarquerHonoree));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(cleConfirmerHonoree));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.textContaining('Vous pourrez le marquer comme honoré'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('FE073'), findsNothing);
+    });
+
+    testWidgets(
+      'FE072 ne gronde personne : un double appui n’est pas une faute',
+      (tester) async {
+        await ouvre(
+          tester,
+          confirmee(),
+          erreur: const PostgrestException(
+            message: 'Seule une réservation confirmée peut être honorée.',
+            code: 'PT409',
+            hint: 'FE072',
+          ),
+        );
+
+        await tester.tap(find.byKey(cleMarquerHonoree));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(cleConfirmerHonoree));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.textContaining('Elle a peut-être déjà été marquée'),
+          findsOneWidget,
+        );
+      },
+    );
+  });
+
   testWidgets('le thème sombre s’affiche aussi', (tester) async {
     await ouvre(
       tester,

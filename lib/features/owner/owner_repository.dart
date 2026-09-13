@@ -59,6 +59,14 @@ abstract interface class OwnerRepository {
   /// celui-ci aussi.
   Future<void> confirmerEncaissementEspeces(String bookingId);
 
+  /// Marque l'événement comme honoré : `confirmed` → `completed` (§3, étape 6).
+  ///
+  /// C'EST CE GESTE QUI DÉBLOQUE L'AVIS (§5.4), et il n'y en a pas d'autre :
+  /// `complete_booking()` (026) dépose l'invitation « Racontez votre soirée »
+  /// en même temps qu'elle change l'état. Sans lui, une réservation payée reste
+  /// « confirmée » pour toujours et personne ne peut noter la salle.
+  Future<void> marquerHonoree(String bookingId);
+
   /// L'agenda d'une salle sur un mois : un état par jour et par créneau.
   Future<AgendaDuMois> agenda(String venueId, DateTime mois);
 
@@ -204,6 +212,19 @@ class OwnerRepositorySupabase implements OwnerRepository {
   Future<void> confirmerEncaissementEspeces(String bookingId) async {
     await _client.rpc<dynamic>(
       'confirmer_encaissement_especes',
+      params: <String, dynamic>{'p_booking_id': bookingId},
+    );
+  }
+
+  /// LA DATE N'EST PAS VÉRIFIÉE ICI. `complete_booking()` (026) refuse
+  /// elle-même un événement à venir (FE073) et une réservation qui n'est pas
+  /// confirmée (FE072). Regarder le calendrier avant d'appeler ferait un second
+  /// gardien pour la même règle — et celui-là se tromperait d'un jour dès que
+  /// l'appareil et le serveur ne seraient pas dans le même fuseau.
+  @override
+  Future<void> marquerHonoree(String bookingId) async {
+    await _client.rpc<List<dynamic>>(
+      'complete_booking',
       params: <String, dynamic>{'p_booking_id': bookingId},
     );
   }

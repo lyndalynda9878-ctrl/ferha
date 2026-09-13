@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/ferha_colors.dart';
 import '../../core/theme/ferha_radii.dart';
 import '../booking/reservation.dart';
+import '../reviews/avis_messages.dart';
 import '../search/search_filters.dart';
 import '../search/widgets/etats.dart';
 import 'demande_detail.dart';
@@ -50,6 +51,13 @@ const Key cleEncaissementEspeces = Key('demande-especes-confirmer');
 
 /// La fenêtre qui le confirme.
 const Key cleConfirmerEspeces = Key('demande-especes-oui');
+
+/// Le bouton « L'événement a eu lieu », sur une réservation confirmée dont la
+/// date est passée.
+const Key cleMarquerHonoree = Key('demande-honoree');
+
+/// La fenêtre qui le confirme.
+const Key cleConfirmerHonoree = Key('demande-honoree-oui');
 
 const Key cleMotif = Key('demande-motif');
 
@@ -116,6 +124,10 @@ class _Detail extends StatelessWidget {
               if (demande.especesEnAttente) ...<Widget>[
                 const SizedBox(height: 20),
                 _EspecesAConfirmer(demande: demande),
+              ],
+              if (demande.honorable) ...<Widget>[
+                const SizedBox(height: 20),
+                _AMarquerHonoree(demande: demande),
               ],
             ],
           ),
@@ -651,6 +663,148 @@ class _EspecesAConfirmerState extends ConsumerState<_EspecesAConfirmer> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(messageErreurReponse(erreur))));
+    } finally {
+      if (mounted) setState(() => _enCours = false);
+    }
+  }
+}
+
+/// « L'événement a eu lieu » — le geste qui débloque l'avis (§3, étape 6).
+///
+/// IL N'EXISTAIT PAS AVANT LE J17, et c'est ce qui rendait le §5.4 inatteignable :
+/// `complete_booking()` était écrite depuis la migration 004 et aucun écran ne
+/// l'appelait. Une réservation payée restait « confirmée » pour toujours, et
+/// personne ne pouvait noter une salle.
+///
+/// IL NE S'AFFICHE QU'APRÈS LA DATE, parce qu'on ne marque pas honoré ce qui n'a
+/// pas eu lieu. La base le refuse aussi (FE073) ; le cacher évite seulement de
+/// proposer un geste qui échouerait.
+///
+/// IL DEMANDE CONFIRMATION, comme l'encaissement en espèces. Marquer honoré ne
+/// se défait pas : il n'existe aucune transition qui ramène de « completed » à
+/// « confirmed », et le client reçoit dans la seconde une invitation à noter la
+/// salle. Un premier appui, sur un écran qu'on parcourt, est un geste qu'on
+/// finit par faire par erreur.
+class _AMarquerHonoree extends ConsumerStatefulWidget {
+  const _AMarquerHonoree({required this.demande});
+
+  final DemandeDetail demande;
+
+  @override
+  ConsumerState<_AMarquerHonoree> createState() => _AMarquerHonoreeState();
+}
+
+class _AMarquerHonoreeState extends ConsumerState<_AMarquerHonoree> {
+  bool _enCours = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.ferhaColors;
+    final text = Theme.of(context).textTheme;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsetsDirectional.all(14),
+      decoration: BoxDecoration(
+        color: colors.goldSoft,
+        borderRadius: FerhaRadii.cardBorder,
+        border: Border.all(color: colors.gold),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Icon(
+                Icons.celebration_outlined,
+                size: 18,
+                color: colors.primaryDeep,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'La date est passée',
+                  style: text.titleSmall?.copyWith(
+                    color: colors.primaryDeep,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Confirmez que l’événement a bien eu lieu. '
+            '${widget.demande.client} pourra alors déposer un avis sur votre '
+            'salle, pendant trente jours.',
+            style: text.bodySmall?.copyWith(color: colors.inkSecondary),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              key: cleMarquerHonoree,
+              onPressed: _enCours ? null : _marquer,
+              icon: _enCours
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.check, size: 18),
+              label: const Text('L’événement a eu lieu'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _marquer() async {
+    final confirme = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('L’événement a-t-il eu lieu ?'),
+        content: Text(
+          'La réservation passera en « terminée », et ${widget.demande.client} '
+          'sera invitée à déposer un avis sur votre salle. Ce geste ne se '
+          'défait pas.',
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Pas encore'),
+          ),
+          FilledButton(
+            key: cleConfirmerHonoree,
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Oui, c’est fait'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirme != true || !mounted) return;
+
+    setState(() => _enCours = true);
+    try {
+      await ref
+          .read(reponseADemandeServiceProvider)
+          .marquerHonoree(widget.demande);
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'C’est noté. Votre cliente peut maintenant vous noter.',
+          ),
+        ),
+      );
+    } on Object catch (erreur) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(messageErreurHonorer(erreur))));
     } finally {
       if (mounted) setState(() => _enCours = false);
     }

@@ -201,6 +201,27 @@ class DemandeDetail {
   /// geste qui échouerait.
   bool get attendUneReponse => etat == EtatReservation.enAttente;
 
+  /// Vrai quand la soirée peut être marquée comme honorée (§3, étape 6).
+  ///
+  /// DEUX CONDITIONS, ET LA SECONDE SE COMPARE ICI : la réservation est
+  /// confirmée, et l'événement n'est plus à venir. Comparer une date en Dart
+  /// n'est pas recalculer une règle métier — c'est le même geste que
+  /// `optionEnCours` côté client, et pour le même usage : ne pas PROPOSER un
+  /// bouton qui échouerait. `complete_booking()` (026) refuse elle-même un
+  /// événement à venir, avec le code FE073, et c'est ce refus-là qui protège.
+  ///
+  /// LE JOUR MÊME COMPTE, comme en base : un mariage du 14 août se marque
+  /// honoré le 14 au soir, pas le 15.
+  bool get honorable {
+    if (etat != EtatReservation.confirmee) return false;
+    final aujourdHui = DateTime.now();
+    return !DateTime(
+      date.year,
+      date.month,
+      date.day,
+    ).isAfter(DateTime(aujourdHui.year, aujourdHui.month, aujourdHui.day));
+  }
+
   /// La somme des options payantes, pour la ligne de détail du devis.
   ///
   /// CE N'EST PAS UN PRIX : c'est le rappel de ce que le client a coché, et il

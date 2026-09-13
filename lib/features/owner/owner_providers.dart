@@ -247,6 +247,23 @@ class ReponseADemandeService {
     await _rafraichir(demande);
   }
 
+  /// Marque l'événement comme honoré (§3, étape 6) — et débloque l'avis (§5.4).
+  ///
+  /// LE MÊME RANGEMENT QU'APRÈS UNE RÉPONSE, et pour une raison de plus : le
+  /// taux d'occupation du mois compte les créneaux VENDUS, et « completed » en
+  /// fait partie au même titre que « confirmed ». L'indicateur ne bouge donc pas
+  /// — mais l'état affiché sur la demande, si, et c'est lui que le propriétaire
+  /// regarde en appuyant.
+  ///
+  /// RIEN À FAIRE POUR PRÉVENIR LA CLIENTE : `complete_booking()` dépose
+  /// l'invitation, et le suivi client est abonné aux changements de `bookings`.
+  /// Son écran passe à « Terminée » et voit apparaître « Déposer un avis » sans
+  /// que personne ne recharge quoi que ce soit.
+  Future<void> marquerHonoree(DemandeDetail demande) async {
+    await _ref.read(ownerRepositoryProvider).marquerHonoree(demande.bookingId);
+    await _rafraichir(demande);
+  }
+
   /// Ce que la réponse vient de rendre faux, et rien d'autre.
   Future<void> _rafraichir(DemandeDetail demande) async {
     // Le détail lui-même : l'écran doit montrer le nouvel état, l'acompte fixé

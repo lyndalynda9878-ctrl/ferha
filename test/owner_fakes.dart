@@ -122,6 +122,9 @@ class DepotDeTest implements OwnerRepository {
   /// Les encaissements en espèces confirmés, dans l'ordre.
   final List<String> encaissementsConfirmes = <String>[];
 
+  /// Les réservations marquées comme honorées, dans l'ordre.
+  final List<String> honorees = <String>[];
+
   final List<({String id, String? motif})> refusees =
       <({String id, String? motif})>[];
 
@@ -197,6 +200,12 @@ class DepotDeTest implements OwnerRepository {
   Future<void> confirmerEncaissementEspeces(String bookingId) async {
     if (erreurDeReponse != null) throw erreurDeReponse!;
     encaissementsConfirmes.add(bookingId);
+  }
+
+  @override
+  Future<void> marquerHonoree(String bookingId) async {
+    if (erreurDeReponse != null) throw erreurDeReponse!;
+    honorees.add(bookingId);
   }
 
   @override
