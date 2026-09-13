@@ -96,9 +96,19 @@ $reponse = Invoke-RestMethod "$embeddingsUrl/embed" -Method Post `
   -Headers @{ Authorization = "Bearer $jetonEmbed" } `
   -ContentType "application/json; charset=utf-8" -Body $octets -TimeoutSec 180
 
-# La virgule en tete empeche PowerShell de "derouler" le tableau de vecteurs.
-$vecteurs = ,$reponse.vecteurs
-$v = $vecteurs[0]
+# PAS DE VIRGULE ICI, ET C'EST L'INVERSE DE preuve-multilingue.ps1.
+#
+# La virgule en tete ne sert qu'au RETOUR D'UNE FONCTION : c'est la que
+# PowerShell deroule un tableau de tableaux en une seule liste plate. Elle est
+# donc indispensable dans preuve-multilingue.ps1, ou les vecteurs passent par
+# une fonction.
+#
+# Invoke-RestMethod, lui, ne deroule rien : $reponse.vecteurs EST deja le
+# tableau des vecteurs. Y ajouter une virgule emballe le tout une fois de plus,
+# et [0] rend alors le tableau entier au lieu de son premier element - 1 objet
+# la ou l'on attend 384 nombres. Le remede appliquer au mauvais endroit fait
+# exactement le mal qu'il previent ailleurs.
+$v = $reponse.vecteurs[0]
 
 if ($v.Count -ne 384) {
   throw "Le service a rendu $($v.Count) nombres, 384 attendus."
@@ -113,8 +123,14 @@ if ($v.Count -ne 384) {
 # de virgule decimale.
 # -----------------------------------------------------------------------------
 
+# LE [double] N'EST PAS DECORATIF. ConvertFrom-Json, sous Windows PowerShell 5.1,
+# rend un Decimal pour les nombres qui y tiennent et un Double pour les autres -
+# donc un melange des deux dans le meme vecteur. Or « R » (aller-retour exact)
+# n'existe PAS comme format de Decimal : sans la conversion, on tombe sur
+# « Specificateur de format non valide », et seulement sur certaines questions,
+# selon les valeurs rendues.
 $ic = [Globalization.CultureInfo]::InvariantCulture
-$litteral = "[" + (($v | ForEach-Object { $_.ToString("R", $ic) }) -join ",") + "]"
+$litteral = "[" + (($v | ForEach-Object { ([double]$_).ToString("R", $ic) }) -join ",") + "]"
 
 $corpsRpc = @{
   p_embedding = $litteral
