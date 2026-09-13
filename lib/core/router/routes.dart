@@ -63,6 +63,27 @@ abstract final class FerhaRoutes {
   /// Chemin de la demande pour une salle donnée.
   static String demandeDe(String id) => '/salle/$id/demande';
 
+  /// Les avis d'une salle — l'écran 7. `/salle/:id/avis`
+  ///
+  /// SOUS LA SALLE, ET NON SOUS LE PROPRIÉTAIRE, alors que c'est aussi de là que
+  /// le propriétaire répond (§4.3, OWN-06). Un avis est d'abord une chose
+  /// PUBLIQUE : il sert à celui qui n'a pas encore réservé, il se lit sans
+  /// compte, et il se partage — l'adresse d'une salle et celle de ses avis
+  /// doivent se ressembler.
+  ///
+  /// Le propriétaire y arrive depuis la note moyenne de son tableau de bord, et
+  /// y voit un bouton de plus sur les avis sans réponse. C'est la MÊME liste,
+  /// lue par quelqu'un d'autre : une seconde route sous `/proprietaire/`
+  /// donnerait deux écrans à tenir d'accord, et le second finirait par mentir.
+  ///
+  /// Aucun paramètre : les avis d'une salle ne dépendent ni d'une date ni d'un
+  /// nombre d'invités. Le prix, si — et c'est pour cela que la fiche, elle, en
+  /// porte.
+  static const String salleAvis = '/salle/:id/avis';
+
+  /// Chemin des avis d'une salle donnée.
+  static String salleAvisDe(String id) => '/salle/$id/avis';
+
   /// Confirmation d'une demande envoyée. `/demande-envoyee`
   ///
   /// Hors de l'arborescence de la salle : on n'y revient pas, on en sort. Le
@@ -97,6 +118,27 @@ abstract final class FerhaRoutes {
   /// Chemin du versement de l'acompte d'une réservation donnée.
   static String acompteDe(String bookingId) =>
       '/mes-reservations/$bookingId/acompte';
+
+  /// Dépôt de l'avis d'une soirée honorée. `/mes-reservations/:id/avis`
+  ///
+  /// SOUS « Mes réservations », comme l'acompte, PARCE QU'UN AVIS EST ATTACHÉ À
+  /// UNE RÉSERVATION et à rien d'autre (§5.4). Deux portes y mènent : le bouton
+  /// de la liste, et la notification « Racontez votre soirée » que
+  /// `complete_booking()` dépose — cette dernière n'a que l'identifiant de la
+  /// réservation sous la main, et c'est exactement ce que cette adresse demande.
+  ///
+  /// L'identifiant est celui de la LIGNE représentative du groupe, comme partout
+  /// depuis 013 : `avis_a_deposer()` et `deposer_avis()` remontent au groupe
+  /// elles-mêmes, et une journée entière ne donne qu'un avis.
+  ///
+  /// Aucun autre paramètre, et surtout PAS LA NOTE. Elle vient de la base à
+  /// chaque ouverture ; la mettre dans l'adresse en ferait une valeur qu'un
+  /// curieux pourrait changer.
+  static const String deposerAvis = '/mes-reservations/:id/avis';
+
+  /// Chemin du dépôt d'avis d'une réservation donnée.
+  static String deposerAvisDe(String bookingId) =>
+      '/mes-reservations/$bookingId/avis';
 
   /// Paramètre de requête de [mesReservations] : ce que Chargily vient de faire.
   ///

@@ -18,6 +18,8 @@ import '../../features/owner/photos_salle_screen.dart';
 import '../../features/owner/publier_salle_screen.dart';
 import '../../features/owner/recapitulatif_salle_screen.dart';
 import '../../features/owner/tableau_de_bord_screen.dart';
+import '../../features/reviews/avis_screen.dart';
+import '../../features/reviews/deposer_avis_screen.dart';
 import '../../features/search/accueil_screen.dart';
 import '../../features/search/resultats_screen.dart';
 import '../../features/search/search_filters.dart';
@@ -151,6 +153,21 @@ final routerProvider = Provider<GoRouter>((ref) {
         },
       ),
 
+      // LES AVIS D'UNE SALLE — l'écran 7. Pas de redirection : c'est une route
+      // de CONSULTATION, la plus publique de toutes. Un avis sert d'abord à
+      // celui qui n'a pas encore réservé, et `avis_de_la_salle()` (026) est
+      // ouverte à `anon` exprès.
+      //
+      // Le propriétaire qui arrive ici depuis son tableau de bord y voit un
+      // bouton « Répondre » de plus ; c'est `repondre_a_un_avis()` qui refuse la
+      // salle d'un autre, pas cette route.
+      GoRoute(
+        path: FerhaRoutes.salleAvis,
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) =>
+            AvisScreen(venueId: state.pathParameters['id']!),
+      ),
+
       // La confirmation. `extra` porte le récapitulatif ; sur un rechargement
       // de page il est perdu, et l'écran se replie sur la seule référence que
       // l'adresse ait conservée — plutôt que d'inventer un détail qu'il n'a
@@ -179,6 +196,21 @@ final routerProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) =>
             AcompteScreen(bookingId: state.pathParameters['id']!),
+      ),
+
+      // LE DÉPÔT D'UN AVIS, déclaré avant « Mes réservations » par la même
+      // prudence que l'acompte : les deux chemins partagent leur début.
+      //
+      // Pas de redirection ici non plus. `avis_a_deposer()` (026) refuse
+      // d'elle-même un appel sans session (FE074) et la réservation d'un autre
+      // (FE075) ; l'écran traduit ses refus en une phrase. C'est d'autant plus
+      // important ici qu'on y arrive souvent par une NOTIFICATION, donc parfois
+      // des jours après — le moment exact où une session a pu expirer.
+      GoRoute(
+        path: FerhaRoutes.deposerAvis,
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) =>
+            DeposerAvisScreen(bookingId: state.pathParameters['id']!),
       ),
 
       // Le suivi des réservations. Pas de redirection ici non plus : c'est le
