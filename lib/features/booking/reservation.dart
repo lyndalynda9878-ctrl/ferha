@@ -128,6 +128,8 @@ class Reservation {
     this.optionExpireLe,
     this.proprietaire,
     this.telephone,
+    this.avisDepose = false,
+    this.avisPossible = false,
   });
 
   /// Construit depuis une ligne de `client_bookings()`.
@@ -161,6 +163,8 @@ class Reservation {
     // Null tant que la demande n'est pas acceptée : c'est booking_contact() qui
     // en décide, et personne d'autre (§9).
     telephone: j['owner_phone'] as String?,
+    avisDepose: (j['avis_depose'] as bool?) ?? false,
+    avisPossible: (j['avis_possible'] as bool?) ?? false,
   );
 
   /// L'identifiant de la réservation — un groupe, une ou deux lignes.
@@ -239,6 +243,23 @@ class Reservation {
   /// tant que la demande n'est pas acceptée. Un écran qui voudrait la montrer
   /// plus tôt n'aurait rien à montrer.
   final String? telephone;
+
+  /// Un avis existe pour cet événement (§5.4).
+  ///
+  /// Il décide du LIBELLÉ du bouton — « Déposer un avis » ou « Modifier mon
+  /// avis » —, pas de sa présence : c'est [avisPossible] qui dit s'il y a
+  /// quelque chose à faire.
+  final bool avisDepose;
+
+  /// Écrire ou corriger l'avis aboutira (§5.4).
+  ///
+  /// IL RÉUNIT TROIS RÈGLES, ET AUCUNE NE SE RECALCULE ICI : la réservation est
+  /// honorée, la fenêtre de J+1 à J+30 est ouverte, et le propriétaire n'a pas
+  /// encore répondu — ce qui figerait l'avis. Les trois vivent en SQL, dans
+  /// `client_bookings()` et `avis_dans_la_fenetre()` (026). Les refaire en Dart
+  /// donnerait une seconde définition de « on peut encore écrire », et c'est
+  /// elle qui se tromperait le jour où J+30 bougerait.
+  final bool avisPossible;
 
   /// « Oran, Oran (31) » n'a pas de sens dans une liste : la commune suffit.
   String get localisation =>

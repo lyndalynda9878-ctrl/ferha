@@ -686,16 +686,22 @@ class _Indicateurs extends ConsumerWidget {
         erreur: error,
         onReessayer: () => ref.invalidate(indicateursProvider(venueId)),
       ),
-      AsyncData(:final value) => _GrilleIndicateurs(indicateurs: value),
+      AsyncData(:final value) => _GrilleIndicateurs(
+        indicateurs: value,
+        venueId: venueId,
+      ),
       _ => const _SqueletteIndicateurs(),
     };
   }
 }
 
 class _GrilleIndicateurs extends StatelessWidget {
-  const _GrilleIndicateurs({required this.indicateurs});
+  const _GrilleIndicateurs({required this.indicateurs, required this.venueId});
 
   final IndicateursSalle indicateurs;
+
+  /// La salle regardée — la carte « Note moyenne » y mène (§4.3, OWN-06).
+  final String venueId;
 
   @override
   Widget build(BuildContext context) {
@@ -740,6 +746,16 @@ class _GrilleIndicateurs extends StatelessWidget {
             explication: i.nombreAvis == 0
                 ? 'Aucun avis'
                 : '${i.nombreAvis} avis',
+            // LA SEULE PORTE DU PROPRIÉTAIRE VERS LES AVIS, et donc vers son
+            // droit de réponse (§4.3, OWN-06). Elle mène à l'écran 7, le même
+            // que celui des visiteurs : c'est la même liste, et deux listes
+            // finiraient par ne plus dire la même chose.
+            //
+            // Rien à ouvrir quand il n'y a aucun avis : une carte cliquable qui
+            // mène à un écran vide fait chercher ce qu'on a raté.
+            onTap: i.nombreAvis == 0
+                ? null
+                : () => context.push(FerhaRoutes.salleAvisDe(venueId)),
           ),
           droite: _CarteIndicateur(
             libelle: 'Demandes acceptées',
@@ -794,6 +810,7 @@ class _CarteIndicateur extends StatelessWidget {
     required this.valeur,
     this.detail,
     this.explication,
+    this.onTap,
   });
 
   final String libelle;
@@ -805,12 +822,19 @@ class _CarteIndicateur extends StatelessWidget {
   /// Ce qui remplace ou complète la variation — « 12 dates », « Aucun avis ».
   final String? explication;
 
+  /// Ce qu'ouvre un appui, quand l'indicateur mène quelque part.
+  ///
+  /// TROIS DES QUATRE CARTES NE MÈNENT NULLE PART, et n'ont donc pas de
+  /// chevron : un taux d'occupation n'a pas d'écran derrière lui. Seule la note
+  /// moyenne en a un — l'écran 7 —, et le chevron est ce qui le fait savoir.
+  final VoidCallback? onTap;
+
   @override
   Widget build(BuildContext context) {
     final colors = context.ferhaColors;
     final text = Theme.of(context).textTheme;
 
-    return Container(
+    final carte = Container(
       padding: const EdgeInsetsDirectional.all(12),
       decoration: BoxDecoration(
         color: colors.surface,
@@ -820,9 +844,17 @@ class _CarteIndicateur extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text(
-            libelle,
-            style: text.bodySmall?.copyWith(color: colors.inkSecondary),
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: Text(
+                  libelle,
+                  style: text.bodySmall?.copyWith(color: colors.inkSecondary),
+                ),
+              ),
+              if (onTap != null)
+                Icon(Icons.chevron_right, size: 16, color: colors.inkTertiary),
+            ],
           ),
           const SizedBox(height: 6),
           FittedBox(
@@ -842,6 +874,17 @@ class _CarteIndicateur extends StatelessWidget {
             ),
         ],
       ),
+    );
+
+    if (onTap == null) return carte;
+
+    // `Material` sous l'`InkWell` : la carte a son propre fond, et sans lui
+    // l'onde de l'appui se peindrait derrière elle, donc invisible.
+    return Material(
+      color: Colors.transparent,
+      borderRadius: FerhaRadii.cardBorder,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(onTap: onTap, child: carte),
     );
   }
 }

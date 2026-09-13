@@ -23,6 +23,8 @@ void main() {
     DateTime? expire,
     num? acompte,
     int? acompteDu,
+    bool avisDepose = false,
+    bool avisPossible = false,
   }) => Reservation(
     groupId: 'grp-${etat.code}',
     bookingId: 'bkg-${etat.code}',
@@ -43,6 +45,8 @@ void main() {
     creeLe: DateTime(2026, 9, 9),
     proprietaire: 'Karim Belhadj',
     telephone: telephone,
+    avisDepose: avisDepose,
+    avisPossible: avisPossible,
   );
 
   /// Un notifier de test : `build()` rend la liste qu'on lui donne, sans
@@ -368,6 +372,90 @@ void main() {
       ]);
 
       expect(find.textContaining('Paiement'), findsNothing);
+    });
+  });
+
+  /// Le bouton « Déposer un avis » (§5.4, §4.2 CLI-08).
+  ///
+  /// CE QUE CES TESTS VÉRIFIENT N'EST PAS UNE RÈGLE MÉTIER — elle est en base,
+  /// dans `avis_possible` — mais que l'écran LA LIT au lieu de la recalculer.
+  /// Un écran qui déduirait « terminée, donc notable » proposerait le geste à
+  /// une soirée d'il y a six mois, et mènerait à un refus FE077.
+  group('Déposer un avis', () {
+    testWidgets('rien tant que la base ne dit pas que c’est possible', (
+      tester,
+    ) async {
+      await ouvre(tester, <Reservation>[
+        // Terminée, et pourtant rien à proposer : la fenêtre des trente jours
+        // est passée, ou le propriétaire a déjà répondu.
+        reservation(etat: EtatReservation.terminee),
+      ]);
+
+      expect(find.text('Déposer un avis'), findsNothing);
+      expect(find.text('Modifier mon avis'), findsNothing);
+    });
+
+    testWidgets('le geste attendu se propose en plein', (tester) async {
+      await ouvre(tester, <Reservation>[
+        reservation(etat: EtatReservation.terminee, avisPossible: true),
+      ]);
+
+      expect(find.text('Déposer un avis'), findsOneWidget);
+      // PLEIN : c'est ce qu'on attend de la cliente. `byWidgetPredicate` et non
+      // `byType` — `FilledButton.icon` construit une sous-classe, que `byType`
+      // ne reconnaît pas.
+      expect(
+        find.ancestor(
+          of: find.text('Déposer un avis'),
+          matching: find.byWidgetPredicate((w) => w is FilledButton),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('un avis déjà écrit se corrige, et le bouton le dit', (
+      tester,
+    ) async {
+      await ouvre(tester, <Reservation>[
+        reservation(
+          etat: EtatReservation.terminee,
+          avisPossible: true,
+          avisDepose: true,
+        ),
+      ]);
+
+      expect(find.text('Modifier mon avis'), findsOneWidget);
+      expect(find.text('Déposer un avis'), findsNothing);
+      // CONTOURÉ : corriger est une porte de sortie, pas une invitation.
+      expect(
+        find.ancestor(
+          of: find.text('Modifier mon avis'),
+          matching: find.byWidgetPredicate((w) => w is OutlinedButton),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('un avis figé laisse sa trace, sans bouton', (tester) async {
+      await ouvre(tester, <Reservation>[
+        reservation(etat: EtatReservation.terminee, avisDepose: true),
+      ]);
+
+      // Une cliente qui a pris le temps d'écrire doit retrouver la trace de son
+      // geste, sans quoi elle se demandera s'il est parti.
+      expect(find.text('Votre avis est publié'), findsOneWidget);
+      expect(find.text('Modifier mon avis'), findsNothing);
+    });
+
+    testWidgets('le bouton mène à l’écran de dépôt de CETTE réservation', (
+      tester,
+    ) async {
+      final r = reservation(etat: EtatReservation.terminee, avisPossible: true);
+
+      expect(
+        FerhaRoutes.deposerAvisDe(r.bookingId),
+        '/mes-reservations/${r.bookingId}/avis',
+      );
     });
   });
 

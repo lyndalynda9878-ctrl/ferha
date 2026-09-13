@@ -8,6 +8,7 @@ import '../../core/theme/ferha_radii.dart';
 import '../../core/widgets/photo_salle.dart';
 import '../owner/gerer_ma_salle.dart';
 import '../owner/owner_providers.dart';
+import '../reviews/widgets/etoiles.dart';
 import '../search/search_filters.dart';
 import '../search/widgets/etats.dart';
 import 'venue_detail.dart';
@@ -583,6 +584,15 @@ class _BarreAction extends ConsumerWidget {
 // Pièces communes
 // -----------------------------------------------------------------------------
 
+/// La note de la fiche, et la porte de l'écran 7.
+///
+/// ELLE EST DEVENUE CLIQUABLE AU J17, et c'est tout ce qui a changé : une note
+/// affichée sans moyen de lire ce qu'elle résume est une affirmation sans
+/// preuve. Le chevron le dit, parce qu'une ligne de texte ne se devine pas
+/// cliquable.
+///
+/// LES ÉTOILES VIENNENT DE [RangeeEtoiles], partagée avec l'écran 7 : le même
+/// dessin, à trois échelles, écrit une fois.
 class _Note extends StatelessWidget {
   const _Note({required this.salle});
 
@@ -594,30 +604,29 @@ class _Note extends StatelessWidget {
     final text = Theme.of(context).textTheme;
     final note = salle.note!.toDouble();
 
-    return Row(
-      children: <Widget>[
-        for (var i = 1; i <= 5; i++)
-          Icon(
-            note >= i
-                ? Icons.star_rounded
-                : (note >= i - 0.5
-                      ? Icons.star_half_rounded
-                      : Icons.star_outline_rounded),
-            size: 18,
-            color: colors.gold,
-          ),
-        const SizedBox(width: 8),
-        Text(
-          note.toStringAsFixed(1).replaceAll('.', ','),
-          style: text.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+    return InkWell(
+      onTap: () => context.push(FerhaRoutes.salleAvisDe(salle.id)),
+      borderRadius: FerhaRadii.cardBorder,
+      child: Padding(
+        padding: const EdgeInsetsDirectional.symmetric(vertical: 4),
+        child: Row(
+          children: <Widget>[
+            RangeeEtoiles(note: note),
+            const SizedBox(width: 8),
+            Text(
+              note.toStringAsFixed(1).replaceAll('.', ','),
+              style: text.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              '${salle.nombreAvis} avis vérifié'
+              '${salle.nombreAvis > 1 ? 's' : ''}',
+              style: text.bodySmall?.copyWith(color: colors.inkTertiary),
+            ),
+            Icon(Icons.chevron_right, size: 18, color: colors.inkTertiary),
+          ],
         ),
-        const SizedBox(width: 8),
-        Text(
-          '${salle.nombreAvis} avis vérifié'
-          '${salle.nombreAvis > 1 ? 's' : ''}',
-          style: text.bodySmall?.copyWith(color: colors.inkTertiary),
-        ),
-      ],
+      ),
     );
   }
 }

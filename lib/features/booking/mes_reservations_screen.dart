@@ -267,6 +267,50 @@ class _CarteReservation extends ConsumerWidget {
               ),
             ],
 
+            // RACONTER SA SOIRÉE — le geste du §5.4, et la seconde porte vers
+            // l'écran de dépôt ; la première est la notification que
+            // `complete_booking()` dépose.
+            //
+            // `avisPossible` VIENT DE LA BASE et réunit les trois conditions :
+            // réservation honorée, fenêtre de J+1 à J+30 ouverte, et aucune
+            // réponse du propriétaire. On ne les recompose pas ici — ce serait
+            // une seconde définition de la fenêtre, à côté de celle de 026.
+            if (reservation.avisPossible) ...<Widget>[
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                // PLEIN LA PREMIÈRE FOIS, CONTOURÉ ENSUITE. Déposer son avis est
+                // ce qu'on attend de la cliente ; le corriger est une porte de
+                // sortie, pas une invitation. Deux boutons plutôt qu'un bouton
+                // paramétré : les deux styles ne partagent pas de type commun,
+                // et un ternaire sur le constructeur ne compilerait pas.
+                child: reservation.avisDepose
+                    ? OutlinedButton.icon(
+                        onPressed: () => context.push(
+                          FerhaRoutes.deposerAvisDe(reservation.bookingId),
+                        ),
+                        icon: const Icon(Icons.rate_review_outlined, size: 18),
+                        label: const Text('Modifier mon avis'),
+                      )
+                    : FilledButton.icon(
+                        onPressed: () => context.push(
+                          FerhaRoutes.deposerAvisDe(reservation.bookingId),
+                        ),
+                        icon: const Icon(Icons.rate_review_outlined, size: 18),
+                        label: const Text('Déposer un avis'),
+                      ),
+              ),
+            ]
+            // L'avis est là et ne bouge plus : le propriétaire a répondu, ou
+            // les trente jours sont passés. On ne propose donc aucun geste, mais
+            // on ne fait pas non plus disparaître le sujet — sans cette ligne,
+            // une cliente qui a écrit un avis ne verrait plus nulle part qu'elle
+            // l'a fait.
+            else if (reservation.avisDepose) ...<Widget>[
+              const SizedBox(height: 12),
+              _AvisPublie(bookingId: reservation.bookingId),
+            ],
+
             if (reservation.etat.annulableParLeClient) ...<Widget>[
               const SizedBox(height: 12),
               SizedBox(
@@ -324,6 +368,50 @@ class _CarteReservation extends ConsumerWidget {
         context,
       ).showSnackBar(SnackBar(content: Text(messageErreurDemande(erreur))));
     }
+  }
+}
+
+/// « Votre avis est publié » — une ligne, pas un bouton.
+///
+/// ELLE REMPLACE LE BOUTON QUAND IL N'Y A PLUS RIEN À FAIRE : le propriétaire a
+/// répondu, ou les trente jours du §5.4 sont passés. On pourrait ne rien
+/// afficher du tout — mais une cliente qui a pris le temps d'écrire doit
+/// retrouver la trace de son geste, sans quoi elle se demandera s'il est parti.
+///
+/// LE LIEN RESTE OUVERT. L'écran de dépôt sait s'afficher en lecture seule et
+/// dire POURQUOI il l'est ; c'est mieux qu'un cul-de-sac, et c'est là qu'elle
+/// lira la réponse du propriétaire.
+class _AvisPublie extends StatelessWidget {
+  const _AvisPublie({required this.bookingId});
+
+  final String bookingId;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.ferhaColors;
+
+    return InkWell(
+      onTap: () => context.push(FerhaRoutes.deposerAvisDe(bookingId)),
+      borderRadius: FerhaRadii.cardBorder,
+      child: Padding(
+        padding: const EdgeInsetsDirectional.symmetric(vertical: 6),
+        child: Row(
+          children: <Widget>[
+            Icon(Icons.check_circle_outline, size: 16, color: colors.slotFree),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Votre avis est publié',
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: colors.inkSecondary),
+              ),
+            ),
+            Icon(Icons.chevron_right, size: 18, color: colors.inkTertiary),
+          ],
+        ),
+      ),
+    );
   }
 }
 

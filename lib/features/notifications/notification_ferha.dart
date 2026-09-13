@@ -285,12 +285,24 @@ class NotificationFerha {
 
   /// L'écran qu'ouvre un appui.
   ///
-  /// LE RÔLE DÉCIDE, PAS LE TYPE. Le propriétaire va au détail de la demande —
-  /// c'est là qu'il accepte ou refuse ; la famille va à son suivi. `bookingId`
-  /// manquant ramène au suivi plutôt que nulle part : un écran ouvert vaut
-  /// mieux qu'un appui sans effet.
-  String get destination =>
-      role == RoleNotification.proprietaire && bookingId != null
-      ? FerhaRoutes.proprietaireDemandeDe(bookingId!)
-      : FerhaRoutes.mesReservations;
+  /// LE RÔLE DÉCIDE, PAS LE TYPE — À UNE EXCEPTION PRÈS. Le propriétaire va au
+  /// détail de la demande, c'est là qu'il accepte ou refuse ; la famille va à
+  /// son suivi. `bookingId` manquant ramène au suivi plutôt que nulle part : un
+  /// écran ouvert vaut mieux qu'un appui sans effet.
+  ///
+  /// L'EXCEPTION EST « Racontez votre soirée ». Cette notification-là ne dit pas
+  /// qu'un état a changé — elle DEMANDE quelque chose, et elle est le seul
+  /// endroit d'où l'on peut le faire sans chercher. La faire atterrir sur « Mes
+  /// réservations », c'était laisser la cliente retrouver elle-même la bonne
+  /// carte dans une liste, sur une invitation qu'elle a ouverte pour écrire.
+  /// Depuis le J17, elle mène à l'écran de dépôt (§5.4).
+  String get destination {
+    if (type == TypeNotification.invitationAvis && bookingId != null) {
+      return FerhaRoutes.deposerAvisDe(bookingId!);
+    }
+
+    return role == RoleNotification.proprietaire && bookingId != null
+        ? FerhaRoutes.proprietaireDemandeDe(bookingId!)
+        : FerhaRoutes.mesReservations;
+  }
 }
