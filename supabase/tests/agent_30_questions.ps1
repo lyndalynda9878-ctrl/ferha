@@ -34,7 +34,10 @@ param(
   [string]$questions   = "..\..\Claude outputs\questions-reference-ferha.md",
   [int[]]$seulement    = @(),
   [switch]$detail,
-  [int]$pauseMs = 1500
+  # DEUX APPELS AU MODELE PAR QUESTION - extraction puis redaction. Le palier
+  # gratuit se compte en requetes par minute, et 1,5 s d'intervalle suffit a le
+  # saturer : les questions refusees ne verifient plus rien.
+  [int]$pauseMs = 6000
 )
 
 $ErrorActionPreference = "Stop"
@@ -77,6 +80,23 @@ $publiees = Invoke-RestMethod "$supabaseUrl/rest/v1/venues?select=id,name&status
 # regle qu'on teste - donc on les nomme ici, d'apres le document de reference.
 $nonPubliees = @("Espace Nour El Houda", "Salle El Wiam")
 
+# LE DECODAGE EST EXPLICITE, ET C'EST OBLIGATOIRE ICI.
+#
+# JSON est toujours de l'UTF-8 (RFC 8259) : une reponse "application/json" n'a
+# aucune raison de porter un charset, et ai-chat a raison de ne pas en mettre.
+# Mais Windows PowerShell 5.1, faute de charset, decode en ISO-8859-1 : on
+# recoit "RA(c)sidence" au lieu de "Residence".
+#
+# CE N'EST PAS QU'UN PROBLEME D'AFFICHAGE. Le nom propre du catalogue ne
+# correspondrait plus au nom abime de la prose, et le banc accuserait l'agent
+# d'avoir cite une salle hors contexte alors qu'il a bien fait son travail.
+function Appeler([string]$url, [hashtable]$entetes, [byte[]]$corps) {
+  $r = Invoke-WebRequest $url -Method Post -UseBasicParsing -TimeoutSec 180 `
+       -Headers $entetes -ContentType "application/json; charset=utf-8" -Body $corps
+  $octets = $r.RawContentStream.ToArray()
+  return [Text.Encoding]::UTF8.GetString($octets) | ConvertFrom-Json
+}
+
 function Aplatir([string]$t) {
   if (-not $t) { return "" }
   $s = $t.Normalize([Text.NormalizationForm]::FormD)
@@ -94,6 +114,26 @@ function Coeur([string]$nom) {
   (Aplatir $nom) -replace '^(salle|palais|residence|complexe|espace)\s+', ''
 }
 
+# UNE SALLE QUI S'APPELLE "salle" NE SE DISTINGUE PAS DU NOM COMMUN, et le
+# catalogue en contient une. Sans ce garde-fou, le banc verrait une salle citee
+# hors contexte dans toute phrase francaise parlant de salles. Aucune
+# comparaison de chaines ne peut trancher : le mot est le meme. On renonce donc
+# au controle PAR LE NOM pour ces salles-la - le meme choix que dans ai-chat.
+$MotsCommuns = @('salle','salles','palais','residence','complexe','espace',
+                 'espaces','jardin','mariage','mariages','fete','fetes',
+                 'reve','reves')
+
+function CoeurUtilisable([string]$c) {
+  if (-not $c -or $c.Length -lt 5) { return $false }
+  foreach ($mot in ($c -split ' ')) {
+    if ($MotsCommuns -notcontains $mot) { return $true }
+  }
+  return $false
+}
+
+# Aux frontieres de mot : "el feth" ne doit pas se trouver au milieu d'un mot.
+function Motif([string]$c) { '\b' + [regex]::Escape($c) + '\b' }
+
 # --- la boucle ---------------------------------------------------------------
 $aJouer = if ($seulement.Count) { $seulement } else { $liste.Keys | Sort-Object }
 $resultats = @()
@@ -109,9 +149,7 @@ foreach ($n in $aJouer) {
 
   $r = $null; $erreur = $null
   try {
-    $r = Invoke-RestMethod "$supabaseUrl/functions/v1/ai-chat" -Method Post `
-         -Headers $entetes -ContentType "application/json; charset=utf-8" `
-         -Body $octets -TimeoutSec 180
+    $r = Appeler "$supabaseUrl/functions/v1/ai-chat" $entetes $octets
   } catch {
     $e = $_.Exception.Response
     $erreur = if ($e) { "HTTP $([int]$e.StatusCode)" } else { $_.Exception.Message }
@@ -138,9 +176,11 @@ foreach ($n in $aJouer) {
   $citees = @()
   foreach ($v in ($publiees | Sort-Object { (Coeur $_.name).Length } -Descending)) {
     $c = Coeur $v.name
-    if ($c -and $reste.Contains($c)) {
+    if (-not (CoeurUtilisable $c)) { continue }
+    $m = Motif $c
+    if ([regex]::IsMatch($reste, $m)) {
       $citees += $v.name
-      $reste = $reste.Replace($c, " ")
+      $reste = [regex]::Replace($reste, $m, " ")
     }
   }
   $horsContexte = @($citees | Where-Object {
@@ -150,7 +190,10 @@ foreach ($n in $aJouer) {
 
   # --- verification 2 : aucune salle non publiee ----------------------------
   $platTexte = Aplatir $texte
-  $fuites = @($nonPubliees | Where-Object { $platTexte.Contains((Coeur $_)) })
+  $fuites = @($nonPubliees | Where-Object {
+    $c = Coeur $_
+    (CoeurUtilisable $c) -and [regex]::IsMatch($platTexte, (Motif $c))
+  })
   $c2 = ($fuites.Count -eq 0)
 
   # --- verification 3 : aucun prix absent de la base ------------------------
@@ -203,22 +246,45 @@ foreach ($n in $aJouer) {
 }
 
 # --- le compte, sans arrondi -------------------------------------------------
-$total = $resultats.Count
-$ok    = @($resultats | Where-Object { $_.c1 -and $_.c2 -and $_.c3 }).Count
+#
+# UNE QUESTION REFUSEE PAR LE QUOTA N'EST PAS UNE REUSSITE. Elle n'a jamais
+# atteint le modele : pas de prose, pas de salle, pas de prix, donc les trois
+# controles passent A VIDE. Les compter gonflerait le taux sans que rien n'ait
+# ete verifie. On les sort du denominateur et on les annonce a part.
+$NonAbouti = @('quota', 'erreur', 'ECHEC')
+
+$total  = $resultats.Count
+$joues  = @($resultats | Where-Object { $NonAbouti -notcontains $_.statut })
+$rates  = @($resultats | Where-Object { $NonAbouti -contains $_.statut })
+$n      = $joues.Count
+$ok     = @($joues | Where-Object { $_.c1 -and $_.c2 -and $_.c3 }).Count
+
 Write-Host ""
 Write-Host ("  " + ("=" * 116))
-Write-Host ("  Questions jouees                      : {0}" -f $total)
-Write-Host ("  Aucun identifiant hors contexte       : {0} / {1}" -f @($resultats | Where-Object c1).Count, $total)
-Write-Host ("  Aucune salle non publiee              : {0} / {1}" -f @($resultats | Where-Object c2).Count, $total)
-Write-Host ("  Aucun prix absent de la base          : {0} / {1}" -f @($resultats | Where-Object c3).Count, $total)
-Write-Host ("  LES TROIS A LA FOIS                   : {0} / {1}  ({2:N1} %)" -f $ok, $total, (100.0 * $ok / [Math]::Max(1,$total)))
+Write-Host ("  Questions envoyees                    : {0}" -f $total)
+Write-Host ("  Dont refusees avant le modele         : {0}   (quota ou panne - rien n'a ete verifie)" -f $rates.Count)
+Write-Host ("  REELLEMENT JOUEES                     : {0}" -f $n)
+Write-Host ""
+if ($n -gt 0) {
+  Write-Host ("  Aucun identifiant hors contexte       : {0} / {1}" -f @($joues | Where-Object c1).Count, $n)
+  Write-Host ("  Aucune salle non publiee              : {0} / {1}" -f @($joues | Where-Object c2).Count, $n)
+  Write-Host ("  Aucun prix absent de la base          : {0} / {1}" -f @($joues | Where-Object c3).Count, $n)
+  Write-Host ("  LES TROIS A LA FOIS                   : {0} / {1}  ({2:N1} %)" -f $ok, $n, (100.0 * $ok / $n))
+}
 Write-Host ""
 $parStatut = $resultats | Group-Object statut | Sort-Object Count -Descending
 Write-Host ("  Par statut : " + (($parStatut | ForEach-Object { "$($_.Name)=$($_.Count)" }) -join "  "))
 Write-Host ""
-if ($ok -lt $total) {
-  Write-Host ("  A revoir : " + ((@($resultats | Where-Object { -not ($_.c1 -and $_.c2 -and $_.c3) }) | ForEach-Object { $_.n }) -join ", ")) -ForegroundColor Red
+if ($rates.Count) {
+  Write-Host ("  A REJOUER (jamais parvenues au modele) : " + (($rates | ForEach-Object { $_.n }) -join ", ")) -ForegroundColor Yellow
+  Write-Host ("  Relancez-les avec un intervalle plus long :") -ForegroundColor DarkGray
+  Write-Host ("    .gent_30_questions.ps1 -seulement " + (($rates | ForEach-Object { $_.n }) -join ",") + " -pauseMs 8000") -ForegroundColor DarkGray
+  Write-Host ""
+}
+if ($ok -lt $n) {
+  Write-Host ("  A REVOIR (controle en echec) : " + ((@($joues | Where-Object { -not ($_.c1 -and $_.c2 -and $_.c3) }) | ForEach-Object { $_.n }) -join ", ")) -ForegroundColor Red
   Write-Host ""
   exit 1
 }
+if ($rates.Count) { exit 3 }
 exit 0

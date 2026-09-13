@@ -1,0 +1,122 @@
+# Les 30 questions de référence — assistant Ferha
+
+Ces questions servent à juger l'agent au J20. Elles s'appuient sur les
+15 salles de démonstration. Deux salles ne sont **pas** publiées —
+Espace Nour El Houda (Birtouta) et Salle El Wiam (El Eulma) : l'agent ne
+doit **jamais** les proposer.
+
+Pour chaque question : ce qu'une bonne réponse doit contenir.
+
+---
+
+## A. En français (1 à 10)
+
+**1.** Je cherche une salle à Oran pour 300 invités, le 14 août 2027 au soir.
+*Attendu :* Résidence Les Andalouses seule ; El Bahia est indisponible ce soir-là, date bloquée par le propriétaire — la proposer serait une faute. Jamais Salle Ennour (180 places).
+
+**2.** Quelle est la salle la moins chère de Blida ?
+*Attendu :* Salle Ibn Khaldoun, Ouled Yaïch, 150 couverts.
+
+**3.** Une salle à Alger pour un mariage de 650 personnes.
+*Attendu :* Palais Dar El Feth (700) uniquement. Ryad El Djazaïr (500) est trop petite.
+
+**4.** Je veux une salle avec un espace femmes séparé.
+*Attendu :* Complexe Chréa, Blida.
+
+**5.** Y a-t-il une salle à Sétif pour 600 personnes ?
+*Attendu :* Palais El Amir. Ne jamais proposer Salle El Wiam, qui n'est pas publiée.
+
+**6.** Une salle à Constantine avec un parking fermé.
+*Attendu :* Résidence Bab El Kantara, El Khroub.
+
+**7.** Je veux amener mon propre traiteur. Quelles salles l'acceptent ?
+*Attendu :* Salle Ennour (Oran) et Salle Rhumel (Constantine).
+
+**8.** Une salle à Oran pour 800 invités.
+*Attendu :* aucune salle ne convient. L'agent doit le dire, sans en inventer une.
+
+**9.** Combien coûte Salle El Bahia un samedi soir en août ?
+*Attendu :* le prix calculé par la base, majorations comprises. Jamais un prix inventé.
+
+**10.** Parle-moi de la salle Zoubida à Tlemcen.
+*Attendu :* cette salle n'existe pas. L'agent doit le dire clairement.
+
+---
+
+## B. En darja (11 à 20)
+
+*À relire et corriger avec tes mots — c'est ta partie.*
+
+**11.** راني نقلب على قاعة أفراح في وهران لـ 300 واحد
+*Attendu :* même réponse que la question 1.
+
+**12.** شحال تسوى قاعة في سطيف نهار السبت؟
+*Attendu :* les salles de Sétif publiées, avec le prix venant de la base.
+
+**13.** كاين قاعة رخيصة في البليدة؟
+*Attendu :* Salle Ibn Khaldoun.
+
+**14.** نحتاج قاعة فيها بلاصة للطوموبيلات بزاف
+*Attendu :* Palais Dar El Feth (150 places) ou Palais El Amir (110).
+
+**15.** واش كاين قاعة في قسنطينة للعرس؟
+*Attendu :* Les Ponts, Bab El Kantara, Rhumel.
+
+**16.** قاعة صغيرة لعقيقة، 150 واحد
+*Attendu :* Salle Ibn Khaldoun (150) ou Salle Ennour (180).
+
+**17.** نحتاج قاعة فيها ديجي وسونو
+*Attendu :* Salle Aïn Fouara, Sétif — sono et DJ compris dans le prix.
+
+**18.** كاين شي قاعة قريبة من البحر في وهران؟
+*Attendu :* Résidence Les Andalouses, Aïn El Turck.
+
+**19.** واش راه الطقس غدوة؟
+*Attendu :* hors sujet. L'agent doit dire qu'il ne s'occupe que des salles.
+
+**20.** نحوس على قاعة في تيزي وزو
+*Attendu :* aucune salle dans cette wilaya. Le dire, sans en inventer.
+
+---
+
+## C. Mélangé, franco-arabe (21 à 30)
+
+**21.** salut, je cherche une salle f wahran pour 300 personne le 14 aout, budget max 250 000
+*Attendu :* Les Andalouses et El Bahia si le prix calculé tient dans le budget. Sinon le dire.
+
+**22.** wach kayen salle f Alger m3a jardin ?
+*Attendu :* Palais Dar El Feth (jardin clos), Résidence Les Andalouses a un jardin mais elle est à Oran — ne pas la proposer pour Alger.
+
+**23.** rani nqalab 3la une salle pas cher f Setif
+*Attendu :* Salle Aïn Fouara (320) plutôt que Palais El Amir.
+
+**24.** une salle f Constantine b decoration florale incluse
+*Attendu :* Salle Les Ponts.
+
+**25.** kayen salle f Blida m3a groupe électrogène ?
+*Attendu :* Salle El Feth, Boufarik.
+
+**26.** je veux réserver pour hier
+*Attendu :* la date est passée. L'agent doit le dire et proposer de choisir une autre date.
+
+**27.** salle f Oran, 180 personnes, midi
+*Attendu :* Salle Ennour.
+
+**28.** chambre de la mariée kayna f Alger ?
+*Attendu :* Salle Ryad El Djazaïr, Chéraga.
+
+**29.** 3andkom salle f Birtouta ?
+*Attendu :* Espace Nour El Houda n'est pas publiée. Ne jamais la citer.
+
+**30.** kifach ndir bach nhabes date ?
+*Attendu :* expliquer le parcours : demande, réponse du propriétaire sous 48 h, acompte de 25 %, option de 72 h.
+
+---
+
+## Ce qu'on juge au J20
+
+1. Les critères sont bien extraits : wilaya, date, créneau, nombre d'invités, budget.
+2. Aucune salle inventée, aucun prix inventé.
+3. Les salles non publiées ne sortent jamais.
+4. Quand rien ne convient, l'agent le dit au lieu de proposer à côté.
+5. Le darja et le franco-arabe sont compris aussi bien que le français.

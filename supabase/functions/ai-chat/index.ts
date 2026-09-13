@@ -212,6 +212,33 @@ function coeurDuNom(nom: string): string {
   return plat.replace(/^(salle|palais|residence|complexe|espace)\s+/, "");
 }
 
+/// Les mots qu'un nom de salle peut porter et qui ne designent personne.
+const MOTS_COMMUNS = new Set([
+  "salle", "salles", "palais", "residence", "complexe", "espace", "espaces",
+  "jardin", "mariage", "mariages", "fete", "fetes", "reve", "reves",
+]);
+
+/// Un coeur de nom est-il assez distinctif pour etre cherche dans une phrase ?
+///
+/// UNE SALLE QUI S'APPELLE « salle » NE SE DISTINGUE PAS DU NOM COMMUN. Le
+/// catalogue en contient une, et le validateur voyait donc une salle citee hors
+/// contexte dans toute phrase francaise parlant de salles : l'agent, qui avait
+/// bien repondu, retombait sur la liste brute a chaque question.
+///
+/// Aucune comparaison de chaines ne peut trancher ce cas — le mot est le meme.
+/// On renonce donc au controle PAR LE NOM pour ces salles-la, et on s'en remet
+/// au controle par IDENTIFIANT, qui reste entier. Elles ne sont de toute facon
+/// jamais dans un contexte tant qu'elles ne sont pas publiees.
+function coeurUtilisable(coeur: string): boolean {
+  if (coeur.length < 5) return false;
+  return !coeur.split(" ").every((mot) => MOTS_COMMUNS.has(mot));
+}
+
+/// Echappe ce qui a un sens dans une expression reguliere.
+function echapper(texte: string): string {
+  return texte.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 async function rpc(
   url: string,
   cle: string,
@@ -385,9 +412,14 @@ function validerLaReponse(
 
   for (const salle of parLongueur) {
     const coeur = coeurDuNom(salle.name);
-    if (!coeur || !reste.includes(coeur)) continue;
+    if (!coeurUtilisable(coeur)) continue;
 
-    reste = reste.split(coeur).join(" ");
+    // AUX FRONTIERES DE MOT : sans cela « el feth » se trouverait au milieu
+    // d'un mot plus long, et « chrea » dans « chreabis ».
+    const motif = new RegExp(`\\b${echapper(coeur)}\\b`, "g");
+    if (!motif.test(reste)) continue;
+
+    reste = reste.replace(new RegExp(`\\b${echapper(coeur)}\\b`, "g"), " ");
     if (!idsDuContexte.has(salle.id)) {
       fautes.push(`salle citée hors contexte : ${salle.name}`);
     }
