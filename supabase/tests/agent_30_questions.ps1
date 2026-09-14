@@ -8,7 +8,7 @@
 # LA CLE VIENT DE L'ENVIRONNEMENT, jamais d'un fichier versionne :
 #   $env:FERHA_SUPABASE_ANON_KEY = "..."   (SUPABASE_ANON_KEY de env.json)
 #
-# CE QU'IL VERIFIE, ET POURQUOI CES TROIS-LA (section 8.5)
+# CE QU'IL VERIFIE, ET POURQUOI CES SIX-LA (section 8.5)
 #
 #   1. AUCUN IDENTIFIANT HORS CONTEXTE. C'est le garde-fou central : l'agent ne
 #      doit parler que des salles qu'on lui a donnees. On ne se fie pas a ce que
@@ -29,6 +29,37 @@
 #      propre s'ecrit en latin comme la base le porte, ou entierement en arabe
 #      quand la base en donne la forme - wilayas.name_ar. Jamais une moitie de
 #      chaque.
+#
+#   5. LA REPONSE EST DANS L'ECRITURE DE LA QUESTION. Elle a longtemps ete une
+#      simple consigne du prompt, et elle echouait comme echouent les consignes :
+#      par INTERMITTENCE. La question 15, en darja, a recu une reponse francaise
+#      au J20 ; une question en arabe en a recu une au J21, alors que la meme
+#      question rendait de l'arabe impeccable au coup d'avant.
+#
+#      L'ATTENDU SE LIT DANS LA QUESTION, PAS DANS criteres.langue. C'est la tout
+#      le controle. La question arabe du J21 avait ete classee "mixte" par la
+#      fonction elle-meme - et "mixte" veut dire "reponds en francais simple" :
+#      la reponse francaise etait donc FIDELE a son etiquette, et un banc qui
+#      juge sur l'etiquette aurait dit que tout allait bien. On compte les
+#      lettres de la question, celles de la reponse, et on compare les deux.
+#
+#      ON RETIRE LES NOMS PROPRES AVANT DE COMPTER LA REPONSE. La regle 9 impose
+#      d'ecrire les salles et les communes EN LATIN meme au milieu d'une phrase
+#      arabe : sans ce retrait, une reponse arabe citant trois salles compterait
+#      des dizaines de lettres latines legitimes, et le banc accuserait une
+#      reponse juste. C'est exactement ce que fait langueCorrespond() dans
+#      ai-chat.
+#
+#      UNE QUESTION EN LETTRES LATINES ATTEND UNE REPONSE EN LETTRES LATINES,
+#      qu'elle soit francaise ou franco-arabe translitteree : la regle 5 du
+#      prompt demande de repondre au translittere en francais simple.
+#
+#   6. AUCUN APPEL AU CONTACT DIRECT. L'agent a ecrit "Contactez les
+#      proprietaires pour verifier la disponibilite" - deux fautes en une
+#      phrase. C'est une invitation a CONTOURNER la plateforme, et le section 9
+#      l'interdit : le telephone ne sort qu'apres acceptation de la demande, et
+#      il n'y a personne a joindre avant. Le seul geste que l'agent propose est
+#      celui de l'application : ouvrir la fiche, envoyer une demande.
 #
 # CE FICHIER EST EN ASCII PUR. Les questions arabes sont lues depuis le document
 # de reference en UTF-8, jamais ecrites ici : un .ps1 accentue lu dans le mauvais
@@ -167,6 +198,68 @@ $Clitiques = '^[\u0648\u0641\u0628\u0644\u0643]{0,2}(?:\u0627\u0644)?'
 $Latines   = '[A-Za-z\u00c0-\u024f]'
 $Arabes    = '[\u0600-\u06ff]'
 
+# --- controle 5 : l'ecriture de la reponse suit celle de la question ---------
+#
+# CE QUE LA QUESTION EST ECRITE, ET NON CE QUE LA FONCTION EN A COMPRIS. Une
+# question dont les lettres sont arabes attend une reponse dont les lettres sont
+# arabes ; une question en lettres latines - francais ou darja translittere -
+# attend une reponse en lettres latines. Rien de tout cela ne passe par
+# criteres.langue : c'est precisement l'etiquette qui s'etait trompee.
+function EcritureQuestion([string]$q) {
+  $a = ([regex]::Matches($q, $Arabes)).Count
+  $l = ([regex]::Matches($q, $Latines)).Count
+  if ($a -gt $l) { return 'arabe' }
+  return 'latine'
+}
+
+# LE MEME CALCUL QUE langueCorrespond() DANS ai-chat, et c'est voulu : un banc
+# qui mesurerait autrement que la fonction laisserait passer ce qu'elle rejette,
+# ou accuserait ce qu'elle accepte. Les deux doivent dire la meme chose.
+function LangueTient([string]$t, [string]$ecriture, $contexte) {
+  if (-not $t) { return $true }
+
+  # On retire les noms propres AVANT de compter - voir l'en-tete, controle 5.
+  # Le retrait se fait sur le texte aplati des deux cotes : le modele ecrit
+  # parfois "Ain El Turck" quand la base porte "Ain El Turck" avec trema.
+  $prose = Aplatir $t
+  foreach ($s in @($contexte)) {
+    foreach ($nom in @($s.nom, $s.commune, $s.wilaya)) {
+      # L'APLATI D'ABORD, ET ON TESTE LUI : String.Replace("") leve, et un nom
+      # qui ne serait que des espaces s'aplatit en chaine vide.
+      $plat = Aplatir $nom
+      if ($plat) { $prose = $prose.Replace($plat, " ") }
+    }
+  }
+
+  $arabes  = ([regex]::Matches($prose, $Arabes)).Count
+  $latines = ([regex]::Matches($prose, $Latines)).Count
+
+  # Une reponse sans aucune lettre ne dit rien de sa langue : on ne la condamne
+  # pas la-dessus.
+  if (($arabes + $latines) -eq 0) { return $true }
+
+  if ($ecriture -eq 'arabe') { return ($arabes -gt $latines) }
+  return ($latines -gt $arabes)
+}
+
+# --- controle 6 : aucun appel au contact direct ------------------------------
+#
+# LES MEMES MOTIFS QUE ai-chat. "appeler" et "appelez", mais jamais "appelee" :
+# "une salle appelee El Bahia" est une phrase correcte, et un motif trop large
+# la condamnerait. Cote arabe, "rqm" seul est ecarte - il veut dire "numero" au
+# sens large, et parlerait d'un nombre de chaises.
+$AppelFr = '\bcontact|\bjoindre\b|\bjoignez\b|\bappeler\b|\bappelez\b|telephon|\bnumero\b|coordonnees|renseignez[- ]vous'
+$AppelAr = '\u0627\u062a\u0635\u0644|\u0627\u0644\u0627\u062a\u0635\u0627\u0644|\u062a\u0648\u0627\u0635\u0644|\u0647\u0627\u062a\u0641'
+
+function AppelAuContact([string]$t) {
+  if (-not $t) { return "" }
+  $m = [regex]::Match((Aplatir $t), $AppelFr)
+  if ($m.Success) { return $m.Value }
+  $m = [regex]::Match($t, $AppelAr)
+  if ($m.Success) { return $m.Value }
+  return ""
+}
+
 function NomsCoupes([string]$t) {
   $coupes = @()
   if (-not $t) { return $coupes }
@@ -202,7 +295,7 @@ foreach ($n in $aJouer) {
 
   if ($erreur) {
     Write-Host ("  {0,-3} {1}" -f $n, $erreur) -ForegroundColor Red
-    $resultats += [pscustomobject]@{ n=$n; statut="ECHEC"; c1=$false; c2=$false; c3=$false; c4=$false; note=$erreur }
+    $resultats += [pscustomobject]@{ n=$n; statut="ECHEC"; c1=$false; c2=$false; c3=$false; c4=$false; c5=$false; c6=$false; ecriture=(EcritureQuestion $q); etiquette=""; note=$erreur }
     Start-Sleep -Milliseconds $pauseMs
     continue
   }
@@ -260,6 +353,18 @@ foreach ($n in $aJouer) {
   $coupes = @(NomsCoupes $texte)
   $c4 = ($coupes.Count -eq 0)
 
+  # --- verification 5 : la reponse suit l'ecriture de la question -----------
+  # $q, PAS $crit.langue : l'attendu se lit dans la question posee. L'etiquette
+  # de la fonction est relevee a cote, parce qu'un desaccord entre les deux est
+  # exactement ce qui produisait une reponse francaise a une question arabe.
+  $ecriture = EcritureQuestion $q
+  $etiquette = if ($crit -and $crit.langue) { [string]$crit.langue } else { "" }
+  $c5 = (LangueTient $texte $ecriture $ctx)
+
+  # --- verification 6 : aucun appel au contact direct -----------------------
+  $appel = AppelAuContact $texte
+  $c6 = ($appel -eq "")
+
   # --- affichage ------------------------------------------------------------
   $resumeCrit = @()
   if ($crit.wilaya_code)    { $resumeCrit += "w=$($crit.wilaya_code)" }
@@ -289,16 +394,20 @@ foreach ($n in $aJouer) {
   $marques += if ($c2) { " pub+" } else { " pub-" }
   $marques += if ($c3) { " prix+" } else { " prix-" }
   $marques += if ($c4) { " nom+" } else { " nom-" }
-  $couleur = if ($c1 -and $c2 -and $c3 -and $c4) { "Green" } else { "Red" }
+  $marques += if ($c5) { " lang+" } else { " lang-" }
+  $marques += if ($c6) { " cta+" } else { " cta-" }
+  $couleur = if ($c1 -and $c2 -and $c3 -and $c4 -and $c5 -and $c6) { "Green" } else { "Red" }
 
   Write-Host ("  {0,-3} {1,-7} {2,-36} {3,-30} {4}" -f $n, $statut, $txtCrit, $txtSalles, $marques) -ForegroundColor $couleur
   if (-not $c1) { Write-Host ("       hors contexte : " + ($horsContexte -join ", ")) -ForegroundColor Red }
   if (-not $c2) { Write-Host ("       NON PUBLIEE   : " + ($fuites -join ", ")) -ForegroundColor Red }
   if (-not $c3) { Write-Host ("       prix inconnus : " + ($inventes -join ", ")) -ForegroundColor Red }
   if (-not $c4) { Write-Host ("       NOMS COUPES   : " + ($coupes -join ", ")) -ForegroundColor Red }
+  if (-not $c5) { Write-Host ("       ECRITURE      : question en lettres $ecriture, reponse non (la fonction a compris '$etiquette')") -ForegroundColor Red }
+  if (-not $c6) { Write-Host ("       CONTACT       : " + $appel) -ForegroundColor Red }
   if ($detail)  { Write-Host ("       > " + ($texte -replace "\s+", " ")) -ForegroundColor DarkGray }
 
-  $resultats += [pscustomobject]@{ n=$n; statut=$statut; c1=$c1; c2=$c2; c3=$c3; c4=$c4; note="" }
+  $resultats += [pscustomobject]@{ n=$n; statut=$statut; c1=$c1; c2=$c2; c3=$c3; c4=$c4; c5=$c5; c6=$c6; ecriture=$ecriture; etiquette=$etiquette; note="" }
   Start-Sleep -Milliseconds $pauseMs
 }
 
@@ -314,7 +423,7 @@ $total  = $resultats.Count
 $joues  = @($resultats | Where-Object { $NonAbouti -notcontains $_.statut })
 $rates  = @($resultats | Where-Object { $NonAbouti -contains $_.statut })
 $n      = $joues.Count
-$ok     = @($joues | Where-Object { $_.c1 -and $_.c2 -and $_.c3 -and $_.c4 }).Count
+$ok     = @($joues | Where-Object { $_.c1 -and $_.c2 -and $_.c3 -and $_.c4 -and $_.c5 -and $_.c6 }).Count
 
 Write-Host ""
 Write-Host ("  " + ("=" * 124))
@@ -327,7 +436,28 @@ if ($n -gt 0) {
   Write-Host ("  Aucune salle non publiee              : {0} / {1}" -f @($joues | Where-Object c2).Count, $n)
   Write-Host ("  Aucun prix absent de la base          : {0} / {1}" -f @($joues | Where-Object c3).Count, $n)
   Write-Host ("  Aucun nom coupe entre deux ecritures  : {0} / {1}" -f @($joues | Where-Object c4).Count, $n)
-  Write-Host ("  LES QUATRE A LA FOIS                  : {0} / {1}  ({2:N1} %)" -f $ok, $n, (100.0 * $ok / $n))
+  Write-Host ("  Reponse dans l'ecriture de la question : {0} / {1}" -f @($joues | Where-Object c5).Count, $n)
+  Write-Host ("  Aucun appel au contact direct         : {0} / {1}" -f @($joues | Where-Object c6).Count, $n)
+  Write-Host ("  LES SIX A LA FOIS                     : {0} / {1}  ({2:N1} %)" -f $ok, $n, (100.0 * $ok / $n))
+  Write-Host ""
+  # LE DETAIL PAR ECRITURE, parce que c'est la que le controle 5 se juge : un
+  # 30/30 obtenu sur trente questions francaises ne prouverait rien.
+  $parEcriture = $joues | Group-Object ecriture | Sort-Object Name
+  foreach ($g in $parEcriture) {
+    $bons = @($g.Group | Where-Object c5).Count
+    Write-Host ("    questions en lettres {0,-7} : {1} / {2} repondues dans la meme ecriture" -f $g.Name, $bons, $g.Count)
+  }
+  # L'ETIQUETTE DE LA FONCTION FACE A L'ECRITURE REELLE. Un desaccord ne fait
+  # echouer aucun controle a lui seul - c'est la reponse qui est jugee, pas
+  # l'etiquette - mais c'est lui qui produisait la faute, et il doit se voir.
+  $desaccords = @($joues | Where-Object {
+    ($_.ecriture -eq 'arabe' -and $_.etiquette -ne 'ar') -or
+    ($_.ecriture -eq 'latine' -and $_.etiquette -eq 'ar')
+  })
+  if ($desaccords.Count) {
+    Write-Host ("    langue mal etiquetee par la fonction : " +
+      (($desaccords | ForEach-Object { "$($_.n) ($($_.ecriture) vue '$($_.etiquette)')" }) -join ", ")) -ForegroundColor Yellow
+  }
 }
 Write-Host ""
 $parStatut = $resultats | Group-Object statut | Sort-Object Count -Descending
@@ -340,7 +470,7 @@ if ($rates.Count) {
   Write-Host ""
 }
 if ($ok -lt $n) {
-  Write-Host ("  A REVOIR (controle en echec) : " + ((@($joues | Where-Object { -not ($_.c1 -and $_.c2 -and $_.c3 -and $_.c4) }) | ForEach-Object { $_.n }) -join ", ")) -ForegroundColor Red
+  Write-Host ("  A REVOIR (controle en echec) : " + ((@($joues | Where-Object { -not ($_.c1 -and $_.c2 -and $_.c3 -and $_.c4 -and $_.c5 -and $_.c6) }) | ForEach-Object { $_.n }) -join ", ")) -ForegroundColor Red
   Write-Host ""
   exit 1
 }

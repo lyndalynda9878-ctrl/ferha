@@ -63,6 +63,20 @@
 //
 // FILET SECONDAIRE : LES NOMS dans la prose, en écriture latine seulement.
 //
+// LA LANGUE DE LA RÉPONSE EST CELLE DE LA QUESTION, et ni l'une ni l'autre ne
+// se demande plus au modèle. L'ÉCRITURE DE LA QUESTION SE COMPTE ici : une
+// question en caractères arabes est en arabe, quoi qu'il en dise — il disait
+// « mixte », et « mixte » veut dire « réponds en français ». LA RÉPONSE se
+// compte de même, noms propres retirés d'abord, puisque la règle 9 les impose
+// en latin. Ne reste au modèle que le jugement qu'aucun comptage ne rend :
+// séparer le français du franco-arabe translittéré.
+//
+// AUCUN APPEL AU CONTACT DIRECT (§9). « Contactez les propriétaires pour
+// vérifier la disponibilité » invite à contourner la plateforme, et il n'y a
+// de toute façon personne à joindre : le téléphone ne sort qu'après acceptation.
+// Le seul geste proposé est celui de l'application — ouvrir la fiche, envoyer
+// une demande.
+//
 // AU DEUXIÈME ÉCHEC, ON REND LA LISTE BRUTE. Pas de troisième essai : si le
 // modèle s'obstine, le problème est le prompt, et faire patienter
 // l'utilisateur une seconde de plus ne le résoudra pas. Une liste sans phrase
@@ -545,7 +559,10 @@ CHAMPS :
   quel acompte, quel délai, comment payer, comment annuler. "kifach ndir bach nhabes
   date" et "كيفاش نحجز" sont des questions de procédure.
 - langue : "fr" si la question est en français, "ar" si elle est en caractères arabes,
-  "mixte" si elle mélange le français et l'arabe translittéré.
+  "mixte" si elle est en caractères LATINS et mêle français et arabe translittéré
+  ("kayen salle f wahran"). L'écriture arabe est recomptée après toi et l'emporte
+  sur ce que tu réponds ici : ce qui t'appartient vraiment, c'est de séparer "fr"
+  de "mixte", que rien dans l'alphabet ne distingue.
 - wilaya_code : le code à deux chiffres, depuis cette liste : ${WILAYAS}.
   Chaîne vide si aucune wilaya n'est nommée. Reconnais les noms en arabe
   (وهران = 31, الجزائر = 16, سطيف = 19, قسنطينة = 25, البليدة = 09)
@@ -615,7 +632,16 @@ RÈGLES ABSOLUES :
 3 bis. Tu cites au plus CINQ salles, les premières de la liste — elle est déjà
    classée de la plus pertinente à la moins. Une bonne réponse choisit ; une
    énumération de tout ce qui existe est un annuaire, pas un conseil.
-4. Tu ne promets aucune disponibilité : le propriétaire seul confirme.
+4. TU NE RENVOIES JAMAIS VERS UN CONTACT DIRECT. Ni « contactez le propriétaire »,
+   ni « appelez la salle », ni « renseignez-vous auprès de », ni un numéro de
+   téléphone. Le téléphone N'EXISTE PAS à ce stade : il ne se donne qu'une fois
+   la demande ACCEPTÉE.
+   LE SEUL GESTE QUE TU PROPOSES EST CELUI DE L'APPLICATION : ouvrir la fiche de
+   la salle et envoyer une demande. C'est là que le propriétaire confirmera la
+   disponibilité, et nulle part ailleurs. Tu ne promets donc aucune
+   disponibilité, et tu n'invites à joindre personne.
+   Le plus souvent, la bonne fin de réponse est de n'en pas avoir : tu présentes
+   les salles, et tu t'arrêtes.
 5. Réponds dans la LANGUE DE LA QUESTION. Si elle est en arabe, réponds en arabe.
    Si elle mélange français et arabe translittéré, réponds en français simple.
 6. venue_ids doit contenir, dans l'ordre où tu les cites, les identifiants exacts
@@ -649,7 +675,8 @@ RÈGLES ABSOLUES :
    ne le dit pas — contente-toi de la présenter.
 
 Sois concret : nomme la salle, sa commune, sa capacité et son prix. Pas de formule
-de politesse longue, pas de liste à puces, pas de titres.`;
+de politesse longue, pas de liste à puces, pas de titres, et pas d'appel au
+contact pour finir.`;
 }
 
 // -----------------------------------------------------------------------------
@@ -658,11 +685,134 @@ de politesse longue, pas de liste à puces, pas de titres.`;
 
 type Verdict = { ok: boolean; fautes: string[] };
 
+/// COMBIEN DE LETTRES DE CHAQUE ÉCRITURE, ET RIEN D'AUTRE.
+///
+/// Les chiffres, la ponctuation et les espaces ne disent la langue de personne :
+/// « 300 » s'écrit pareil des deux côtés. Le latin-1 supplémentaire et le latin
+/// étendu comptent avec l'alphabet latin — « é », « ï », « ç » sont des lettres
+/// françaises, pas des symboles.
+function comptesDEcriture(texte: string): { arabes: number; latines: number } {
+  let arabes = 0;
+  let latines = 0;
+  for (const c of texte) {
+    const code = c.codePointAt(0)!;
+    if (code >= 0x0600 && code <= 0x06FF) arabes++;
+    else if (
+      (code >= 0x0041 && code <= 0x005A) || (code >= 0x0061 && code <= 0x007A) ||
+      (code >= 0x00C0 && code <= 0x024F)
+    ) latines++;
+  }
+  return { arabes, latines };
+}
+
+/// L'ÉCRITURE DE LA QUESTION SE COMPTE, ELLE NE SE DEMANDE PAS.
+///
+/// C'est ICI que se jouait la réponse française à une question arabe, et pas
+/// dans la rédaction. « بغيت صالة في وهران عندها 300 كرسي » ne porte pas une
+/// lettre latine ; le modèle l'a classée « mixte », et « mixte » veut dire
+/// « réponds en français simple ». La consigne de rédaction était juste, et elle
+/// a été suivie — sur une langue fausse. On ne corrige donc pas la rédaction :
+/// on corrige ce qu'on lui donne à suivre.
+///
+/// UNE ÉCRITURE N'EST PAS UN JUGEMENT. Compter des lettres arabes est de la même
+/// nature que comparer deux dates, et le §8.5 veut que ces choses-là se
+/// tranchent ici, où elles ne peuvent pas changer d'un appel à l'autre. Elles en
+/// changeaient : la même question, posée deux fois, revenait « mixte » puis
+/// « ar ».
+///
+/// CE QUI RESTE AU MODÈLE EST LE SEUL VRAI JUGEMENT : séparer « fr » de
+/// « mixte », c'est-à-dire le français du franco-arabe translittéré. Aucune
+/// plage Unicode ne les sépare — « kayen salle f wahran » s'écrit dans le même
+/// alphabet que « bonjour ».
+function ecritureArabe(question: string): boolean {
+  const { arabes, latines } = comptesDEcriture(question);
+  return arabes > latines;
+}
+
+/// LA RÉPONSE SUIT LA LANGUE DE LA QUESTION, ET CE N'EST PLUS UNE CONSIGNE.
+///
+/// Elle l'a été jusqu'ici, et elle a échoué exactement comme échouent les
+/// consignes : par intermittence. La question 15, en darja, a reçu une réponse
+/// française au banc du J20 ; « بغيت صالة في وهران » en a reçu une au J21. Entre
+/// les deux, la même question rendait parfois de l'arabe impeccable — ce qui est
+/// pire qu'un échec franc, parce que rien ne le signale.
+///
+/// ON RETIRE D'ABORD LES NOMS PROPRES. La règle 9 impose d'écrire les salles et
+/// les communes EN LATIN même au milieu d'une phrase arabe. Sans ce retrait, une
+/// réponse arabe citant trois salles compterait des dizaines de lettres latines
+/// parfaitement légitimes, et le contrôle accuserait une réponse juste.
+///
+/// « mixte » EST DU CÔTÉ LATIN : c'est le franco-arabe translittéré — « kayen
+/// salle f wahran » —, et la règle 5 demande d'y répondre en français simple.
+///
+/// `langue` ARRIVE ICI COMPTÉE, pas déclarée — `ecritureArabe()` s'en est chargé
+/// avant. C'est ce qui donne son sens à ce contrôle : juger la réponse sur une
+/// langue que le modèle aurait lui-même choisie reviendrait à lui demander s'il
+/// est d'accord avec lui-même.
+function langueCorrespond(
+  texte: string,
+  langue: string,
+  contexte: Salle[],
+): boolean {
+  // LE RETRAIT SE FAIT SUR LE TEXTE APLATI, des deux côtés. Le modèle écrit
+  // parfois « Ain El Turck » là où la base porte « Aïn El Turck » : une
+  // comparaison exacte ne retirerait rien, et les lettres latines d'un nom
+  // propre compteraient contre une réponse arabe correcte. `aplatir()` ne touche
+  // pas à l'arabe — ses lettres de base restent dans leur plage.
+  let prose = aplatir(texte);
+  for (const salle of contexte) {
+    for (const nom of [salle.name, salle.commune, salle.wilaya_name]) {
+      const plat = aplatir(nom ?? "");
+      if (plat) prose = prose.split(plat).join(" ");
+    }
+  }
+
+  const { arabes, latines } = comptesDEcriture(prose);
+
+  // Une réponse sans aucune lettre ne dit rien de sa langue. On ne la condamne
+  // pas là-dessus : les autres contrôles s'en chargeront.
+  if (arabes + latines === 0) return true;
+
+  return langue === "ar" ? arabes > latines : latines > arabes;
+}
+
+/// AUCUN APPEL À CONTACTER QUI QUE CE SOIT, ET SURTOUT PAS EN DIRECT.
+///
+/// « Contactez les propriétaires pour vérifier la disponibilité » — l'agent l'a
+/// écrit, et c'est deux fautes en une phrase. C'est une invitation à CONTOURNER
+/// la plateforme, et c'est contraire au §9 : le téléphone ne sort qu'après
+/// acceptation de la demande, et il n'y a personne à joindre avant.
+///
+/// LA CAUSE ÉTAIT DANS LE PROMPT. L'ancienne règle 4 disait « le propriétaire
+/// seul confirme » — le modèle en tirait obligeamment la conclusion qu'il
+/// fallait aller le voir. La règle dit maintenant OÙ cela se passe : dans
+/// l'application, en envoyant une demande depuis la fiche.
+///
+/// `appeler` ET `appelez`, MAIS PAS `appelée`. Les frontières de mot sont
+/// indispensables ici : « une salle appelée El Bahia » est une phrase correcte,
+/// et un motif trop large la condamnerait.
+const APPEL_AU_CONTACT_FR =
+  /\bcontact|\bjoindre\b|\bjoignez\b|\bappeler\b|\bappelez\b|telephon|\bnumero\b|coordonnees|renseignez[- ]vous/;
+
+/// Les mêmes en arabe. `رقم` seul est écarté — il veut dire « numéro » au sens
+/// large, et « رقم 300 » parlerait d'un nombre de chaises.
+const APPEL_AU_CONTACT_AR = /اتصل|الاتصال|تواصل|هاتف/;
+
+/// Rend la formule fautive, ou la chaîne vide.
+function appelAuContact(texte: string): string {
+  const latin = aplatir(texte).match(APPEL_AU_CONTACT_FR);
+  if (latin) return latin[0];
+  const arabe = texte.match(APPEL_AU_CONTACT_AR);
+  if (arabe) return arabe[0];
+  return "";
+}
+
 function validerLaReponse(
   texte: string,
   idsDeclares: string[],
   contexte: Salle[],
   catalogue: { id: string; name: string }[],
+  langue: string,
 ): Verdict {
   const fautes: string[] = [];
   const idsDuContexte = new Set(contexte.map((s) => s.venue_id));
@@ -710,18 +860,55 @@ function validerLaReponse(
     }
   }
 
+  // ------------------------------------------------------------------------
+  // TROISIÈME CONTRÔLE : LA LANGUE. Voir `langueCorrespond()`.
+  // ------------------------------------------------------------------------
+  if (!langueCorrespond(texte, langue, contexte)) {
+    fautes.push(`réponse hors de la langue attendue (${langue})`);
+  }
+
+  // ------------------------------------------------------------------------
+  // QUATRIÈME CONTRÔLE : AUCUN APPEL AU CONTACT DIRECT (§9).
+  // ------------------------------------------------------------------------
+  const appel = appelAuContact(texte);
+  if (appel) fautes.push(`appel au contact direct : « ${appel} »`);
+
   return { ok: fautes.length === 0, fautes };
 }
 
 /// La liste brute, quand le modèle a échoué deux fois. Pas de prose, pas
 /// d'invention possible.
-function listeBrute(salles: Salle[]): string {
-  if (salles.length === 0) return "Aucune salle ne correspond à cette demande.";
-  return salles
-    .map((s) => {
-      const prix = s.price != null ? ` — ${Math.round(Number(s.price))} DA` : "";
-      return `${s.name}, ${s.commune} (${s.wilaya_name}) — ${s.capacity_seated} places${prix}`;
-    })
+///
+/// ELLE PORTE MAINTENANT UNE PHRASE D'INTRODUCTION, dans la langue de la
+/// question. Sans elle, le repli d'une question arabe était un bloc entièrement
+/// latin — noms, communes, nombres — sans un mot que son lecteur puisse lire. Le
+/// corps reste latin, et c'est juste : la règle 9 veut que les noms propres
+/// s'écrivent comme la base les porte.
+///
+/// ELLE NE CONTIENT AUCUN APPEL AU CONTACT, par construction : il n'y a pas de
+/// prose où en glisser un. C'est ce qui en fait un repli sûr pour les deux
+/// nouveaux contrôles autant que pour les deux anciens.
+const LISTE_BRUTE_EN_TETE: Record<string, string> = {
+  fr: "Voici les salles qui correspondent :",
+  ar: "هذه القاعات اللي تقابل طلبك:",
+  mixte: "Voici les salles qui correspondent :",
+};
+
+const AUCUNE_SALLE: Record<string, string> = {
+  fr: "Aucune salle ne correspond à cette demande.",
+  ar: "ما لقيت حتى قاعة تقابل هذا الطلب.",
+  mixte: "Aucune salle ne correspond à cette demande.",
+};
+
+function listeBrute(salles: Salle[], langue: string): string {
+  if (salles.length === 0) return AUCUNE_SALLE[langue] ?? AUCUNE_SALLE.fr;
+
+  const lignes = salles.map((s) => {
+    const prix = s.price != null ? ` — ${Math.round(Number(s.price))} DA` : "";
+    return `${s.name}, ${s.commune} (${s.wilaya_name}) — ${s.capacity_seated} places${prix}`;
+  });
+
+  return [LISTE_BRUTE_EN_TETE[langue] ?? LISTE_BRUTE_EN_TETE.fr, ...lignes]
     .join("\n");
 }
 
@@ -894,6 +1081,21 @@ Deno.serve(async (requete: Request): Promise<Response> => {
       prix_bas: brut.prix_bas === true,
       soft_query: String(brut.soft_query ?? "").trim(),
     };
+
+    // L'ÉCRITURE TRANCHE, LE MODÈLE GARDE LE RESTE — voir `ecritureArabe()`.
+    //
+    // Une question écrite en caractères arabes est en arabe, quoi que le modèle
+    // en ait dit ; une question sans un seul caractère arabe n'est pas en arabe,
+    // quoi qu'il en ait dit non plus. Dans ce second cas, c'est « mixte » qui
+    // reprend la main et non « fr » : le modèle a entendu de l'arabe quelque
+    // part, et du darja écrit en lettres latines est exactement ce que « mixte »
+    // désigne. Les deux se répondent en français simple, donc l'erreur, s'il y
+    // en a une, ne coûte rien à personne.
+    criteres.langue = ecritureArabe(question)
+      ? "ar"
+      : criteres.langue === "ar"
+      ? "mixte"
+      : criteres.langue;
     langue = criteres.langue;
 
     // -------------------------------------------------------------------------
@@ -934,11 +1136,27 @@ Deno.serve(async (requete: Request): Promise<Response> => {
           SCHEMA_REPONSE,
         );
         const candidat = String(sortie.reponse ?? "").trim();
-        if (procedureComplete(candidat)) {
+
+        // LES TROIS MÊMES EXIGENCES QU'AILLEURS. Une réponse de procédure a ses
+        // quatre repères à porter, mais elle doit aussi être dans la langue de
+        // la question — et ne renvoyer vers personne. « Appelez la salle pour
+        // bloquer une date » serait une réponse complète et fausse.
+        //
+        // Le contexte est VIDE ici : aucun nom propre à retirer avant de
+        // compter les lettres, et c'est bien ce que `langueCorrespond` reçoit.
+        const manque = !procedureComplete(candidat)
+          ? "repère manquant"
+          : !langueCorrespond(candidat, langue, [])
+          ? `hors de la langue attendue (${langue})`
+          : appelAuContact(candidat)
+          ? `appel au contact direct : « ${appelAuContact(candidat)} »`
+          : "";
+
+        if (!manque) {
           texteProc = candidat;
           break;
         }
-        console.error(`Procédure incomplète (essai ${essai + 1}).`);
+        console.error(`Procédure rejetée (essai ${essai + 1}) : ${manque}.`);
         rejeux = essai + 1;
       }
 
@@ -1128,15 +1346,18 @@ Deno.serve(async (requete: Request): Promise<Response> => {
       texte = String(sortie.reponse ?? "").trim();
       ids = (Array.isArray(sortie.venue_ids) ? sortie.venue_ids : []).map(String);
 
-      const verdict = validerLaReponse(texte, ids, salles, tousLesNoms);
+      const verdict = validerLaReponse(texte, ids, salles, tousLesNoms, langue);
       if (verdict.ok) break;
 
       console.error(`Réponse rejetée (essai ${essai + 1}) :`, verdict.fautes);
       rejeux = essai + 1;
 
       if (essai === REJEUX_MAX) {
-        // Deuxième échec : la liste brute, sans phrase rédigée.
-        texte = listeBrute(salles);
+        // Deuxième échec : la liste brute, sans phrase rédigée. Elle est dans la
+        // langue de la question par son en-tête, et sans appel au contact par
+        // construction — les quatre contrôles y passent sans qu'on ait à les
+        // rejouer dessus.
+        texte = listeBrute(salles, langue);
         ids = salles.map((s) => s.venue_id);
         statut = "liste_brute";
       }

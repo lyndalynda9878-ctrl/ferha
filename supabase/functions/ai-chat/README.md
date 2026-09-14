@@ -131,9 +131,15 @@ encore.
 
 ## LE GARDE-FOU DU §8.5, ET SA LIMITE
 
-Le banc vérifie QUATRE choses sur chaque réponse : aucun identifiant hors
+Le banc vérifie SIX choses sur chaque réponse : aucun identifiant hors
 contexte, aucune salle non publiée, aucun prix absent de la base, aucun nom
-propre coupé entre deux écritures.
+propre coupé entre deux écritures, la réponse écrite dans l'écriture de la
+question, et aucun appel à contacter qui que ce soit.
+
+Les quatre premiers vivent aussi DANS la fonction, sous `validerLaReponse()` :
+une réponse qui en manque un fait rejouer, et au deuxième échec c'est la liste
+brute qui part. Le banc est le second regard, celui qui ne croit pas la
+fonction sur parole.
 
 ### Contrôle principal : les identifiants
 
@@ -213,16 +219,74 @@ Un nom trop court (moins de cinq caractères) ou fait uniquement de mots communs
 pas cherché dans la prose : il se confondrait avec le vocabulaire courant. Pour
 ces salles-là aussi, seul le contrôle par identifiant s'applique.
 
+### La langue de la réponse ne se demande plus : elle se compte
+
+C'était une consigne — la règle 5 du prompt — et elle échouait comme échouent
+les consignes : **par intermittence**. La question 15, en darja, a reçu une
+réponse française au J20. « بغيت صالة في وهران عندها 300 كرسي » en a reçu une au
+J21, alors que la même question, posée au coup d'avant, rendait de l'arabe
+impeccable.
+
+**La faute n'était pas dans la rédaction.** Elle était une étape plus haut : le
+modèle d'extraction avait classé cette question arabe en `langue: "mixte"` — et
+« mixte » veut dire « réponds en français simple ». La rédaction a obéi à une
+consigne juste, sur une langue fausse.
+
+Une écriture n'est pas un jugement : c'est un comptage de lettres, du même
+ordre que la comparaison de deux dates. `ecritureArabe()` la tranche donc dans
+la fonction, et **l'emporte sur ce que le modèle déclare**. Ne lui reste que le
+seul vrai jugement, celui qu'aucune plage Unicode ne rend : séparer `fr` de
+`mixte`, le français du franco-arabe translittéré — « kayen salle f wahran »
+s'écrit dans le même alphabet que « bonjour ».
+
+`langueCorrespond()` relit ensuite la réponse et compte de même. **Les noms
+propres sont retirés avant le comptage** : la règle 9 impose de les écrire en
+latin au milieu d'une phrase arabe, et sans ce retrait une réponse arabe citant
+trois salles porterait des dizaines de lettres latines parfaitement légitimes —
+le contrôle accuserait une réponse juste.
+
+**Le banc, lui, lit l'attendu dans la QUESTION, pas dans `criteres.langue`.**
+C'est tout son cinquième contrôle : juger la réponse sur l'étiquette que la
+fonction s'est donnée, c'est lui demander si elle est d'accord avec elle-même —
+et c'est exactement ce qui serait passé inaperçu au J21, l'étiquette étant
+fausse et la réponse fidèle à l'étiquette.
+
+### Aucun appel au contact direct (§9)
+
+L'agent a écrit « **Contactez les propriétaires pour vérifier la
+disponibilité** ». Deux fautes en une phrase : c'est une invitation à contourner
+la plateforme, et il n'y a de toute façon **personne à joindre** — le téléphone
+ne se donne qu'une fois la demande acceptée.
+
+La cause était dans le prompt. L'ancienne règle 4 disait « le propriétaire seul
+confirme », et le modèle en tirait obligeamment la conclusion qu'il fallait
+aller le voir. Elle dit maintenant **où** cela se passe : dans l'application, en
+ouvrant la fiche et en envoyant une demande — et nulle part ailleurs. Le plus
+souvent, la bonne fin de réponse est de n'en pas avoir.
+
+`appelAuContact()` la vérifie des deux côtés de l'alphabet, aux frontières de
+mot : `appeler` et `appelez`, jamais `appelée` — « une salle appelée El Bahia »
+est une phrase correcte, et un motif trop large la condamnerait. Côté arabe,
+`رقم` seul est écarté : il veut dire « numéro » au sens large, et parlerait d'un
+nombre de chaises.
+
+La liste brute du deuxième échec passe ces deux contrôles **par construction** :
+son en-tête est dans la langue de la question, et il n'y a pas de prose où
+glisser un appel au contact.
+
 ---
 
 ## Ce qui reste une consigne, et non un garde-fou
 
-Trois règles vivent dans le prompt et **rien ne les vérifie mécaniquement** :
+Deux règles vivent encore dans le prompt sans que **rien ne les vérifie
+mécaniquement** :
 
 1. **Ne renvoyer vers rien** quand la liste est vide — ni « les communes
    voisines », ni « revenez plus tard ».
-2. **Répondre dans la langue de la question.** La question 15, en darja, a été
-   répondue en français au banc du J20.
+2. ~~**Répondre dans la langue de la question**~~ — ce n'est plus une consigne
+   non plus : l'écriture de la question se compte au lieu de se demander, et le
+   banc vérifie celle de la réponse. C'est son cinquième contrôle. Voir plus
+   haut.
 3. **N'affirmer d'une salle que ce que le contexte contient** (règle 10). La
    question 18 présentait Salle El Bahia comme « proche de la mer » : la base ne
    le dit nulle part, et le contexte envoyé au modèle ne contient aucune
