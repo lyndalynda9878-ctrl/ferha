@@ -400,6 +400,8 @@ les mêmes données pour de bon, et une panne s'y verra sans instrument dédié.
 
 - `docs/cahier-des-charges_1.html` — cahier des charges v2.0
 - `docs/maquettes.html` — maquettes des écrans
+- [`docs/deploiement.md`](docs/deploiement.md) — la mise en ligne du web sur
+  Cloudflare Pages, écran par écran, dépôt privé compris
 
 ## Licence
 

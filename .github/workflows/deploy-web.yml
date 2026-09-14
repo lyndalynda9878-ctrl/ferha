@@ -1,0 +1,143 @@
+# =============================================================================
+# Ferha — mise en ligne du web sur Cloudflare Pages
+#
+# POURQUOI CLOUDFLARE ET PAS GITHUB PAGES
+#
+# GitHub Pages exige un dépôt PUBLIC. Celui-ci ne l'est pas, et ne le devient
+# pas aujourd'hui. Cloudflare Pages sert un site public depuis un dépôt privé,
+# ne demande pas de carte bancaire et n'endort pas le site.
+#
+# POURQUOI ON CONSTRUIT ICI ET NON CHEZ CLOUDFLARE
+#
+# Cloudflare sait construire lui-même depuis un dépôt Git, mais son
+# environnement de construction n'a pas Flutter : il faudrait le télécharger à
+# chaque fois dans une commande de build faite à la main. GitHub Actions l'a
+# déjà, en cache, et c'est la même action que la CI. On construit donc ici et on
+# ENVOIE le résultat — c'est le mode « Direct Upload » de Pages.
+#
+# LES SECRETS DU DÉPÔT (Settings › Secrets and variables › Actions)
+#
+#   SUPABASE_URL              l'adresse du projet Supabase
+#   SUPABASE_ANON_KEY         la clé publiable — elle part dans le JavaScript
+#                             servi, donc elle n'est pas secrète ; elle est ici
+#                             parce que le dépôt ne porte AUCUNE clé (CLAUDE.md)
+#   CLOUDFLARE_API_TOKEN      jeton Cloudflare, permission « Cloudflare Pages —
+#                             Edit » au niveau du compte
+#   CLOUDFLARE_ACCOUNT_ID     l'identifiant du compte Cloudflare
+#   CLOUDFLARE_PROJECT_NAME   le nom du projet Pages ; il décide de l'adresse
+#
+# Aucune valeur n'est écrite ici, et aucune ne doit l'être. Voir
+# docs/deploiement.md pour où chacune se trouve, écran par écran.
+#
+# GITHUB_TOKEN n'est PAS à poser : GitHub le fournit à chaque exécution. Il ne
+# sert qu'à faire apparaître le déploiement dans l'onglet « Deployments ».
+# =============================================================================
+
+name: Mise en ligne
+
+on:
+  # Le dépôt est sur `master` ; `main` est là pour le jour où il changerait de
+  # nom, comme dans ci.yml.
+  push:
+    branches: [main, master]
+  # De quoi remettre le site en ligne sans avoir à pousser un commit vide.
+  workflow_dispatch:
+
+# UN SEUL DÉPLOIEMENT À LA FOIS. Deux pushes rapprochés lanceraient deux envois
+# qui se doubleraient, et le dernier arrivé ne serait pas forcément le plus
+# récent.
+concurrency:
+  group: mise-en-ligne
+  cancel-in-progress: true
+
+jobs:
+  construire-et-publier:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      deployments: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # LES SECRETS D'ABORD, AVANT TOUTE MINUTE DÉPENSÉE.
+      #
+      # Un `--dart-define=SUPABASE_URL=` vide ne fait PAS échouer la
+      # construction : `String.fromEnvironment` rend une chaîne vide, et
+      # l'application se met en ligne sur son écran de configuration. Le site
+      # aurait l'air en panne, et on chercherait la panne ailleurs — dans
+      # Cloudflare, dans le routage, partout sauf ici.
+      #
+      # On ne nomme que les secrets MANQUANTS, jamais une valeur.
+      - name: Les secrets sont-ils posés
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_PROJECT_NAME: ${{ secrets.CLOUDFLARE_PROJECT_NAME }}
+        run: |
+          manquants=""
+          for nom in SUPABASE_URL SUPABASE_ANON_KEY CLOUDFLARE_API_TOKEN \
+                     CLOUDFLARE_ACCOUNT_ID CLOUDFLARE_PROJECT_NAME; do
+            valeur=$(printenv "$nom" || true)
+            if [ -z "$valeur" ]; then manquants="$manquants $nom"; fi
+          done
+          if [ -n "$manquants" ]; then
+            echo "::error::Secrets absents ou vides :$manquants"
+            echo "Settings › Secrets and variables › Actions. Voir docs/deploiement.md."
+            exit 1
+          fi
+          echo "Les cinq secrets sont posés."
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.35.5
+          channel: stable
+          cache: true
+
+      # `flutter pub get` régénère aussi les classes de localisation
+      # (pubspec `generate: true` + l10n.yaml).
+      - name: Dépendances
+        run: flutter pub get
+
+      # ON NE MET PAS EN LIGNE CE QU'ON N'A PAS TESTÉ.
+      #
+      # ci.yml tourne sur le même push, mais EN PARALLÈLE : rien ne garantit
+      # qu'il ait fini, ni qu'il soit vert, quand celui-ci publie. Chaîner deux
+      # workflows par `workflow_run` coûte plus de complexité que de relancer
+      # les tests, qui prennent une demi-minute.
+      #
+      # Le format et l'analyse restent chez ci.yml : ils disent la propreté du
+      # code, pas la santé de l'application. Un test rouge, lui, dit qu'on
+      # s'apprête à publier quelque chose de cassé.
+      - name: Tests
+        run: flutter test
+
+      # LES DÉFINES PLUTÔT QU'UN env.json RECONSTITUÉ. Le fichier est dans
+      # .gitignore et n'a pas à réapparaître sur la machine de construction :
+      # deux lignes de `--dart-define` font la même chose sans rien écrire sur
+      # le disque. GitHub masque les valeurs dans le journal.
+      - name: Construire le web
+        run: >
+          flutter build web --release
+          --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }}
+          --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}
+
+      # `--branch` DÉCIDE SI C'EST LA PRODUCTION OU UN APERÇU, et c'est le piège
+      # de Pages : une branche qui ne correspond PAS à la branche de production
+      # du projet publie un aperçu, à une adresse qui change à chaque fois, et
+      # l'adresse publique reste vide. `github.ref_name` rend la branche
+      # réellement poussée ; c'est elle que le projet Pages doit déclarer comme
+      # branche de production. Voir docs/deploiement.md.
+      - name: Publier sur Cloudflare Pages
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+          command: >
+            pages deploy build/web
+            --project-name=${{ secrets.CLOUDFLARE_PROJECT_NAME }}
+            --branch=${{ github.ref_name }}
