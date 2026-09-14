@@ -52,6 +52,11 @@
 // =============================================================================
 // LES GARDE-FOUS (§8.5)
 //
+// UN NOM PROPRE NE SE COUPE PAS. La règle 9 vaut pour les salles, les communes
+// et les wilayas : le nom s'écrit en latin comme la base le porte, ou
+// entièrement en arabe quand la base en donne la forme — `wilaya_name_ar`, et
+// elle seule. Le banc le vérifie mot par mot, c'est son quatrième contrôle.
+//
 // CONTRÔLE PRINCIPAL : LES IDENTIFIANTS que le modèle déclare. C'est le seul
 // qui ne dépende ni de la langue ni de l'écriture — une réponse en arabe
 // translitère les noms, et aucune comparaison latine ne les y retrouve.
@@ -269,6 +274,9 @@ type Salle = {
   name: string;
   commune: string;
   wilaya_name: string;
+  /// La forme arabe du nom de wilaya, pour qu'une reponse en arabe l'ecrive
+  /// entierement en arabe. Les salles et les communes n'en ont pas.
+  wilaya_name_ar: string | null;
   capacity_seated: number;
   parking_spaces: number | null;
   amenity_codes: string[] | null;
@@ -595,15 +603,22 @@ RÈGLES ABSOLUES :
    avant la tienne, avec la bonne date. Commence directement par ta réponse.
 8. Quand on te donne un texte de PROCÉDURE, réponds uniquement avec lui, dans la
    langue de la question, et ne nomme AUCUNE salle — venue_ids reste vide.
-9. LE NOM D'UNE SALLE S'ÉCRIT COMME DANS LE CONTEXTE, en écriture latine, lettre
-   pour lettre — "Salle Ibn Khaldoun", "Complexe Chréa", "Résidence Les
-   Andalouses" — MÊME AU MILIEU D'UNE PHRASE EN ARABE. Jamais de translittération,
-   jamais un nom coupé entre les deux écritures. Tu peux le faire précéder du mot
-   قاعة, mais le nom propre lui-même reste tel quel. C'est le nom qu'elle porte
-   sur l'application : la personne doit pouvoir le retrouver.
+9. UN NOM PROPRE NE SE COUPE JAMAIS ENTRE DEUX ÉCRITURES. Ni un nom de salle,
+   ni une commune, ni une wilaya. "البلida" et "ابن خaldoun" sont des mots que
+   personne ne peut lire, et que personne ne retrouvera en cherchant.
+   Il n'y a que DEUX façons correctes de l'écrire :
+   — EN ÉCRITURE LATINE, exactement comme le contexte le porte, lettre pour
+     lettre : "Salle Ibn Khaldoun", "Complexe Chréa", "Ouled Yaïch". Tu peux le
+     faire précéder d'un mot arabe — قاعة Salle El Bahia, بلدية Ouled Yaïch —
+     le nom lui-même reste latin.
+   — ENTIÈREMENT EN ARABE, et UNIQUEMENT si le contexte te donne cette forme.
+     Le champ "wilaya_ar" te la donne pour la wilaya : ولاية البليدة, en entier.
+   LES NOMS DE SALLE ET LES COMMUNES N'ONT AUCUNE FORME ARABE dans le contexte :
+   ils s'écrivent donc toujours en latin. Ne les translitère pas, ne les devine
+   pas de mémoire — c'est en la devinant qu'on coupe un mot en deux.
 10. TU NE DIS D'UNE SALLE QUE CE QUE LE CONTEXTE CONTIENT — sa commune, sa
-   capacité, ses équipements, son prix, sa note. Tu peux les reformuler, jamais
-   les compléter. Si le contexte ne dit pas qu'elle est près de la mer, qu'elle
+   wilaya, sa capacité, ses équipements, son prix, sa note. Tu peux les
+   reformuler, jamais les compléter. Si le contexte ne dit pas qu'elle est près de la mer, qu'elle
    est moderne, qu'elle a une belle vue ou un parking fermé, tu ne le dis pas.
    INVENTER UN FAIT SUR UNE SALLE EST LA MÊME FAUTE QU'INVENTER UNE SALLE : dans
    les deux cas, la personne se déplace pour quelque chose qui n'existe pas.
@@ -1042,6 +1057,7 @@ Deno.serve(async (requete: Request): Promise<Response> => {
       nom: s.name,
       commune: s.commune,
       wilaya: s.wilaya_name,
+      wilaya_ar: s.wilaya_name_ar,
       capacite: s.capacity_seated,
       parking: s.parking_spaces,
       equipements: s.amenity_codes,

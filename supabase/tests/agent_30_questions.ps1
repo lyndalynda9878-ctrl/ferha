@@ -24,6 +24,12 @@
 #      a lui-meme annonce. Un montant qui ne vient ni de l'un ni de l'autre a
 #      ete invente.
 #
+#   4. AUCUN NOM PROPRE COUPE ENTRE DEUX ECRITURES. Une reponse en arabe avait
+#      ecrit Blida moitie en arabe, moitie en latin, dans un seul mot. Un nom
+#      propre s'ecrit en latin comme la base le porte, ou entierement en arabe
+#      quand la base en donne la forme - wilayas.name_ar. Jamais une moitie de
+#      chaque.
+#
 # CE FICHIER EST EN ASCII PUR. Les questions arabes sont lues depuis le document
 # de reference en UTF-8, jamais ecrites ici : un .ps1 accentue lu dans le mauvais
 # encodage par Windows PowerShell 5.1 ne s'analyse pas.
@@ -134,6 +140,45 @@ function CoeurUtilisable([string]$c) {
 # Aux frontieres de mot : "el feth" ne doit pas se trouver au milieu d'un mot.
 function Motif([string]$c) { '\b' + [regex]::Escape($c) + '\b' }
 
+# UN NOM PROPRE COUPE ENTRE DEUX ECRITURES.
+#
+# Le J21 avait vu passer Blida ecrit avec son article en ARABE puis sa fin en
+# LATIN, dans un seul mot - quatre lettres arabes, trois latines, sans espace.
+# Illisible dans les deux alphabets, et introuvable pour qui le cherche. Le meme
+# defaut avait coupe "Ibn Khaldoun" au J20.
+#
+# CE FICHIER RESTE EN ASCII PUR : les plages d'alphabet s'ecrivent donc en
+# echappements \uXXXX, que .NET comprend dans une expression reguliere.
+#   \u0600-\u06ff  l'arabe
+#   \u0648 \u0641 \u0628 \u0644 \u0643  les monolitteres : et, alors, par, pour, comme
+#   \u0627\u0644  l'article defini
+#
+# UN CLITIQUE ARABE COLLE A UN MOT LATIN N'EST PAS UNE COUPURE, et c'est toute
+# la difficulte du controle. L'arabe attache ses monolitteres au mot suivant :
+# une reponse qui ecrit la conjonction "et" devant "Palais Dar El Feth" colle un
+# caractere arabe a un nom latin INTACT. Le signaler serait accuser une reponse
+# correcte.
+#
+# On retire donc, au plus, deux monolitteres puis l'article, et ce qui RESTE
+# doit tenir dans un seul alphabet. L'article ne peut pas manger le debut d'un
+# nom arabe : sur le Blida coupe il ne prend que l'article, le reste est encore
+# a cheval, et la coupure se voit.
+$Clitiques = '^[\u0648\u0641\u0628\u0644\u0643]{0,2}(?:\u0627\u0644)?'
+$Latines   = '[A-Za-z\u00c0-\u024f]'
+$Arabes    = '[\u0600-\u06ff]'
+
+function NomsCoupes([string]$t) {
+  $coupes = @()
+  if (-not $t) { return $coupes }
+  foreach ($m in [regex]::Matches($t, '[\p{L}]+')) {
+    $mot = $m.Value
+    if (-not (($mot -match $Latines) -and ($mot -match $Arabes))) { continue }
+    $noyau = [regex]::Replace($mot, $Clitiques, '')
+    if (($noyau -match $Latines) -and ($noyau -match $Arabes)) { $coupes += $mot }
+  }
+  return $coupes
+}
+
 # --- la boucle ---------------------------------------------------------------
 $aJouer = if ($seulement.Count) { $seulement } else { $liste.Keys | Sort-Object }
 $resultats = @()
@@ -157,7 +202,7 @@ foreach ($n in $aJouer) {
 
   if ($erreur) {
     Write-Host ("  {0,-3} {1}" -f $n, $erreur) -ForegroundColor Red
-    $resultats += [pscustomobject]@{ n=$n; statut="ECHEC"; c1=$false; c2=$false; c3=$false; note=$erreur }
+    $resultats += [pscustomobject]@{ n=$n; statut="ECHEC"; c1=$false; c2=$false; c3=$false; c4=$false; note=$erreur }
     Start-Sleep -Milliseconds $pauseMs
     continue
   }
@@ -211,6 +256,10 @@ foreach ($n in $aJouer) {
   }
   $c3 = ($inventes.Count -eq 0)
 
+  # --- verification 4 : aucun nom propre coupe entre deux ecritures ---------
+  $coupes = @(NomsCoupes $texte)
+  $c4 = ($coupes.Count -eq 0)
+
   # --- affichage ------------------------------------------------------------
   $resumeCrit = @()
   if ($crit.wilaya_code)    { $resumeCrit += "w=$($crit.wilaya_code)" }
@@ -239,15 +288,17 @@ foreach ($n in $aJouer) {
   $marques += if ($c1) { "id+" } else { "id-" }
   $marques += if ($c2) { " pub+" } else { " pub-" }
   $marques += if ($c3) { " prix+" } else { " prix-" }
-  $couleur = if ($c1 -and $c2 -and $c3) { "Green" } else { "Red" }
+  $marques += if ($c4) { " nom+" } else { " nom-" }
+  $couleur = if ($c1 -and $c2 -and $c3 -and $c4) { "Green" } else { "Red" }
 
   Write-Host ("  {0,-3} {1,-7} {2,-36} {3,-30} {4}" -f $n, $statut, $txtCrit, $txtSalles, $marques) -ForegroundColor $couleur
   if (-not $c1) { Write-Host ("       hors contexte : " + ($horsContexte -join ", ")) -ForegroundColor Red }
   if (-not $c2) { Write-Host ("       NON PUBLIEE   : " + ($fuites -join ", ")) -ForegroundColor Red }
   if (-not $c3) { Write-Host ("       prix inconnus : " + ($inventes -join ", ")) -ForegroundColor Red }
+  if (-not $c4) { Write-Host ("       NOMS COUPES   : " + ($coupes -join ", ")) -ForegroundColor Red }
   if ($detail)  { Write-Host ("       > " + ($texte -replace "\s+", " ")) -ForegroundColor DarkGray }
 
-  $resultats += [pscustomobject]@{ n=$n; statut=$statut; c1=$c1; c2=$c2; c3=$c3; note="" }
+  $resultats += [pscustomobject]@{ n=$n; statut=$statut; c1=$c1; c2=$c2; c3=$c3; c4=$c4; note="" }
   Start-Sleep -Milliseconds $pauseMs
 }
 
@@ -263,7 +314,7 @@ $total  = $resultats.Count
 $joues  = @($resultats | Where-Object { $NonAbouti -notcontains $_.statut })
 $rates  = @($resultats | Where-Object { $NonAbouti -contains $_.statut })
 $n      = $joues.Count
-$ok     = @($joues | Where-Object { $_.c1 -and $_.c2 -and $_.c3 }).Count
+$ok     = @($joues | Where-Object { $_.c1 -and $_.c2 -and $_.c3 -and $_.c4 }).Count
 
 Write-Host ""
 Write-Host ("  " + ("=" * 124))
@@ -275,7 +326,8 @@ if ($n -gt 0) {
   Write-Host ("  Aucun identifiant hors contexte       : {0} / {1}" -f @($joues | Where-Object c1).Count, $n)
   Write-Host ("  Aucune salle non publiee              : {0} / {1}" -f @($joues | Where-Object c2).Count, $n)
   Write-Host ("  Aucun prix absent de la base          : {0} / {1}" -f @($joues | Where-Object c3).Count, $n)
-  Write-Host ("  LES TROIS A LA FOIS                   : {0} / {1}  ({2:N1} %)" -f $ok, $n, (100.0 * $ok / $n))
+  Write-Host ("  Aucun nom coupe entre deux ecritures  : {0} / {1}" -f @($joues | Where-Object c4).Count, $n)
+  Write-Host ("  LES QUATRE A LA FOIS                  : {0} / {1}  ({2:N1} %)" -f $ok, $n, (100.0 * $ok / $n))
 }
 Write-Host ""
 $parStatut = $resultats | Group-Object statut | Sort-Object Count -Descending
@@ -288,7 +340,7 @@ if ($rates.Count) {
   Write-Host ""
 }
 if ($ok -lt $n) {
-  Write-Host ("  A REVOIR (controle en echec) : " + ((@($joues | Where-Object { -not ($_.c1 -and $_.c2 -and $_.c3) }) | ForEach-Object { $_.n }) -join ", ")) -ForegroundColor Red
+  Write-Host ("  A REVOIR (controle en echec) : " + ((@($joues | Where-Object { -not ($_.c1 -and $_.c2 -and $_.c3 -and $_.c4) }) | ForEach-Object { $_.n }) -join ", ")) -ForegroundColor Red
   Write-Host ""
   exit 1
 }

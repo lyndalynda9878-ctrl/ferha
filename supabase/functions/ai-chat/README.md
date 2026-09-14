@@ -83,6 +83,10 @@ encore.
 
 ## LE GARDE-FOU DU §8.5, ET SA LIMITE
 
+Le banc vérifie QUATRE choses sur chaque réponse : aucun identifiant hors
+contexte, aucune salle non publiée, aucun prix absent de la base, aucun nom
+propre coupé entre deux écritures.
+
 ### Contrôle principal : les identifiants
 
 Le modèle rend, à côté de sa réponse, la **liste des `venue_id` qu'il cite**, en
@@ -107,12 +111,42 @@ deviner comment un modèle rend « Chréa » en arabe, une seconde source de vé
 plus fragile que celle qu'elle prétend garder.
 
 **On a donc pris le problème par l'autre bout : le nom ne se translittère plus.**
-La règle 9 du prompt de rédaction impose d'écrire le nom propre d'une salle
+La règle 9 du prompt de rédaction impose d'écrire le nom propre
 exactement comme le contexte le porte, en écriture latine, même au milieu d'une
 phrase en arabe — `قاعة Salle Ibn Khaldoun`. Elle a d'abord une raison d'usage :
 c'est le nom que la personne lira sur l'application, et une translittération
 l'empêche de l'y retrouver. Elle a pour effet second de rendre ce filet
 opérant dans les deux écritures.
+
+**Elle vaut pour TOUT nom propre — salles, communes, wilayas.** Le J21 avait
+vu passer Blida écrit avec son article en arabe et sa fin en latin, dans un
+seul mot. Illisible dans les deux alphabets, introuvable pour qui le cherche.
+Un nom propre s'écrit donc soit en latin comme la base le porte, soit
+**entièrement** dans l'écriture de la réponse — et pour cela il faut que la
+forme arabe existe quelque part.
+
+| | Forme latine | Forme arabe |
+|---|---|---|
+| Salle | `venues.name` | aucune → latin obligatoire |
+| Commune | `venues.commune` | aucune → latin obligatoire |
+| Wilaya | `wilayas.name_fr` | `wilayas.name_ar`, dans le contexte sous `wilaya_ar` |
+
+Interdire la coupure sans fournir la forme arabe serait demander au modèle de
+la retrouver de mémoire — c'est précisément ce qu'il a raté. La migration 030
+fait donc remonter `wilaya_name_ar` : le nom arabe devient une DONNÉE, comme le
+prix et la capacité, et la règle 10 le couvre du même coup.
+
+**Et cette fois le banc le vérifie.** Son quatrième contrôle relit chaque mot
+de la réponse : un mot qui mélange les deux alphabets est signalé.
+
+Il tolère le cas qui n'est PAS une coupure, et c'est toute sa difficulté :
+l'arabe colle ses monolittères (« et », « pour », « par ») et son article au
+mot suivant. Une conjonction arabe écrite devant un nom latin INTACT n'est pas
+une faute, et la signaler reviendrait à accuser une réponse correcte. Le banc
+retire donc au plus deux monolittères puis l'article, et ce qui reste doit
+tenir dans un seul alphabet. L'article ne peut pas manger le début d'un nom
+arabe : sur le Blida coupé il ne prend que l'article, le reste est encore à
+cheval, et la coupure se voit.
 
 **Ce que cela ne garantit pas.** Une règle de prompt se néglige. Quand le modèle
 désobéit et translittère quand même, le filet ne voit rien — comme avant, et
@@ -148,7 +182,9 @@ Trois règles vivent dans le prompt et **rien ne les vérifie mécaniquement** :
    salle inventée — la personne se déplace pour rien dans les deux cas — mais
    **aucun contrôle mécanique ne peut le détecter** : vérifier une prose libre
    contre un contexte demanderait un second modèle, qui se tromperait aussi.
-4. **Écrire les noms en écriture latine** (règle 9), traitée plus haut.
+4. ~~**Écrire les noms sans les couper entre deux écritures**~~ (règle 9) —
+   ce n'est plus une simple consigne : le banc la vérifie, c'est son
+   quatrième contrôle. Voir plus haut.
 5. **Au plus cinq salles.** Garantie autrement : le contexte lui-même est coupé
    à cinq — trois quand la question porte sur le prix — et un contexte absent ne
    se cite pas.
