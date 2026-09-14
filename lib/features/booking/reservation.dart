@@ -130,6 +130,7 @@ class Reservation {
     this.telephone,
     this.avisDepose = false,
     this.avisPossible = false,
+    this.options = const <String>[],
   });
 
   /// Construit depuis une ligne de `client_bookings()`.
@@ -165,6 +166,12 @@ class Reservation {
     telephone: j['owner_phone'] as String?,
     avisDepose: (j['avis_depose'] as bool?) ?? false,
     avisPossible: (j['avis_possible'] as bool?) ?? false,
+    // Les libellés des options retenues (033). NULL quand il n'y en a aucune :
+    // `array_agg` d'un ensemble vide ne rend pas un tableau vide, il ne rend
+    // rien.
+    options:
+        (j['option_labels'] as List<dynamic>?)?.cast<String>() ??
+        const <String>[],
   );
 
   /// L'identifiant de la réservation — un groupe, une ou deux lignes.
@@ -209,6 +216,19 @@ class Reservation {
 
   /// Le devis du groupe, en dinars.
   final num montant;
+
+  /// Les libellés des options retenues, dans l'ordre du catalogue de la salle.
+  ///
+  /// DES LIBELLÉS, ET AUCUN PRIX — voir la migration 033. Le montant, options
+  /// comprises, est [montant], et il vient d'`estimate_price()`. Un prix par
+  /// option ici ouvrirait un second chemin vers une somme, et deux chemins
+  /// finissent toujours par diverger.
+  ///
+  /// Vide quand la demande n'en portait aucune, et vide aussi pour une version
+  /// de la base antérieure à 033 : la colonne manquante se lit comme une
+  /// absence d'options, ce qui est le cas de l'immense majorité des
+  /// réservations.
+  final List<String> options;
 
   /// L'acompte fixé par le propriétaire à l'acceptation. Null avant.
   ///

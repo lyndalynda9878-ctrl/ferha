@@ -43,6 +43,7 @@ seulement :
 | 30 | `migrations/030_agent_nom_arabe_wilaya.sql` | `wilaya_name_ar` remonte dans le contexte — **redéfinit `salles_pour_agent()`** | 009, 029 |
 | 31 | `migrations/031_agent_photo_de_la_salle.sql` | `cover_photo` remonte pour les cartes de l'écran 8 — **redéfinit `salles_pour_agent()`** | 023, 030 |
 | 32 | `migrations/032_synthese_des_avis.sql` | `venue_review_summaries`, `synthese_avis_minimum()`, `avis_pour_synthese()`, `enregistrer_synthese_avis()`, le cron `ferha-synthese-avis` — **redéfinit `avis_de_la_salle()`** | 001, 002, 004, 022, 026 |
+| 33 | `migrations/033_options_dans_mes_reservations.sql` | `option_labels` — les libellés des options retenues, pour que la confirmation d'une demande survive à un rechargement — **redéfinit `client_bookings()`** | 004, 005, 006, 024, 026 |
 
 `002` a besoin des tables de `001`. `003` a besoin de la table `amenities` de
 `001`, mais pas de `002`. Appliquer `002` avant `003` reste le bon ordre : le
@@ -122,7 +123,7 @@ Les fonctions appelées en RPC depuis Flutter :
 | `venue_calendar()` (011) | calendrier | `SECURITY DEFINER` |
 | `booking_quote()` (012) | demande — le devis | droits de l'appelant, ouvert à `anon` |
 | `request_booking()` (**020**) | demande — l'envoi | `SECURITY DEFINER`, fermée à `anon` |
-| `client_bookings()` (**024**) | mes réservations | `SECURITY DEFINER`, fermée à `anon` |
+| `client_bookings()` (**033**) | mes réservations, et la confirmation d'une demande | `SECURITY DEFINER`, fermée à `anon` |
 | `acompte_a_verser()` (**025**) | verser l'acompte — l'écran 6 | `SECURITY DEFINER`, fermée à `anon` |
 | `payer_en_especes()` (025) | écran 6 — « espèces sur place » | `SECURITY DEFINER`, fermée à `anon` |
 | `confirmer_encaissement_especes()` (025) | détail d'une demande — « j'ai reçu l'acompte » | `SECURITY DEFINER`, fermée à `anon` |
