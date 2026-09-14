@@ -140,6 +140,7 @@ AvisDeLaSalle avisDeLaSalleDeTest({
     SousNote.conformite: 4.7,
   },
   List<AvisPublie> avis = const <AvisPublie>[],
+  SyntheseDesAvis? synthese,
 }) => AvisDeLaSalle(
   venueId: venueId,
   salle: salle,
@@ -147,6 +148,25 @@ AvisDeLaSalle avisDeLaSalleDeTest({
   nombre: nombre ?? avis.length,
   moyennes: moyennes,
   avis: avis,
+  synthese: synthese,
+);
+
+/// Une synthèse d'avis, telle que « summarize-reviews » l'aurait écrite.
+///
+/// LE TEXTE PAR DÉFAUT PORTE UNE RÉSERVE, et c'est intentionnel : « un résumé
+/// exclusivement flatteur n'est pas cru » (maquettes, écran 7). Un exemple de
+/// test qui ne dirait que du bien installerait la mauvaise habitude.
+SyntheseDesAvis syntheseDeTest({
+  String texte =
+      'Les invités saluent surtout la propreté et le parking. Deux réserves '
+      'reviennent : la climatisation peine en fin de soirée quand la salle est '
+      'pleine, et le service traiteur a été jugé lent sur les grands mariages.',
+  int nombre = 34,
+  DateTime? misAJourLe,
+}) => SyntheseDesAvis(
+  texte: texte,
+  nombre: nombre,
+  misAJourLe: misAJourLe ?? DateTime(2026, 8, 30),
 );
 
 /// Ce que rend `avis_a_deposer()` — une soirée notable.

@@ -18,12 +18,15 @@ import 'owner_fakes.dart';
 
 /// L'écran 7 — les avis d'une salle.
 ///
-/// LE TEST LE PLUS IMPORTANT DE CE FICHIER EST « AUCUNE SYNTHÈSE IA ». La
-/// maquette dessine un encart « ✦ Synthèse des 34 avis », pré-calculé la nuit
-/// par un index sémantique qui n'existe pas encore (J21). Il serait facile de
-/// poser le cadre maintenant « pour que ce soit prêt » — et un cadre vide dit au
-/// visiteur que l'application est inachevée, plus fort que son absence. Ce test
-/// est là pour que personne ne l'ajoute par distraction.
+/// LE TEST LE PLUS IMPORTANT DE CE FICHIER PORTE SUR LA SYNTHÈSE, et c'est
+/// toujours vrai maintenant qu'elle existe — pour la raison INVERSE. Le bloc
+/// « ✦ Synthèse des 34 avis » est pré-calculé la nuit (§8.2), et il manque dans
+/// deux cas très ordinaires : une salle de moins de trois avis porteurs de
+/// texte, et une salle que la nuit n'a pas encore traitée. Il serait facile de
+/// dessiner le cadre quand même « pour que la mise en page ne saute pas » — et
+/// un cadre vide dit au visiteur que l'application est inachevée, plus fort que
+/// son absence. Deux tests l'encadrent donc : il paraît quand la base donne une
+/// synthèse, il disparaît entièrement quand elle n'en donne pas.
 ///
 /// LE SECOND EST CELUI DU BOUTON « Répondre ». Il ne doit apparaître que sur les
 /// avis d'une salle que le lecteur possède, et jamais sur un avis déjà répondu :
@@ -131,7 +134,7 @@ void main() {
       expect(find.text('Réservation vérifiée'), findsOneWidget);
     });
 
-    testWidgets('AUCUN bloc « synthèse IA » — elle arrive au J21', (
+    testWidgets('AUCUN bloc de synthèse quand la base n’en donne pas', (
       tester,
     ) async {
       await ouvre(
@@ -140,14 +143,65 @@ void main() {
           venueId: bahia,
           nombre: 34,
           avis: <AvisPublie>[avisDeTest(id: 'a1')],
+          // Pas de synthèse : moins de trois avis porteurs de texte, ou la nuit
+          // n'est pas encore passée dessus. Les deux arrivent tous les jours.
         ),
       );
 
-      // Un cadre vide dirait que l'application est inachevée. Tant que l'index
-      // sémantique n'existe pas, il n'y a rien à dessiner ici.
+      // Pas de cadre, pas d'étiquette, pas de squelette en attendant. Rien.
       expect(find.textContaining('Synthèse'), findsNothing);
       expect(find.textContaining('synthèse'), findsNothing);
-      expect(find.textContaining('✦'), findsNothing);
+      expect(find.byIcon(Icons.auto_awesome), findsNothing);
+    });
+
+    testWidgets('la synthèse s’affiche avec son compte et sa date', (
+      tester,
+    ) async {
+      await ouvre(
+        tester,
+        avisDeLaSalleDeTest(
+          venueId: bahia,
+          nombre: 40,
+          avis: <AvisPublie>[avisDeTest(id: 'a1')],
+          synthese: syntheseDeTest(),
+        ),
+      );
+
+      // LE COMPTE EST CELUI DE LA SYNTHÈSE, PAS CELUI D'AUJOURD'HUI. La salle a
+      // 40 avis maintenant ; le texte en a lu 34, la nuit où il a été écrit.
+      // Annoncer « des 40 avis » promettrait six avis qu'il n'a jamais vus.
+      expect(find.text('Synthèse des 34 avis'), findsOneWidget);
+      expect(find.text('août 2026'), findsWidgets);
+      expect(find.textContaining('Deux réserves reviennent'), findsOneWidget);
+    });
+
+    testWidgets('une synthèse en arabe se lit de droite à gauche', (
+      tester,
+    ) async {
+      // Elle est rédigée dans la langue des avis qu'elle résume, et non dans
+      // celle de l'application : des avis arabes donnent une synthèse arabe,
+      // même quand l'application est en français.
+      const texte = 'المدعوون يثنون على النظافة، لكن التكييف ضعيف آخر السهرة.';
+
+      await ouvre(
+        tester,
+        avisDeLaSalleDeTest(
+          venueId: bahia,
+          nombre: 12,
+          avis: <AvisPublie>[avisDeTest(id: 'a1')],
+          synthese: syntheseDeTest(texte: texte, nombre: 12),
+        ),
+      );
+
+      final direction = tester.widget<Directionality>(
+        find
+            .ancestor(
+              of: find.text(texte),
+              matching: find.byType(Directionality),
+            )
+            .first,
+      );
+      expect(direction.textDirection, TextDirection.rtl);
     });
 
     testWidgets('la réponse du propriétaire s’affiche sous son avis', (

@@ -122,6 +122,63 @@ class AvisPublie {
 String _premiereLettre(String mot) =>
     mot.isEmpty ? '' : mot.substring(0, 1).toUpperCase();
 
+/// La synthèse des avis d'une salle (§8.2) — le bloc « ✦ » de l'écran 7.
+///
+/// ELLE EST PRÉ-CALCULÉE LA NUIT, par l'Edge Function « summarize-reviews », et
+/// rien ici ne la fabrique. Elle vient de la base comme la note et les avis, et
+/// pour la même raison : un texte produit à l'affichage changerait à chaque
+/// ouverture de l'écran, et coûterait un appel au modèle à chaque lecteur.
+///
+/// [nombre] N'EST PAS LE NOMBRE D'AVIS D'AUJOURD'HUI. C'est celui dont vient ce
+/// texte-là. Les deux se séparent dès qu'un avis est déposé après la dernière
+/// nuit — et annoncer « la synthèse des 40 avis » sous un résumé qui en a lu 34
+/// promettrait six avis qu'il n'a jamais vus.
+@immutable
+class SyntheseDesAvis {
+  /// Crée la synthèse.
+  const SyntheseDesAvis({
+    required this.texte,
+    required this.nombre,
+    required this.misAJourLe,
+  });
+
+  /// Lit la synthèse dans le JSON d'`avis_de_la_salle()`, ou rend `null`.
+  ///
+  /// LES TROIS CHAMPS VONT ENSEMBLE OU PAS DU TOUT. Une synthèse sans sa date
+  /// ne se présenterait pas honnêtement — le lecteur ne saurait pas de quand
+  /// elle date —, et la base les écrit d'un seul bloc. On préfère donc ne rien
+  /// afficher à afficher la moitié.
+  static SyntheseDesAvis? depuisJson(Map<String, dynamic> j) {
+    final texte = (j['summary'] as String?)?.trim();
+    final nombre = (j['summary_count'] as num?)?.toInt();
+    final date = j['summary_updated_at'] as String?;
+
+    if (texte == null || texte.isEmpty || nombre == null || date == null) {
+      return null;
+    }
+
+    return SyntheseDesAvis(
+      texte: texte,
+      nombre: nombre,
+      misAJourLe: DateTime.parse(date).toLocal(),
+    );
+  }
+
+  /// Le texte, dans la langue des avis qu'il résume — pas forcément celle de
+  /// l'application. L'écran l'affiche dans le sens d'écriture de sa langue.
+  final String texte;
+
+  /// Le nombre d'avis dont vient ce texte.
+  final int nombre;
+
+  /// Quand elle a été rédigée.
+  final DateTime misAJourLe;
+
+  /// « août 2026 » — le mois suffit, comme pour la date d'un avis.
+  String get moisDeMiseAJour =>
+      '${moisEnFrancais(misAJourLe)} ${misAJourLe.year}';
+}
+
 /// Les avis d'une salle, tels que les rend `avis_de_la_salle()` — l'écran 7.
 ///
 /// LA NOTE VIENT DE `venue_ratings`, ET DE NULLE PART AILLEURS. C'est la moyenne
@@ -129,9 +186,11 @@ String _premiereLettre(String mot) =>
 /// moyenne, et rien ne doit en faire : une salle avec un seul 5/5 ne dépasse pas
 /// une salle à quarante 4,6, et c'est la vue qui le décide.
 ///
-/// AUCUNE SYNTHÈSE IA. La maquette en dessine une ; elle arrivera au J21, avec
-/// l'index sémantique qui la rend possible. Un cadre vide en attendant dirait au
-/// visiteur que l'application est inachevée.
+/// LA SYNTHÈSE EST FACULTATIVE, ET C'EST TOUT CE QU'IL Y A À SAVOIR D'ELLE ICI.
+/// Elle manque tant que « summarize-reviews » n'est pas passée, et elle manque
+/// pour toujours sous trois avis porteurs de texte — on ne résume pas deux
+/// phrases (§8.2). L'écran ne dessine alors aucun cadre : un encart vide dirait
+/// au visiteur que l'application est inachevée, plus fort que son absence.
 @immutable
 class AvisDeLaSalle {
   /// Crée la page d'avis d'une salle.
@@ -142,6 +201,7 @@ class AvisDeLaSalle {
     required this.avis,
     this.note,
     this.moyennes = const <SousNote, double>{},
+    this.synthese,
   });
 
   /// Construit depuis le JSON d'`avis_de_la_salle()`.
@@ -150,6 +210,7 @@ class AvisDeLaSalle {
     salle: j['venue_name'] as String,
     note: (j['rating'] as num?)?.toDouble(),
     nombre: ((j['review_count'] as num?) ?? 0).toInt(),
+    synthese: SyntheseDesAvis.depuisJson(j),
     moyennes: <SousNote, double>{
       for (final sousNote in SousNote.values)
         if (j[sousNote.cle] != null)
@@ -182,6 +243,9 @@ class AvisDeLaSalle {
 
   /// Les avis, le plus récent en tête.
   final List<AvisPublie> avis;
+
+  /// La synthèse pré-calculée, quand il y en a une.
+  final SyntheseDesAvis? synthese;
 
   /// Vrai seulement si la salle a réellement été notée.
   ///

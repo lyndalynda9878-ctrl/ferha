@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/l10n/direction_du_texte.dart';
 import '../../core/theme/ferha_colors.dart';
 import '../../core/theme/ferha_radii.dart';
 import '../owner/owner_providers.dart';
@@ -25,10 +26,12 @@ const Key cleEnvoyerReponse = Key('avis-reponse-envoyer');
 /// encore réservé (§3, étape 2). Aucune redirection ne le protège, et
 /// `avis_de_la_salle()` (026) est ouverte à `anon`.
 ///
-/// CE QU'IL N'AFFICHE PAS, ET QUI EST DANS LA MAQUETTE : le bloc « ✦ Synthèse
-/// des 34 avis ». Elle est pré-calculée la nuit par l'index sémantique, qui
-/// n'existe pas encore (J21). Un cadre vide en attendant dirait au visiteur que
-/// l'application est inachevée — plus fort que son absence.
+/// LE BLOC « ✦ Synthèse des 34 avis » N'EXISTE QUE QUAND ELLE EXISTE. Il est
+/// pré-calculé la nuit par « summarize-reviews » (§8.2), et il manque dans deux
+/// cas : la salle a moins de trois avis porteurs de texte — on ne résume pas
+/// deux phrases —, ou la nuit n'est pas encore passée dessus. L'écran ne dessine
+/// alors rien du tout : un cadre vide dirait au visiteur que l'application est
+/// inachevée, plus fort que son absence.
 ///
 /// CE QU'IL AFFICHE ET QUE LA MAQUETTE NE DESSINE PAS : « Répondre », sur les
 /// avis d'une salle dont le lecteur est le propriétaire (§4.3, OWN-06). La
@@ -102,6 +105,14 @@ class _Contenu extends ConsumerWidget {
         padding: const EdgeInsetsDirectional.fromSTEB(16, 16, 16, 28),
         children: <Widget>[
           _EnTeteDesNotes(salle: salle),
+
+          // Entre les notes et la liste, comme sur la maquette : on lit
+          // d'abord le chiffre, puis ce qu'il veut dire, puis les avis eux-mêmes.
+          if (salle.synthese != null) ...<Widget>[
+            const SizedBox(height: 14),
+            _BlocSynthese(synthese: salle.synthese!),
+          ],
+
           const SizedBox(height: 20),
           for (final avis in salle.avis) ...<Widget>[
             _CarteAvis(
@@ -175,6 +186,79 @@ class _EnTeteDesNotes extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Le bloc « ✦ Synthèse des N avis », et sa date.
+///
+/// TROIS CHOSES S'Y LISENT, ET LA TROISIÈME EST LA PLUS IMPORTANTE :
+///
+///   * que c'est un résumé, et non un avis de plus — d'où l'étiquette ;
+///   * de combien d'avis il vient — celui d'ALORS, pas celui d'aujourd'hui ;
+///   * de QUAND il date. Un résumé sans date se lirait comme une vérité
+///     permanente ; avec sa date, le lecteur sait qu'un avis déposé depuis n'y
+///     est pas encore.
+///
+/// AUCUNE MENTION « ÉCRIT PAR UNE IA », et ce n'est pas un oubli. L'étiquette
+/// dit « Synthèse des N avis » : elle dit d'où vient le texte — des avis, tous
+/// vérifiés —, ce qui est l'information dont dépend la confiance. Comment la
+/// phrase a été assemblée intéresse moins que sur quoi elle porte.
+///
+/// LE TEXTE EST DANS LA LANGUE DES AVIS, pas dans celle de l'application : la
+/// synthèse d'avis arabes est en arabe, et elle se lit de droite à gauche même
+/// dans une application en français. Les avis qu'elle résume sont juste en
+/// dessous, dans la même langue.
+class _BlocSynthese extends StatelessWidget {
+  const _BlocSynthese({required this.synthese});
+
+  final SyntheseDesAvis synthese;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.ferhaColors;
+    final text = Theme.of(context).textTheme;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsetsDirectional.all(13),
+      decoration: BoxDecoration(
+        color: colors.primarySoft,
+        borderRadius: FerhaRadii.cardBorder,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Icon(Icons.auto_awesome, size: 13, color: colors.primaryDeep),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  'Synthèse des ${synthese.nombre} avis',
+                  style: text.labelSmall?.copyWith(
+                    color: colors.primaryDeep,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+              ),
+              Text(
+                synthese.moisDeMiseAJour,
+                style: text.labelSmall?.copyWith(color: colors.primaryDeep),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          TexteDansSaLangue(
+            synthese.texte,
+            style: text.bodySmall?.copyWith(
+              color: colors.inkSecondary,
+              height: 1.5,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
