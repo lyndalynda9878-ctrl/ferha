@@ -36,6 +36,13 @@ seulement :
 | 23 | `migrations/023_une_option_tient_la_date.sql` | `tient_la_date()` — LA règle de disponibilité, écrite une seule fois — **redéfinit `search_venues()`, `venue_calendar()`, `request_booking()`, `accepter_demande()`, `owner_agenda()` et `bloquer_date()`** | 004, 008, 010, 011, 012, 014, 015, 016 |
 | 24 | `migrations/024_acompte_chargily.sql` | `montant_acompte()`, `acompte_a_verser()`, `enregistrer_checkout()` — le versement de l'acompte — **redéfinit `client_bookings()`** | 004, 006, 013, 015, 023 |
 | 25 | `migrations/025_paiement_confirme.sql` | `confirmer_paiement_chargily()`, le parcours espèces, `payments.anomalie` et la vue `paiements_a_examiner` — **redéfinit `owner_request_detail()` et `acompte_a_verser()`** | 004, 006, 014, 022, 023, 024 |
+| 26 | `migrations/026_les_avis.sql` | `complete_booking()`, `deposer_avis()`, `repondre_a_un_avis()`, `avis_de_la_salle()` — l'écran 7 | 004, 006, 013, 022 |
+| 27 | `migrations/027_index_semantique.sql` | `venue_embeddings`, `document_salle()`, `salles_a_indexer()`, `recherche_semantique()` (§8.3, §8.4) | 001, 003, 004, 010, 011 |
+| 28 | `migrations/028_agent.sql` | `salles_pour_agent()` et `journaliser_conversation()` (§8.1, §8.5) | 010, 023, 027 |
+| 29 | `migrations/029_agent_parking_et_prix.sql` | le parking et le prix deviennent filtres et tris — **redéfinit `salles_pour_agent()`** | 028 |
+| 30 | `migrations/030_agent_nom_arabe_wilaya.sql` | `wilaya_name_ar` remonte dans le contexte — **redéfinit `salles_pour_agent()`** | 009, 029 |
+| 31 | `migrations/031_agent_photo_de_la_salle.sql` | `cover_photo` remonte pour les cartes de l'écran 8 — **redéfinit `salles_pour_agent()`** | 023, 030 |
+| 32 | `migrations/032_synthese_des_avis.sql` | `venue_review_summaries`, `synthese_avis_minimum()`, `avis_pour_synthese()`, `enregistrer_synthese_avis()`, le cron `ferha-synthese-avis` — **redéfinit `avis_de_la_salle()`** | 001, 002, 004, 022, 026 |
 
 `002` a besoin des tables de `001`. `003` a besoin de la table `amenities` de
 `001`, mais pas de `002`. Appliquer `002` avant `003` reste le bon ordre : le
@@ -84,7 +91,7 @@ psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/024_acompte_charg
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/025_paiement_confirme.sql
 ```
 
-Les vingt-cinq fichiers sont **rejouables** : les relancer sur une base déjà à jour
+Les trente-deux fichiers sont **rejouables** : les relancer sur une base déjà à jour
 ne produit ni erreur ni doublon. `003` va plus loin et met à jour les libellés
 existants — c'est le moyen prévu pour corriger une traduction.
 
@@ -101,8 +108,10 @@ Les réservations :
 `high_season_periods`, qui servent la formule de prix — ces deux dernières ont
 été ajoutées au §6 du cahier des charges, le document est à jour.
 
-Les tables `messages`, `venue_embeddings`, `kb_documents`, `ai_cache` et
-`ai_conversations` du §6 ne sont pas encore écrites.
+`venue_embeddings` (027), `ai_conversations` (028) et `venue_review_summaries`
+(032, hors §6 : la synthèse d'avis n'y avait pas de table) existent désormais.
+Les tables `messages`, `kb_documents` et `ai_cache` du §6 ne sont pas encore
+écrites.
 
 Les fonctions appelées en RPC depuis Flutter :
 
@@ -155,6 +164,14 @@ migration 022, portent ce mot :
 |---|---|---|
 | `ferha-expire-options` | toutes les 15 min | `select public.expire_options();` |
 | `ferha-purge-cron-history` | tous les jours à 3 h 20 | efface les exécutions de plus de 7 jours dans `cron.job_run_details` |
+| `ferha-synthese-avis` (032) | tous les jours à 3 h 50 | `select public.declencher_synthese_avis();` — réveille l'Edge Function « summarize-reviews » par pg_net |
+
+La troisième est la seule à **sortir de la base**, et c'est assumé : elle a
+besoin de parler à un modèle de langage, donc d'une clé d'API, qui n'a rien à
+faire dans PostgreSQL (§7.1). Elle lit l'URL et la clé de service dans le
+**Vault**, par leur nom — `ferha_functions_url` et `ferha_service_role_key` —,
+et tant que l'un des deux manque elle rend `NULL` après un avertissement, sans
+échouer. Voir `supabase/functions/summarize-reviews/README.md`.
 
 ```sql
 -- Ce que fait le cron, à la main :
@@ -1001,6 +1018,9 @@ signale la règle qui ne tient plus.
 | `tests/012_especes_sur_place.sql` | annoncer n'est pas payer, **un autre compte ne confirme pas un encaissement** — ni la cliente, ni une inconnue, ni un propriétaire d'une AUTRE salle —, et une réservation confirmée ne se reconfirme pas |
 | `tests/013_webhook_bac_a_sable.sql` | le décor du test de bout en bout, sa lecture et son nettoyage — **il ne fait pas de ROLLBACK**, voir en tête du fichier |
 | `tests/014_webhook_confirme.sql` | les huit situations d'un webhook : confirmation, rejeu, montant faux, option échue, créneau pris, carte refusée, checkout inconnu, double paiement — **et aucune ne lève** |
+| `tests/015_les_avis.sql` | un avis exige une réservation honorée, la fenêtre de J+1 à J+30, la réponse du propriétaire qui fige l'avis, la moyenne bayésienne, et **aucun nom entier ni téléphone dans ce que lit un inconnu** |
+| `tests/016_index_semantique.sql` | le document porte tout ce qu'on peut demander, le hachage ne bouge qu'avec le contenu, **une salle non publiée n'est jamais indexée**, et `venue_embeddings` est close |
+| `tests/017_synthese_des_avis.sql` | **pas de synthèse sous trois avis porteurs de texte**, **une salle dont les avis n'ont pas bougé n'est pas retraitée**, aucun nom de client n'atteint le modèle, un brouillon n'est jamais résumé, et la table est close |
 
 Le huitième va plus loin encore : pour mesurer les politiques du bucket, il
 lève au passage `storage.allow_delete_query`, le verrou de Supabase qui refuse
