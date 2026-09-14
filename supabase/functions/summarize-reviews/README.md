@@ -181,15 +181,32 @@ qui ne se décode pas. Ce projet est du second genre : sa clé publique est un
 `sb_publishable_…`, et un contrôle qui n'aurait su lire qu'une revendication
 `role` aurait fermé la porte au cron lui-même.
 
-**Conséquence** : `ferha_service_role_key` dans le Vault doit porter exactement
-la même valeur que le secret `SUPABASE_SERVICE_ROLE_KEY` de la fonction. C'est
-la même clé, lue des deux côtés.
+**Laquelle des deux mettre dans le Vault ?** La clé `service_role` en `eyJ…`,
+celle du système ancien, tant que ce projet l'a encore active (*Project Settings
+› API Keys › Legacy*).
+
+Elle passe par le **second** chemin — un JWT dont le rôle est `service_role` —
+et ce chemin ne dépend pas de ce que la plateforme a mis dans
+`SUPABASE_SERVICE_ROLE_KEY` : il lit la revendication, un point c'est tout. Une
+clé `sb_secret_…` ne passerait que par l'égalité exacte, donc seulement si la
+plateforme nous donne cette forme-là — et **on ne peut pas le savoir depuis
+l'extérieur sans faire fuir le secret**, ce qu'on ne fait pas.
+
+Le jour où les clés anciennes seront désactivées, ce second chemin mourra avec
+elles : il faudra alors poser dans le Vault la même valeur que celle du secret
+de la fonction, et l'égalité exacte prendra le relais.
 
 ```sql
 -- À poser UNE FOIS, depuis l'éditeur SQL de Supabase. Jamais dans le dépôt,
 -- jamais dans une conversation.
-select vault.create_secret('<la clé de service>', 'ferha_service_role_key');
+select vault.create_secret('eyJ…', 'ferha_service_role_key');
 ```
+
+Le contrôle a été vérifié dans les deux sens : la clé publiable
+(`sb_publishable_…`, qui n'est pas un JWT) est refusée, et la clé anonyme
+ancienne — un JWT parfaitement authentique du projet, mais de rôle `anon` — est
+refusée elle aussi. Ce n'est donc pas « un JWT du projet » qui ouvre, c'est le
+rôle.
 
 Tant qu'elle manque, `declencher_synthese_avis()` rend `NULL` après un
 avertissement dans les journaux, et ne déclenche rien. Elle n'échoue pas : une

@@ -474,7 +474,15 @@ grant execute on function public.avis_de_la_salle(uuid) to anon, authenticated;
 -- s'écrit dans le dépôt. Deux secrets sont lus par leur NOM :
 --
 --   ferha_functions_url       « https://<projet>.supabase.co/functions/v1 »
---   ferha_service_role_key    la clé service_role du projet
+--   ferha_service_role_key    la clé service_role, EN FORME « eyJ… »
+--
+-- LA FORME COMPTE, tant que ce projet garde ses clés anciennes actives. Le
+-- contrôle d'entrée de « summarize-reviews » accepte deux choses : le jeton
+-- EXACTEMENT égal à la clé de service qu'elle a dans son environnement, ou un
+-- JWT dont la revendication `role` vaut `service_role`. Une clé « eyJ… » passe
+-- par le second chemin quoi qu'il arrive ; une « sb_secret_… » ne passe que par
+-- le premier, et personne ne peut vérifier de l'extérieur quelle forme la
+-- plateforme donne à la fonction sans faire fuir le secret.
 --
 -- Ils se posent une fois, depuis l'éditeur SQL de Supabase :
 --

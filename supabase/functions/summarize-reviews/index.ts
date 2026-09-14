@@ -89,9 +89,19 @@
 // publique est un `sb_publishable_…`, et un contrôle qui ne saurait lire qu'une
 // revendication `role` aurait fermé la porte au cron lui-même.
 //
-// CONSÉQUENCE POUR LE VAULT : `ferha_service_role_key` doit porter EXACTEMENT
-// la même valeur que le secret `SUPABASE_SERVICE_ROLE_KEY` de cette fonction.
-// C'est la même clé, lue des deux côtés.
+// CONSÉQUENCE POUR LE VAULT : METTEZ-Y LA CLÉ `service_role` EN `eyJ…`, celle
+// du système ancien, tant que ce projet l'a encore active.
+//
+// Elle passe par le SECOND chemin — un JWT dont le rôle est `service_role` —
+// et ce chemin ne dépend pas de ce que la plateforme a mis dans
+// `SUPABASE_SERVICE_ROLE_KEY` : il lit la revendication, un point c'est tout.
+// Une clé `sb_secret_…`, elle, ne passerait que par l'égalité exacte, donc
+// seulement si la plateforme nous donne cette forme-là — et on ne peut pas le
+// savoir depuis ici sans faire fuir le secret.
+//
+// Le jour où les clés anciennes seront désactivées, ce second chemin mourra
+// avec elles : il faudra alors poser dans le Vault la MÊME valeur que celle du
+// secret de la fonction, et c'est l'égalité exacte qui prendra le relais.
 //
 // SECRETS À POSER DANS SUPABASE (Edge Functions → Secrets) :
 //   GEMINI_API_KEY               déjà posé au J20, partagé avec « ai-chat »
@@ -101,7 +111,7 @@
 //
 // SECRETS À POSER DANS LE VAULT DE LA BASE (migration 032, section 6) :
 //   ferha_functions_url          l'URL des fonctions du projet
-//   ferha_service_role_key       la clé de service, telle quelle
+//   ferha_service_role_key       la clé de service, en forme « eyJ… »
 // =============================================================================
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
@@ -307,7 +317,10 @@ function chiffresInventes(synthese: string, avis: Avis[]): string[] {
 ///      du projet que nous n'avons pas. Ce second chemin existe pour qu'une
 ///      rotation de clé ne fasse pas taire la synthèse en silence.
 ///
-/// LA CLÉ PUBLIQUE NE PASSE NI L'UN NI L'AUTRE, et c'est tout l'enjeu.
+/// LA CLÉ PUBLIQUE NE PASSE NI L'UN NI L'AUTRE, et c'est tout l'enjeu. Vérifié
+/// dans les deux sens : la clé publiable (pas un JWT) est refusée, et la clé
+/// anonyme ancienne — un JWT authentique du projet, mais de rôle `anon` — l'est
+/// aussi. Ce n'est pas « un JWT du projet » qui ouvre, c'est le rôle.
 function estLaTacheNocturne(entete: string | null, cleService: string): boolean {
   const jeton = (entete ?? "").replace(/^Bearer\s+/i, "").trim();
   if (!jeton) return false;
