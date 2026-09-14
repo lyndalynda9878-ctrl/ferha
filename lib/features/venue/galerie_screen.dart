@@ -13,23 +13,20 @@ import 'venue_providers.dart';
 /// c'est le seul écran de l'application où le fond ivoire ne s'applique pas —
 /// il tirerait les couleurs des photos vers le jaune.
 ///
-/// Les photos peuvent arriver de deux façons : passées par la fiche, qui les a
-/// déjà chargées, ou relues si l'on entre par un lien profond. Le premier cas
-/// n'attend rien.
+/// ELLE RELIT SES PHOTOS, ON NE LES LUI TEND PAS.
+///
+/// La fiche les lui passait par `extra` de go_router, puisqu'elle les avait
+/// déjà — une requête d'économisée. Elle coûtait la page : `extra` ne franchit
+/// pas l'historique du navigateur, et au retour d'un rechargement la galerie
+/// tombait sur un transtypage impossible. On a retiré la dépendance plutôt que
+/// de rattraper le transtypage : une page qui a besoin de ce que l'écran
+/// précédent lui a tendu ne se partage pas et ne se recharge pas.
 class GalerieScreen extends ConsumerStatefulWidget {
   /// Crée la galerie plein écran.
-  const GalerieScreen({
-    required this.venueId,
-    this.photos,
-    this.depart = 0,
-    super.key,
-  });
+  const GalerieScreen({required this.venueId, this.depart = 0, super.key});
 
   /// La salle.
   final String venueId;
-
-  /// Les photos, quand la fiche les a déjà.
-  final List<String>? photos;
 
   /// La photo affichée en premier.
   final int depart;
@@ -52,12 +49,6 @@ class _GalerieScreenState extends ConsumerState<GalerieScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final fournies = widget.photos;
-    if (fournies != null && fournies.isNotEmpty) {
-      return _echafaudage(fournies);
-    }
-
-    // Lien profond : la fiche n'a pas été ouverte, on relit.
     final fiche = ref.watch(
       ficheProvider(DemandeFiche(venueId: widget.venueId)),
     );
