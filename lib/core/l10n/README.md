@@ -1,22 +1,28 @@
 # L'arabe — ce qui est traduit, et ce qui ne l'est pas
 
-**Six écrans** parlent arabe depuis le J22 : accueil/recherche, résultats, fiche
-salle, calendrier, demande, acompte — plus l'écran de confirmation qui suit
-l'envoi d'une demande, qui appartient au même geste.
+**Dix écrans** parlent arabe, en deux temps :
+
+* **J22 — le parcours client, sept écrans** : accueil/recherche, résultats,
+  fiche salle, calendrier, demande, l'écran de confirmation qui suit l'envoi, et
+  l'acompte.
+* **J23 — l'authentification, trois écrans** : connexion, inscription, profil.
 
 Le reste de l'application est **en français, et volontairement** : les écrans du
-propriétaire, l'assistant, les avis, la connexion. Une traduction à moitié faite
-dit plus fort qu'une absence que le travail est inachevé — on ne s'arrête pas au
-milieu d'un parcours, on s'arrête à sa fin.
+propriétaire, l'assistant, les avis. Une traduction à moitié faite dit plus fort
+qu'une absence que le travail est inachevé — on ne s'arrête pas au milieu d'un
+parcours, on s'arrête à sa fin.
 
 ```
 lib/core/l10n/
   app_fr.arb              le modèle : les clés, les descriptions, les pluriels
   app_ar.arb              la version arabe — arabe standard, pas de darja
   formats_ferha.dart      dates, mois, montants, initiales du calendrier
-  message_erreur.dart     les erreurs que ces six écrans peuvent montrer
+  message_erreur.dart     réseau, délai, session, refus de la base
   locale_controller.dart  la langue active, et où elle est retenue
   generated/              écrit par `flutter gen-l10n`, jamais à la main
+
+lib/features/auth/
+  auth_messages.dart      ce qui est propre à GoTrue, et rien d'autre
 ```
 
 ---
@@ -39,8 +45,10 @@ la langue ne peut pas changer un montant.
 Ce qui se traduit d'un montant, c'est sa **devise** : `DA` devient `دج`.
 
 Vérifié par `test/formats_ferha_test.dart`, et sur les écrans eux-mêmes par
-`test/six_ecrans_en_arabe_test.dart`, qui relit **tout** le texte affiché et
-échoue à la première occurrence d'un chiffre arabe-indien.
+`test/six_ecrans_en_arabe_test.dart` et `test/ecrans_auth_en_arabe_test.dart`,
+qui relisent **tout** le texte affiché et échouent à la première occurrence d'un
+chiffre arabe-indien. Un numéro de téléphone en est un, et c'est celui du profil
+qui l'a rappelé : il s'affiche tel que la base le porte, sans mise en forme.
 
 ### 2. Les icônes directionnelles se retournent, les autres non
 
@@ -75,11 +83,16 @@ Les mots arabes n'ont pas la longueur des mots français. Une rangée qui tenait
 de justesse sur 390 px de large n'y tient plus, et Flutter le dit à sa façon —
 une bande jaune et noire, et une exception.
 
-`test/six_ecrans_en_arabe_test.dart` monte les sept écrans sur **390 × 844**, la
-taille du téléphone des maquettes, et échoue sur la moindre exception de mise en
-page. Les autres tests d'écran travaillent sur une fenêtre de 1000 × 2400 —
-c'est très bien pour vérifier une logique, et cela ne verrait jamais un
-débordement.
+`test/six_ecrans_en_arabe_test.dart` et `test/ecrans_auth_en_arabe_test.dart`
+montent les dix écrans sur **390 × 844**, la taille du téléphone des maquettes,
+et échouent sur la moindre exception de mise en page. Les autres tests d'écran
+travaillent sur une fenêtre de 1000 × 2400 — c'est très bien pour vérifier une
+logique, et cela ne verrait jamais un débordement.
+
+Les écrans d'authentification sont ceux où ce piège mord le plus : un libellé de
+champ, un texte d'aide et un message de validation se superposent dans la même
+colonne étroite, et trois lignes arabes plus longues que leurs équivalents
+français suffisent à faire déborder un formulaire qui tenait.
 
 ---
 
@@ -137,12 +150,13 @@ langue apprend à son utilisateur qu'il s'est trompé de bouton.
 3. `flutter gen-l10n` ;
 4. `AppLocalizations.of(context).maCle` dans l'écran.
 
-**Un texte écrit en dur dans l'un des six écrans fait échouer un test.**
+**Un texte écrit en dur dans l'un des écrans traduits fait échouer un test.**
 `test/textes_en_dur_test.dart` relit ces fichiers comme du texte et signale
 toute chaîne qui ressemble à de la prose — des lettres, et une espace ou un
 accent — ou à un libellé de bouton (un seul mot capitalisé). Il interdit aussi
-d'y appeler `dateEnFrancais`, `nomMois`, `montantEnDinars` et leurs semblables,
-qui n'écrivent qu'en français.
+d'y appeler `dateEnFrancais`, `nomMois`, `montantEnDinars`,
+`messageErreurAuthEnFrancais` et leurs semblables, qui n'écrivent qu'en
+français.
 
 ### Trois registres pour un créneau, et pourquoi
 
@@ -158,6 +172,32 @@ D'où `CreneauTraduit.surUnePuce`, `.dansUnePhrase`, `.auMilieuDUnePhrase`.
 coquetterie : « قاعتان » (deux salles) n'est pas « 2 قاعات ». C'est la raison
 d'être des pluriels ICU dans `resultatsSalles`, `ficheAvisVerifies` et
 `demandeCouvertsAuDela`, là où le français se contenterait d'un « s ».
+
+### Les erreurs de GoTrue se lisent par leur CODE
+
+`auth_messages.dart` ne traite que ce qui est propre à l'authentification — mot
+de passe faible, adresse déjà prise, compte suspendu — et passe **tout le reste**
+à `message_erreur.dart`. Les cas que les deux partagent portent les mêmes clés :
+`erreurReseau`, `erreurDelaiDepasse`, `erreurSessionExpiree`, `erreurBaseRefuse`,
+`erreurInattendue`. Une session expirée se dit pareil qu'on la découvre en se
+connectant ou en envoyant une demande.
+
+**Un repli sur le message anglais vivait là**, pour les versions de GoTrue qui ne
+renvoyaient pas de code sur certaines réponses. Il est parti au J23, pour une
+raison qui n'existait pas tant que ces écrans étaient français : reconnaître une
+phrase anglaise pour en choisir une française marchait ; le faire pour en choisir
+une arabe revient à traduire une traduction. Le code est un contrat, le message
+est une formulation.
+
+Quand le code est inconnu, `authRefusNonTraduit` le **nomme** et montre le
+message d'origine. Il est en anglais, et c'est mieux qu'un « une erreur est
+survenue » qui ferait perdre le temps qu'il prétend faire gagner.
+
+`messageErreurAuthEnFrancais` reste pour les écrans **non traduits** — le
+propriétaire, les avis — qui s'en servent comme repli au bout de leurs propres
+traducteurs. Elle lit le modèle français, la même source que la version
+traduite : leurs phrases ne vivent donc pas ailleurs que dans les ARB. Elle
+disparaîtra le jour où ces écrans passeront à l'arabe.
 
 ### Les mois sont ceux de l'Algérie
 
@@ -183,6 +223,20 @@ aura été relu.
 ce sont des données, pas des textes d'interface. Un équipement ajouté en base
 apparaît dans l'application sans qu'on recompile quoi que ce soit.
 
+## LES TRADUCTIONS DE L'AUTHENTIFICATION ATTENDENT UNE RELECTURE AUSSI
+
+Les 52 clés ajoutées au J23 n'ont **pas** été relues par un locuteur natif.
+`docs/traductions-auth-a-relire.md` les présente groupées par écran — clé,
+français, arabe proposé, et une colonne vide pour la correction.
+
+Ce document est une **vue** : la traduction ne vit que dans `app_ar.arb`, et le
+corriger ne corrigerait rien dans l'application.
+
+**Aucun test ne peut dire si une traduction est juste.** Les bancs vérifient
+qu'un écran tient, qu'il se lit dans le bon sens et qu'il ne montre pas de
+chiffres arabes-indiens ; que « أنشئ حسابي » soit la bonne façon de dire « Créer
+mon compte » ne se vérifie qu'en le lisant.
+
 ---
 
 ## CE QUI MANQUE ENCORE
@@ -198,10 +252,6 @@ apparaît dans l'application sans qu'on recompile quoi que ce soit.
   champ, les exemples, les états.
 * **Les avis** (§5.4), et la synthèse qui les résume — même particularité : la
   synthèse est rédigée dans la langue des avis.
-* **La connexion et l'inscription**, et avec elles `auth_messages.dart`. Le jour
-  où ils seront traduits, c'est ce fichier-là qui rejoindra `message_erreur.dart`,
-  pas l'inverse : les phrases sont déjà identiques des deux côtés pour les cas
-  qu'ils partagent.
 * **Les textes que la base envoie** : les messages des notifications (§7.2) et
   les courriels. Ils ne passent pas par l'application, et `profiles.locale`
   existe précisément pour eux.
