@@ -2,16 +2,16 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
-/// LE TEST QUI EMPÊCHE LE J22 DE SE DÉFAIRE.
+/// LE TEST QUI EMPÊCHE LA TRADUCTION DE SE DÉFAIRE.
 ///
-/// Traduire six écrans est un travail qui se fait une fois ; les garder traduits
-/// est un travail qui se refait à chaque écran modifié. Une phrase française
-/// rajoutée en dur dans `venue_screen.dart` un mardi ne se voit pas : elle
-/// s'affiche correctement en français, l'analyse ne dit rien, et personne ne
-/// rouvre l'application en arabe avant longtemps. C'est le genre de régression
-/// qui ne se découvre qu'à la démonstration.
+/// Traduire un écran est un travail qui se fait une fois ; le garder traduit est
+/// un travail qui se refait à chaque modification. Une phrase française rajoutée
+/// en dur dans `venue_screen.dart` un mardi ne se voit pas : elle s'affiche
+/// correctement en français, l'analyse ne dit rien, et personne ne rouvre
+/// l'application en arabe avant longtemps. C'est le genre de régression qui ne
+/// se découvre qu'à la démonstration.
 ///
-/// Ce test lit donc les fichiers des six écrans COMME DU TEXTE et cherche les
+/// Ce test lit donc les fichiers traduits COMME DU TEXTE et cherche les
 /// chaînes qui ressemblent à de la prose. Il ne comprend pas le Dart, et il n'a
 /// pas à le comprendre : une phrase destinée à être lue a une forme
 /// reconnaissable — des lettres, et une espace ou un accent.
@@ -39,7 +39,8 @@ import 'package:flutter_test/flutter_test.dart';
 /// nouvelle, elle s'ajoute avec sa phrase — et si la phrase est difficile à
 /// écrire, c'est que la chaîne avait sa place dans un fichier ARB.
 void main() {
-  /// Les fichiers qui composent les six écrans du parcours client (§10).
+  /// Les fichiers traduits — les sept écrans du parcours client (§10) et les
+  /// trois écrans d'authentification (J23).
   ///
   /// LES WIDGETS PARTAGÉS EN FONT PARTIE. `etats.dart` porte les états vides et
   /// les erreurs de quatre de ces écrans, `grille_calendrier.dart` le titre du
@@ -71,6 +72,12 @@ void main() {
     // Ce que les six partagent
     'lib/core/l10n/message_erreur.dart',
     'lib/core/validation/telephone.dart',
+    // Les trois écrans d'authentification (J23) et ce qu'ils partagent.
+    'lib/features/auth/connexion_screen.dart',
+    'lib/features/auth/inscription_screen.dart',
+    'lib/features/auth/profil_screen.dart',
+    'lib/features/auth/widgets/auth_scaffold.dart',
+    'lib/features/auth/auth_messages.dart',
   ];
 
   /// Ce qu'on laisse passer, et pourquoi.
@@ -85,9 +92,13 @@ void main() {
   /// Les fonctions de mise en forme qui ne savent écrire qu'en français.
   ///
   /// Elles restent dans le dépôt pour les écrans du propriétaire, qui ne sont
-  /// pas traduits. Les appeler depuis l'un des six écrans donnerait une date
+  /// pas traduits. Les appeler depuis un écran traduit donnerait une date
   /// française au milieu d'une page arabe — une faute que le contrôle des
   /// chaînes ne verrait pas, puisqu'il n'y a aucune chaîne à voir.
+  ///
+  /// `messageErreurAuthEnFrancais` est dans la liste pour la même raison :
+  /// c'est le repli des écrans NON traduits, et il n'a rien à faire dans un
+  /// écran qui, lui, connaît sa langue.
   const interdits = <String>[
     'dateEnFrancais',
     'dateCourteEnFrancais',
@@ -96,7 +107,17 @@ void main() {
     'nomMois',
     'montantEnDinars',
     'libelleCreneau',
+    'messageErreurAuthEnFrancais',
   ];
+
+  /// Le fichier qui a le droit de nommer un interdit : celui qui le déclare.
+  ///
+  /// `auth_messages.dart` DÉFINIT `messageErreurAuthEnFrancais` — c'est son
+  /// travail, et le motif du contrôle ne distingue pas un appel d'une
+  /// déclaration. Une exception par nom, et elle dit où.
+  const declarePar = <String, String>{
+    'messageErreurAuthEnFrancais': 'lib/features/auth/auth_messages.dart',
+  };
 
   const accents = 'àâäçéèêëîïôöùûüÿœæÀÂÄÇÉÈÊËÎÏÔÖÙÛÜŸŒÆ';
   final lettre = RegExp(r'[A-Za-zÀ-ɏ؀-ۿ]');
@@ -151,7 +172,7 @@ void main() {
     ...chaineDouble.allMatches(corps).map((m) => m.group(0)!),
   }.map((s) => s.substring(1, s.length - 1)).where(ressembleAUnePhrase).toSet();
 
-  group('Les six écrans ne portent aucun texte en dur', () {
+  group('Les écrans traduits ne portent aucun texte en dur', () {
     for (final chemin in ecrans) {
       test(chemin.split('/').last, () {
         final fichier = File(chemin);
@@ -183,6 +204,7 @@ void main() {
       test('${chemin.split('/').last} — aucune mise en forme française', () {
         final corps = corpsDe(File(chemin).readAsStringSync());
         final trouves = interdits
+            .where((f) => declarePar[f] != chemin)
             .where((f) => RegExp('\\b$f\\s*\\(').hasMatch(corps))
             .toList();
 
