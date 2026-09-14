@@ -31,7 +31,7 @@ class ProfilScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Profil'),
+        title: Text(AppLocalizations.of(context).profilTitre),
         actions: <Widget>[
           Padding(
             padding: const EdgeInsetsDirectional.only(end: 8),
@@ -74,6 +74,7 @@ class _ProfilVisiteur extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.ferhaColors;
     final text = Theme.of(context).textTheme;
+    final textes = AppLocalizations.of(context);
 
     return Center(
       child: SingleChildScrollView(
@@ -87,15 +88,13 @@ class _ProfilVisiteur extends StatelessWidget {
               Icon(Icons.person_outline, size: 48, color: colors.inkTertiary),
               const SizedBox(height: 16),
               Text(
-                'Vous n’êtes pas connecté',
+                textes.profilNonConnecteTitre,
                 textAlign: TextAlign.center,
                 style: text.headlineSmall,
               ),
               const SizedBox(height: 8),
               Text(
-                'Continuez à chercher une salle sans compte. '
-                'Il en faudra un pour envoyer une demande, échanger avec un '
-                'propriétaire ou laisser un avis.',
+                textes.profilNonConnecteTexte,
                 textAlign: TextAlign.center,
                 style: text.bodyMedium?.copyWith(color: colors.inkSecondary),
               ),
@@ -104,7 +103,7 @@ class _ProfilVisiteur extends StatelessWidget {
                 width: double.infinity,
                 child: FilledButton(
                   onPressed: () => context.push(FerhaRoutes.connexion),
-                  child: const Text('Se connecter'),
+                  child: Text(textes.authSeConnecter),
                 ),
               ),
               const SizedBox(height: 10),
@@ -112,7 +111,7 @@ class _ProfilVisiteur extends StatelessWidget {
                 width: double.infinity,
                 child: OutlinedButton(
                   onPressed: () => context.push(FerhaRoutes.inscription),
-                  child: const Text('Créer un compte'),
+                  child: Text(textes.authCreerUnCompte),
                 ),
               ),
             ],
@@ -140,7 +139,7 @@ class _ProfilConnecte extends ConsumerWidget {
     return profil.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (erreur, _) => _ErreurProfil(
-        message: messageErreurAuth(erreur),
+        message: messageErreurAuth(textes, erreur),
         onReessayer: () => ref.invalidate(profilProvider),
       ),
       data: (donnees) {
@@ -150,9 +149,7 @@ class _ProfilConnecte extends ConsumerWidget {
         // vaut mieux qu'afficher un écran vide.
         if (donnees == null) {
           return _ErreurProfil(
-            message:
-                'Ce compte n’a pas de profil. La migration 007_auth.sql '
-                'n’est probablement pas appliquée sur ce projet Supabase.',
+            message: textes.profilSansProfil,
             onReessayer: () => ref.invalidate(profilProvider),
           );
         }
@@ -194,15 +191,15 @@ class _ProfilConnecte extends ConsumerWidget {
                 children: <Widget>[
                   _Etiquette(
                     libelle: estProprietaire
-                        ? 'Propriétaire'
-                        : 'Cliente ou client',
+                        ? textes.profilRoleProprietaire
+                        : textes.profilRoleClient,
                     icone: estProprietaire
                         ? Icons.storefront_outlined
                         : Icons.search,
                   ),
                   if (estAdmin)
-                    const _Etiquette(
-                      libelle: 'Administration',
+                    _Etiquette(
+                      libelle: textes.profilRoleAdministration,
                       icone: Icons.shield_outlined,
                     ),
                 ],
@@ -217,7 +214,7 @@ class _ProfilConnecte extends ConsumerWidget {
               child: FilledButton.tonalIcon(
                 onPressed: () => context.push(FerhaRoutes.mesReservations),
                 icon: const Icon(Icons.event_note_outlined, size: 18),
-                label: const Text('Mes réservations'),
+                label: Text(textes.mesReservations),
                 style: FilledButton.styleFrom(
                   padding: const EdgeInsetsDirectional.symmetric(vertical: 14),
                 ),
@@ -237,7 +234,7 @@ class _ProfilConnecte extends ConsumerWidget {
               child: OutlinedButton.icon(
                 onPressed: () => context.push(FerhaRoutes.publierSalle),
                 icon: const Icon(Icons.add_business_outlined, size: 18),
-                label: const Text('Publier ma salle'),
+                label: Text(textes.profilPublierMaSalle),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsetsDirectional.symmetric(vertical: 14),
                 ),
@@ -259,7 +256,7 @@ class _ProfilConnecte extends ConsumerWidget {
                   onPressed: () =>
                       context.push(FerhaRoutes.proprietaireTableau),
                   icon: const Icon(Icons.storefront_outlined, size: 18),
-                  label: const Text('Mes salles'),
+                  label: Text(textes.profilMesSalles),
                   style: FilledButton.styleFrom(
                     padding: const EdgeInsetsDirectional.symmetric(
                       vertical: 14,
@@ -273,8 +270,11 @@ class _ProfilConnecte extends ConsumerWidget {
 
             _Ligne(
               icone: Icons.phone_outlined,
-              libelle: 'Téléphone',
-              valeur: telephone ?? 'Non renseigné',
+              libelle: textes.profilTelephone,
+              // LE NUMÉRO RESTE EN CHIFFRES LATINS, comme partout (§10) : il
+              // s'affiche tel que la base le porte, sans mise en forme — c'est
+              // celui qu'on compose.
+              valeur: telephone ?? textes.profilNonRenseigne,
               estVide: telephone == null,
             ),
             // CE QUI S'AFFICHE EST LA LANGUE ACTIVE, et non `profiles.locale`.
@@ -298,7 +298,7 @@ class _ProfilConnecte extends ConsumerWidget {
               child: OutlinedButton.icon(
                 onPressed: () => _deconnecter(context, ref),
                 icon: const Icon(Icons.logout, size: 18),
-                label: const Text('Se déconnecter'),
+                label: Text(textes.profilSeDeconnecter),
               ),
             ),
           ],
@@ -308,13 +308,14 @@ class _ProfilConnecte extends ConsumerWidget {
   }
 
   Future<void> _deconnecter(BuildContext context, WidgetRef ref) async {
+    final textes = AppLocalizations.of(context);
     try {
       await ref.read(authServiceProvider).deconnexion();
     } on Object catch (erreur) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(messageErreurAuth(erreur))));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(messageErreurAuth(textes, erreur))),
+      );
     }
   }
 }
@@ -429,7 +430,7 @@ class _ErreurProfil extends StatelessWidget {
               width: double.infinity,
               child: FilledButton.tonal(
                 onPressed: onReessayer,
-                child: const Text('Réessayer'),
+                child: Text(AppLocalizations.of(context).reessayer),
               ),
             ),
           ],

@@ -819,5 +819,179 @@
   "profilLangue": "Langue",
   "@profilLangue": {
     "description": "La ligne « Langue » du profil. LE RESTE DE CET ECRAN N'EST PAS TRADUIT au J22 : il est hors du parcours des six ecrans, et une traduction a moitie dirait que le travail est inacheve."
+  },
+
+  "@_T": "=== L'AUTHENTIFICATION — CE QUE LES TROIS ECRANS PARTAGENT ==",
+
+  "authAdresseEmail": "Adresse e-mail",
+  "@authAdresseEmail": {
+    "description": "Le libelle du champ d'adresse, a la connexion comme a l'inscription. UNE SEULE CLE POUR LES DEUX : c'est le meme champ, et deux cles finiraient par ne plus dire la meme chose."
+  },
+  "authMotDePasse": "Mot de passe",
+  "@authMotDePasse": { "description": "Le libelle du champ de mot de passe, sur les deux ecrans." },
+  "authAfficher": "Afficher",
+  "@authAfficher": { "description": "Infobulle de l'oeil qui devoile le mot de passe." },
+  "authMasquer": "Masquer",
+  "@authMasquer": { "description": "Infobulle de l'oeil qui recache le mot de passe." },
+  "authSeConnecter": "Se connecter",
+  "@authSeConnecter": {
+    "description": "Le bouton qui envoie le formulaire de connexion, et celui qui y mene depuis le profil d'un visiteur. Le meme geste, donc le meme mot."
+  },
+  "authCreerUnCompte": "Créer un compte",
+  "@authCreerUnCompte": {
+    "description": "Le titre de l'ecran d'inscription, et le bouton qui y mene depuis le profil d'un visiteur."
+  },
+  "authEmailManquant": "Entrez votre adresse e-mail.",
+  "@authEmailManquant": { "description": "Sous le champ vide, a la connexion comme a l'inscription." },
+  "authEmailMalForme": "Cette adresse ne ressemble pas à une adresse e-mail.",
+  "@authEmailMalForme": {
+    "description": "LA VALIDATION EST VOLONTAIREMENT PERMISSIVE : la seule autorite sur la validite d'une adresse est le serveur qui lui ecrira. On n'ecarte ici que ce qui est manifestement une faute de frappe, et la phrase le dit — « ne ressemble pas », et non « est invalide »."
+  },
+
+  "@_U": "=== ECRAN DE CONNEXION =====================================",
+
+  "connexionTitre": "Connexion",
+  "@connexionTitre": { "description": "Le titre de l'ecran." },
+  "connexionSousTitre": "Retrouvez vos demandes et vos réservations.",
+  "@connexionSousTitre": { "description": "Sous le titre : a quoi sert un compte." },
+  "connexionDemoAmina": "Entrer comme Amina (cliente)",
+  "@connexionDemoAmina": {
+    "description": "Le premier des deux comptes de demonstration du §4.1, en un tap. LE PRENOM NE SE TRADUIT PAS — c'est un nom propre, et c'est celui du jeu de demonstration ; seul ce qui est entre parentheses change de langue."
+  },
+  "connexionDemoKarim": "Entrer comme Karim (propriétaire)",
+  "@connexionDemoKarim": { "description": "Le second compte de demonstration. Voir connexionDemoAmina." },
+  "connexionOuAvecVotreCompte": "ou avec votre compte",
+  "@connexionOuAvecVotreCompte": {
+    "description": "Entre les deux boutons de demonstration et le formulaire, sur la ligne de separation."
+  },
+  "connexionMotDePasseManquant": "Entrez votre mot de passe.",
+  "@connexionMotDePasseManquant": {
+    "description": "Sous le champ vide. A la connexion on ne demande RIEN de plus : la regle de longueur appartient a l'inscription, et la rappeler ici ferait croire a quelqu'un qui a un ancien mot de passe court qu'il s'est trompe."
+  },
+  "connexionVersInscription": "Pas encore de compte ? Créer un compte",
+  "@connexionVersInscription": { "description": "Le lien du bas, vers l'inscription." },
+
+  "@_V": "=== ECRAN D'INSCRIPTION ====================================",
+
+  "inscriptionSousTitre": "Quelques secondes suffisent. Vous pourrez chercher une salle sans compte, mais il en faut un pour envoyer une demande.",
+  "@inscriptionSousTitre": {
+    "description": "Sous le titre. Elle dit CE QU'ON PEUT FAIRE SANS COMPTE autant que le contraire : c'est le parcours du §3, et le rappeler ici evite de donner l'impression d'un mur."
+  },
+  "inscriptionNomComplet": "Nom complet",
+  "@inscriptionNomComplet": { "description": "Le libelle du premier champ." },
+  "inscriptionNomManquant": "Entrez votre nom.",
+  "@inscriptionNomManquant": { "description": "Sous le champ vide." },
+  "inscriptionNomTropCourt": "Ce nom est trop court.",
+  "@inscriptionNomTropCourt": { "description": "Sous un nom d'une seule lettre." },
+  "inscriptionSixCaracteres": "Six caractères au minimum.",
+  "@inscriptionSixCaracteres": {
+    "description": "Le texte d'aide du champ de mot de passe, ET ce qu'on dit quand il est trop court. La meme phrase aux deux endroits, et une seule cle : c'est la meme regle, dite avant et apres."
+  },
+  "inscriptionMotDePasseManquant": "Choisissez un mot de passe.",
+  "@inscriptionMotDePasseManquant": { "description": "Sous le champ vide." },
+  "inscriptionCreerMonCompte": "Créer mon compte",
+  "@inscriptionCreerMonCompte": {
+    "description": "Le bouton qui envoie le formulaire. « MON » et non « un » : le titre de l'ecran annonce, le bouton engage."
+  },
+  "inscriptionEspaceProprietaire": "Vous pourrez ouvrir votre espace propriétaire plus tard, depuis votre profil.",
+  "@inscriptionEspaceProprietaire": {
+    "description": "Sous le bouton. Un meme compte peut etre client et proprietaire (§2) : il n'y a donc pas de case a cocher ici, et cette phrase dit pourquoi on n'en demande pas."
+  },
+  "inscriptionDejaUnCompte": "J’ai déjà un compte",
+  "@inscriptionDejaUnCompte": { "description": "Le lien du bas, vers la connexion." },
+  "inscriptionVerifiezVotreBoite": "Vérifiez votre boîte mail",
+  "@inscriptionVerifiezVotreBoite": {
+    "description": "Le titre de la boite de dialogue qui suit une inscription quand le projet Supabase demande une confirmation par courriel."
+  },
+  "inscriptionConfirmationEnvoyee": "Un message vient d’être envoyé à {email}. Ouvrez-le pour confirmer votre adresse, puis connectez-vous.",
+  "@inscriptionConfirmationEnvoyee": {
+    "description": "Le corps de cette boite de dialogue. L'adresse est CELLE QUI VIENT D'ETRE TAPEE : la montrer permet de voir tout de suite une faute de frappe.",
+    "placeholders": { "email": { "type": "String" } }
+  },
+  "inscriptionAllerALaConnexion": "Aller à la connexion",
+  "@inscriptionAllerALaConnexion": { "description": "Le bouton de cette boite de dialogue." },
+
+  "@_W": "=== ECRAN DE PROFIL ========================================",
+
+  "profilTitre": "Profil",
+  "@profilTitre": { "description": "Le titre de l'onglet." },
+  "profilNonConnecteTitre": "Vous n’êtes pas connecté",
+  "@profilNonConnecteTitre": {
+    "description": "CET ECRAN NE REDIRIGE JAMAIS VERS LA CONNEXION : un visiteur a le droit d'etre la. On lui montre ce qu'un compte apporterait, et on lui laisse le choix."
+  },
+  "profilNonConnecteTexte": "Continuez à chercher une salle sans compte. Il en faudra un pour envoyer une demande, échanger avec un propriétaire ou laisser un avis.",
+  "@profilNonConnecteTexte": { "description": "Sous le titre : ce qu'un compte change, et ce qu'il ne change pas." },
+  "profilRoleProprietaire": "Propriétaire",
+  "@profilRoleProprietaire": {
+    "description": "L'etiquette de role, quand `profiles.is_owner` est vrai. C'est un ROLE, pas une identite : le meme compte peut etre les deux (§2), et l'etiquette suit le drapeau de la base."
+  },
+  "profilRoleClient": "Cliente ou client",
+  "@profilRoleClient": {
+    "description": "L'etiquette de role par defaut. LES DEUX GENRES SONT ECRITS, parce qu'on ne sait pas lequel s'applique et qu'on ne le demande pas. L'arabe, qui accorde davantage, dit les deux aussi."
+  },
+  "profilRoleAdministration": "Administration",
+  "@profilRoleAdministration": { "description": "L'etiquette supplementaire d'un compte administrateur." },
+  "profilPublierMaSalle": "Publier ma salle",
+  "@profilPublierMaSalle": {
+    "description": "Le bouton visible pour TOUT compte connecte (§4.3, OWN-01) : c'est ce geste-ci qui leve le drapeau de proprietaire, pas l'inverse."
+  },
+  "profilMesSalles": "Mes salles",
+  "@profilMesSalles": { "description": "Vers l'espace proprietaire, pour qui en a un." },
+  "profilTelephone": "Téléphone",
+  "@profilTelephone": { "description": "Le libelle de la ligne du numero." },
+  "profilNonRenseigne": "Non renseigné",
+  "@profilNonRenseigne": {
+    "description": "La valeur de cette ligne quand `profiles.phone` est vide. Elle s'affiche en italique et en gris : c'est une absence, pas une donnee."
+  },
+  "profilSeDeconnecter": "Se déconnecter",
+  "@profilSeDeconnecter": { "description": "Le bouton du bas." },
+  "profilSansProfil": "Ce compte n’a pas de profil. La migration 007_auth.sql n’est probablement pas appliquée sur ce projet Supabase.",
+  "@profilSansProfil": {
+    "description": "NE DEVRAIT JAMAIS S'AFFICHER : le declencheur handle_new_user cree le profil dans la transaction du compte. Si ce cas se presente, c'est une migration manquante — et le dire vaut mieux qu'un ecran vide. La phrase s'adresse a celui qui installe, pas au client."
+  },
+
+  "@_X": "=== LES REFUS DE GOTRUE ====================================",
+
+  "authIdentifiantsInvalides": "E-mail ou mot de passe incorrect.",
+  "@authIdentifiantsInvalides": {
+    "description": "invalid_credentials. ON NE DIT PAS LEQUEL DES DEUX est faux : cela apprendrait a un curieux qu'une adresse existe."
+  },
+  "authAdresseNonConfirmee": "Cette adresse n’a pas encore été confirmée. Ouvrez le message reçu par e-mail.",
+  "@authAdresseNonConfirmee": { "description": "email_not_confirmed." },
+  "authCompteIntrouvable": "Aucun compte ne correspond à cette adresse.",
+  "@authCompteIntrouvable": { "description": "user_not_found." },
+  "authCompteExisteDeja": "Un compte existe déjà avec cette adresse. Connectez-vous.",
+  "@authCompteExisteDeja": { "description": "email_exists et user_already_exists — deux codes, une seule situation." },
+  "authMotDePasseTropFaible": "Mot de passe trop faible : il faut au moins six caractères.",
+  "@authMotDePasseTropFaible": {
+    "description": "weak_password, et AuthWeakPasswordException. Six caracteres est le minimum de Supabase ; l'inscription le dit deja avant l'envoi, celle-ci est le filet."
+  },
+  "authMemeMotDePasse": "Le nouveau mot de passe est identique à l’ancien.",
+  "@authMemeMotDePasse": { "description": "same_password." },
+  "authAdresseInvalide": "Adresse e-mail invalide.",
+  "@authAdresseInvalide": {
+    "description": "validation_failed — le REFUS DU SERVEUR, la ou authEmailMalForme n'est qu'un soupcon du client."
+  },
+  "authTropDeTentatives": "Trop de tentatives. Patientez une minute avant de réessayer.",
+  "@authTropDeTentatives": { "description": "over_request_rate_limit et over_email_send_rate_limit." },
+  "authCompteSuspendu": "Ce compte est suspendu. Contactez-nous.",
+  "@authCompteSuspendu": {
+    "description": "user_banned. « Contactez-nous » vise LA PLATEFORME, et non un proprietaire : le §9 interdit le contact direct entre client et salle, pas le support."
+  },
+  "authInscriptionsFermees": "Les inscriptions sont fermées pour le moment.",
+  "@authInscriptionsFermees": { "description": "signup_disabled." },
+  "authEmailDesactive": "La connexion par e-mail est désactivée sur ce projet Supabase.",
+  "@authEmailDesactive": {
+    "description": "email_provider_disabled. Un defaut d'installation, comme profilSansProfil : la phrase s'adresse a celui qui installe."
+  },
+  "authCaptchaEchoue": "La vérification anti-robot a échoué. Réessayez.",
+  "@authCaptchaEchoue": { "description": "captcha_failed." },
+  "authRefusNonTraduit": "Connexion impossible ({code}) : {message}",
+  "@authRefusNonTraduit": {
+    "description": "LE REPLI, ET IL N'INVENTE RIEN : quand le code de GoTrue n'est pas dans la liste, on le nomme et on montre le message d'origine. Il est en anglais, et c'est mieux qu'un « une erreur est survenue » qui ferait perdre le temps qu'il pretend faire gagner.",
+    "placeholders": {
+      "code": { "type": "String" },
+      "message": { "type": "String" }
+    }
   }
 }

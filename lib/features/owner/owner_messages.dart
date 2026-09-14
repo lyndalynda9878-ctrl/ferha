@@ -28,7 +28,7 @@ String messageErreurReponse(Object erreur) {
 
   // Réseau, session expirée, erreur inconnue : la traduction commune sait déjà
   // les dire, et montre le message d'origine quand elle ne sait pas.
-  return messageErreurAuth(erreur);
+  return messageErreurAuthEnFrancais(erreur);
 }
 
 /// Les refus de 015, et ce qu'ils veulent dire pour quelqu'un qui vient
@@ -137,7 +137,7 @@ String messageErreurAgenda(Object erreur) {
     if (traduit != null) return traduit;
   }
 
-  return messageErreurAuth(erreur);
+  return messageErreurAuthEnFrancais(erreur);
 }
 
 /// Les refus de 016, et ce qu'ils veulent dire pour quelqu'un qui vient
@@ -196,7 +196,7 @@ String messageErreurPublication(Object erreur) {
     if (traduit != null) return traduit;
   }
 
-  return messageErreurAuth(erreur);
+  return messageErreurAuthEnFrancais(erreur);
 }
 
 /// Les refus de 017, et ce qu'ils veulent dire pour quelqu'un qui vient
@@ -283,7 +283,7 @@ String messageErreurPhotos(Object erreur) {
     if (traduit != null) return traduit;
   }
 
-  return messageErreurAuth(erreur);
+  return messageErreurAuthEnFrancais(erreur);
 }
 
 /// Les refus du bucket lui-même (021), et non ceux du SQL.

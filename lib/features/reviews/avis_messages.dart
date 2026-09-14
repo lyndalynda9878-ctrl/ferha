@@ -29,7 +29,7 @@ RefusAvis refusAvis(Object erreur) {
 
   // Réseau, session expirée, erreur inconnue : la traduction commune sait déjà
   // les dire. Rien de définitif là-dedans.
-  return (message: messageErreurAuth(erreur), definitif: false);
+  return (message: messageErreurAuthEnFrancais(erreur), definitif: false);
 }
 
 /// La phrase seule, pour les endroits qui n'ont aucun bouton à éteindre.
@@ -139,7 +139,7 @@ String messageErreurReponseAvis(Object erreur) {
     }
   }
 
-  return messageErreurAuth(erreur);
+  return messageErreurAuthEnFrancais(erreur);
 }
 
 /// Traduit le refus de « Marquer comme honorée » (§3, étape 6).
@@ -176,5 +176,5 @@ String messageErreurHonorer(Object erreur) {
     }
   }
 
-  return messageErreurAuth(erreur);
+  return messageErreurAuthEnFrancais(erreur);
 }

@@ -70,7 +70,8 @@ class AuthErreur extends StatelessWidget {
   /// Crée le bandeau d'erreur.
   const AuthErreur({required this.message, super.key});
 
-  /// Le message, déjà traduit et déjà en français.
+  /// Le message, déjà traduit — dans la langue de l'application, et non plus
+  /// forcément en français.
   final String message;
 
   @override

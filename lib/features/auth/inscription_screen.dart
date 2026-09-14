@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/l10n/generated/app_localizations.dart';
 import '../../core/l10n/locale_controller.dart';
 import '../../core/router/routes.dart';
 import '../../core/theme/ferha_colors.dart';
@@ -44,6 +45,10 @@ class _InscriptionScreenState extends ConsumerState<InscriptionScreen> {
   Future<void> _sInscrire() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
+    // Les textes avant le premier `await` : le contexte peut avoir disparu
+    // quand le refus arrive.
+    final textes = AppLocalizations.of(context);
+
     setState(() {
       _enCours = true;
       _erreur = null;
@@ -74,20 +79,21 @@ class _InscriptionScreenState extends ConsumerState<InscriptionScreen> {
       }
     } on Object catch (erreur) {
       if (!mounted) return;
-      setState(() => _erreur = messageErreurAuth(erreur));
+      setState(() => _erreur = messageErreurAuth(textes, erreur));
     } finally {
       if (mounted) setState(() => _enCours = false);
     }
   }
 
   void _afficherConfirmationAttendue() {
+    final textes = AppLocalizations.of(context);
+
     showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Vérifiez votre boîte mail'),
+        title: Text(textes.inscriptionVerifiezVotreBoite),
         content: Text(
-          'Un message vient d’être envoyé à ${_email.text.trim()}. '
-          'Ouvrez-le pour confirmer votre adresse, puis connectez-vous.',
+          textes.inscriptionConfirmationEnvoyee(_email.text.trim()),
         ),
         actions: <Widget>[
           FilledButton(
@@ -102,7 +108,7 @@ class _InscriptionScreenState extends ConsumerState<InscriptionScreen> {
                 routeur.go(FerhaRoutes.connexion);
               }
             },
-            child: const Text('Aller à la connexion'),
+            child: Text(textes.inscriptionAllerALaConnexion),
           ),
         ],
       ),
@@ -113,12 +119,11 @@ class _InscriptionScreenState extends ConsumerState<InscriptionScreen> {
   Widget build(BuildContext context) {
     final colors = context.ferhaColors;
     final text = Theme.of(context).textTheme;
+    final textes = AppLocalizations.of(context);
 
     return AuthScaffold(
-      titre: 'Créer un compte',
-      sousTitre:
-          'Quelques secondes suffisent. Vous pourrez chercher une salle '
-          'sans compte, mais il en faut un pour envoyer une demande.',
+      titre: textes.authCreerUnCompte,
+      sousTitre: textes.inscriptionSousTitre,
       children: <Widget>[
         if (_erreur != null) AuthErreur(message: _erreur!),
 
@@ -133,14 +138,14 @@ class _InscriptionScreenState extends ConsumerState<InscriptionScreen> {
                 textCapitalization: TextCapitalization.words,
                 autofillHints: const <String>[AutofillHints.name],
                 textInputAction: TextInputAction.next,
-                decoration: const InputDecoration(
-                  labelText: 'Nom complet',
-                  prefixIcon: Icon(Icons.badge_outlined),
+                decoration: InputDecoration(
+                  labelText: textes.inscriptionNomComplet,
+                  prefixIcon: const Icon(Icons.badge_outlined),
                 ),
                 validator: (valeur) {
                   final nom = valeur?.trim() ?? '';
-                  if (nom.isEmpty) return 'Entrez votre nom.';
-                  if (nom.length < 2) return 'Ce nom est trop court.';
+                  if (nom.isEmpty) return textes.inscriptionNomManquant;
+                  if (nom.length < 2) return textes.inscriptionNomTropCourt;
                   return null;
                 },
               ),
@@ -151,11 +156,11 @@ class _InscriptionScreenState extends ConsumerState<InscriptionScreen> {
                 keyboardType: TextInputType.emailAddress,
                 autofillHints: const <String>[AutofillHints.email],
                 textInputAction: TextInputAction.next,
-                decoration: const InputDecoration(
-                  labelText: 'Adresse e-mail',
-                  prefixIcon: Icon(Icons.alternate_email),
+                decoration: InputDecoration(
+                  labelText: textes.authAdresseEmail,
+                  prefixIcon: const Icon(Icons.alternate_email),
                 ),
-                validator: validerEmail,
+                validator: (valeur) => validerEmail(textes, valeur),
               ),
               const SizedBox(height: 16),
               TextFormField(
@@ -166,8 +171,8 @@ class _InscriptionScreenState extends ConsumerState<InscriptionScreen> {
                 textInputAction: TextInputAction.done,
                 onFieldSubmitted: (_) => _sInscrire(),
                 decoration: InputDecoration(
-                  labelText: 'Mot de passe',
-                  helperText: 'Six caractères au minimum.',
+                  labelText: textes.authMotDePasse,
+                  helperText: textes.inscriptionSixCaracteres,
                   prefixIcon: const Icon(Icons.lock_outline),
                   suffixIcon: IconButton(
                     onPressed: () => setState(
@@ -178,17 +183,22 @@ class _InscriptionScreenState extends ConsumerState<InscriptionScreen> {
                           ? Icons.visibility_off_outlined
                           : Icons.visibility_outlined,
                     ),
-                    tooltip: _motDePasseVisible ? 'Masquer' : 'Afficher',
+                    tooltip: _motDePasseVisible
+                        ? textes.authMasquer
+                        : textes.authAfficher,
                   ),
                 ),
                 validator: (valeur) {
                   final motDePasse = valeur ?? '';
-                  if (motDePasse.isEmpty) return 'Choisissez un mot de passe.';
+                  if (motDePasse.isEmpty) {
+                    return textes.inscriptionMotDePasseManquant;
+                  }
                   // Six caractères est le minimum de Supabase. On le vérifie
                   // ici pour ne pas faire un aller-retour réseau qui dirait la
-                  // même chose.
+                  // même chose — et c'est la MÊME phrase que le texte d'aide
+                  // au-dessus du champ, parce que c'est la même règle.
                   if (motDePasse.length < 6) {
-                    return 'Six caractères au minimum.';
+                    return textes.inscriptionSixCaracteres;
                   }
                   return null;
                 },
@@ -207,7 +217,7 @@ class _InscriptionScreenState extends ConsumerState<InscriptionScreen> {
                             color: Theme.of(context).colorScheme.onPrimary,
                           ),
                         )
-                      : const Text('Créer mon compte'),
+                      : Text(textes.inscriptionCreerMonCompte),
                 ),
               ),
             ],
@@ -216,15 +226,14 @@ class _InscriptionScreenState extends ConsumerState<InscriptionScreen> {
 
         const SizedBox(height: 16),
         Text(
-          'Vous pourrez ouvrir votre espace propriétaire plus tard, depuis '
-          'votre profil.',
+          textes.inscriptionEspaceProprietaire,
           textAlign: TextAlign.center,
           style: text.bodySmall?.copyWith(color: colors.inkTertiary),
         ),
         const SizedBox(height: 8),
         TextButton(
           onPressed: _enCours ? null : () => context.go(FerhaRoutes.connexion),
-          child: const Text('J’ai déjà un compte'),
+          child: Text(textes.inscriptionDejaUnCompte),
         ),
       ],
     );

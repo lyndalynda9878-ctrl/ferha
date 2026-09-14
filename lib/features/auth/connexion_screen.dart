@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/l10n/generated/app_localizations.dart';
 import '../../core/router/routes.dart';
 import '../../core/theme/ferha_colors.dart';
 import 'auth_messages.dart';
@@ -47,6 +48,10 @@ class _ConnexionScreenState extends ConsumerState<ConnexionScreen> {
   }
 
   Future<void> _connecter(String email, String motDePasse) async {
+    // Les textes avant le premier `await` : après, le contexte peut ne plus
+    // être là, et c'est dans le `catch` qu'on en a besoin.
+    final textes = AppLocalizations.of(context);
+
     setState(() {
       _enCours = true;
       _erreur = null;
@@ -71,7 +76,7 @@ class _ConnexionScreenState extends ConsumerState<ConnexionScreen> {
       }
     } on Object catch (erreur) {
       if (!mounted) return;
-      setState(() => _erreur = messageErreurAuth(erreur));
+      setState(() => _erreur = messageErreurAuth(textes, erreur));
     } finally {
       if (mounted) setState(() => _enCours = false);
     }
@@ -86,14 +91,20 @@ class _ConnexionScreenState extends ConsumerState<ConnexionScreen> {
   Widget build(BuildContext context) {
     final colors = context.ferhaColors;
     final text = Theme.of(context).textTheme;
+    final textes = AppLocalizations.of(context);
 
     return AuthScaffold(
-      titre: 'Connexion',
-      sousTitre: 'Retrouvez vos demandes et vos réservations.',
+      titre: textes.connexionTitre,
+      sousTitre: textes.connexionSousTitre,
       children: <Widget>[
         // Les deux comptes de démonstration (§4.1, CORE-01). Un seul tap.
+        //
+        // LE LIBELLÉ VIENT D'ICI, ET PLUS DE `demo_accounts.dart`. Ce
+        // fichier-là porte des IDENTIFIANTS — une adresse, un mot de passe —
+        // et une phrase à lire n'a pas la même vie qu'un identifiant : elle
+        // change de langue, lui jamais.
         _BoutonDemo(
-          compte: compteAmina,
+          libelle: textes.connexionDemoAmina,
           icone: Icons.person_outline,
           enCours: _enCours,
           onPressed: () =>
@@ -101,7 +112,7 @@ class _ConnexionScreenState extends ConsumerState<ConnexionScreen> {
         ),
         const SizedBox(height: 10),
         _BoutonDemo(
-          compte: compteKarim,
+          libelle: textes.connexionDemoKarim,
           icone: Icons.storefront_outlined,
           enCours: _enCours,
           onPressed: () =>
@@ -115,7 +126,7 @@ class _ConnexionScreenState extends ConsumerState<ConnexionScreen> {
             Padding(
               padding: const EdgeInsetsDirectional.symmetric(horizontal: 12),
               child: Text(
-                'ou avec votre compte',
+                textes.connexionOuAvecVotreCompte,
                 style: text.bodySmall?.copyWith(color: colors.inkTertiary),
               ),
             ),
@@ -137,11 +148,11 @@ class _ConnexionScreenState extends ConsumerState<ConnexionScreen> {
                 keyboardType: TextInputType.emailAddress,
                 autofillHints: const <String>[AutofillHints.email],
                 textInputAction: TextInputAction.next,
-                decoration: const InputDecoration(
-                  labelText: 'Adresse e-mail',
-                  prefixIcon: Icon(Icons.alternate_email),
+                decoration: InputDecoration(
+                  labelText: textes.authAdresseEmail,
+                  prefixIcon: const Icon(Icons.alternate_email),
                 ),
-                validator: validerEmail,
+                validator: (valeur) => validerEmail(textes, valeur),
               ),
               const SizedBox(height: 16),
               TextFormField(
@@ -152,7 +163,7 @@ class _ConnexionScreenState extends ConsumerState<ConnexionScreen> {
                 textInputAction: TextInputAction.done,
                 onFieldSubmitted: (_) => _soumettre(),
                 decoration: InputDecoration(
-                  labelText: 'Mot de passe',
+                  labelText: textes.authMotDePasse,
                   prefixIcon: const Icon(Icons.lock_outline),
                   suffixIcon: IconButton(
                     onPressed: () => setState(
@@ -163,11 +174,13 @@ class _ConnexionScreenState extends ConsumerState<ConnexionScreen> {
                           ? Icons.visibility_off_outlined
                           : Icons.visibility_outlined,
                     ),
-                    tooltip: _motDePasseVisible ? 'Masquer' : 'Afficher',
+                    tooltip: _motDePasseVisible
+                        ? textes.authMasquer
+                        : textes.authAfficher,
                   ),
                 ),
                 validator: (valeur) => (valeur == null || valeur.isEmpty)
-                    ? 'Entrez votre mot de passe.'
+                    ? textes.connexionMotDePasseManquant
                     : null,
               ),
               const SizedBox(height: 24),
@@ -177,7 +190,7 @@ class _ConnexionScreenState extends ConsumerState<ConnexionScreen> {
                   onPressed: _enCours ? null : _soumettre,
                   child: _enCours
                       ? const _Patiente()
-                      : const Text('Se connecter'),
+                      : Text(textes.authSeConnecter),
                 ),
               ),
             ],
@@ -189,7 +202,7 @@ class _ConnexionScreenState extends ConsumerState<ConnexionScreen> {
           onPressed: _enCours
               ? null
               : () => context.push(FerhaRoutes.inscription),
-          child: const Text('Pas encore de compte ? Créer un compte'),
+          child: Text(textes.connexionVersInscription),
         ),
       ],
     );
@@ -201,11 +214,14 @@ class _ConnexionScreenState extends ConsumerState<ConnexionScreen> {
 /// Volontairement permissive : la seule autorité sur la validité d'une adresse
 /// est le serveur qui lui écrira. On n'écarte ici que ce qui est
 /// manifestement une faute de frappe.
-String? validerEmail(String? valeur) {
+///
+/// ELLE PREND LES TEXTES, parce qu'elle rend une PHRASE et non un verdict —
+/// la même ligne de partage que `TelephoneAlgerien.ceQuiManque`.
+String? validerEmail(AppLocalizations textes, String? valeur) {
   final email = valeur?.trim() ?? '';
-  if (email.isEmpty) return 'Entrez votre adresse e-mail.';
+  if (email.isEmpty) return textes.authEmailManquant;
   if (!email.contains('@') || !email.contains('.') || email.length < 5) {
-    return 'Cette adresse ne ressemble pas à une adresse e-mail.';
+    return textes.authEmailMalForme;
   }
   return null;
 }
@@ -230,13 +246,15 @@ class _Patiente extends StatelessWidget {
 /// Bouton « Entrer comme … », le chemin d'un tap du §4.1.
 class _BoutonDemo extends StatelessWidget {
   const _BoutonDemo({
-    required this.compte,
+    required this.libelle,
     required this.icone,
     required this.enCours,
     required this.onPressed,
   });
 
-  final CompteDemo compte;
+  /// Ce que le bouton annonce, déjà traduit.
+  final String libelle;
+
   final IconData icone;
   final bool enCours;
   final VoidCallback onPressed;
@@ -248,7 +266,7 @@ class _BoutonDemo extends StatelessWidget {
       child: FilledButton.tonalIcon(
         onPressed: enCours ? null : onPressed,
         icon: Icon(icone, size: 20),
-        label: Text(compte.libelle),
+        label: Text(libelle),
         style: FilledButton.styleFrom(
           padding: const EdgeInsetsDirectional.symmetric(vertical: 16),
         ),
