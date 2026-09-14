@@ -88,6 +88,25 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/interactions";
 const MODELE_PAR_DEFAUT = "gemini-3.5-flash-lite";
 
+/// LES EN-TÊTES CORS, ET POURQUOI ILS ARRIVENT SEULEMENT MAINTENANT.
+///
+/// Jusqu'au J20, cette fonction n'était appelée que par le banc des 30
+/// questions — un script PowerShell, qui n'est pas un navigateur et ne demande
+/// donc aucune permission. L'écran 8 change cela : la page Flutter web est
+/// servie depuis `localhost`, la fonction depuis `*.supabase.co`, et le
+/// navigateur envoie d'abord un OPTIONS de pré-vol. Sans réponse à ce pré-vol,
+/// l'appel n'a PAS LIEU — et il n'échoue même pas d'une façon qu'on puisse
+/// afficher : il ne part jamais.
+///
+/// Ce sont les mêmes en-têtes que « create-checkout », posés pour la même
+/// raison et dans les mêmes termes.
+const ENTETES_CORS: Record<string, string> = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
 /// Combien de salles le modèle voit — et donc au plus combien il en cite.
 ///
 /// CINQ, ET NON HUIT. Le §8.1 en suggère huit, mais une réponse qui en énumère
@@ -274,6 +293,10 @@ type Salle = {
   name: string;
   commune: string;
   wilaya_name: string;
+  /// La photo de couverture — chemin de Storage ou URL. Elle part vers
+  /// l'APPLICATION, qui en fait une carte, et jamais vers le modèle : voir la
+  /// migration 031. Une photo s'affiche, elle ne se raconte pas.
+  cover_photo: string | null;
   /// La forme arabe du nom de wilaya, pour qu'une reponse en arabe l'ecrive
   /// entierement en arabe. Les salles et les communes n'en ont pas.
   wilaya_name_ar: string | null;
@@ -294,7 +317,7 @@ type Salle = {
 function reponseHttp(corps: unknown, statut = 200): Response {
   return new Response(JSON.stringify(corps), {
     status: statut,
-    headers: { "Content-Type": "application/json" },
+    headers: { ...ENTETES_CORS, "Content-Type": "application/json" },
   });
 }
 
@@ -759,6 +782,12 @@ const DATE_PASSEE: Record<string, string> = {
 // -----------------------------------------------------------------------------
 
 Deno.serve(async (requete: Request): Promise<Response> => {
+  // Le pré-vol du navigateur. Sans lui, l'appel depuis l'écran 8 n'a même pas
+  // lieu — voir ENTETES_CORS.
+  if (requete.method === "OPTIONS") {
+    return new Response("ok", { headers: ENTETES_CORS });
+  }
+
   if (requete.method !== "POST") {
     return reponseHttp({ message: "Cette fonction ne répond qu'en POST." }, 405);
   }
@@ -1052,6 +1081,13 @@ Deno.serve(async (requete: Request): Promise<Response> => {
     // -------------------------------------------------------------------------
     // 5. Rédiger, valider, rejouer si besoin.
     // -------------------------------------------------------------------------
+    // DEUX OBJETS LÀ OÙ IL Y EN AVAIT UN, et c'est tout ce que la photo a
+    // changé. `contexte` est ce que le MODÈLE lit ; `pourLApplication` est ce
+    // que l'écran 8 reçoit — le même, plus la photo de la carte.
+    //
+    // Le §8.5 tient parce que le contexte est PAUVRE : chaque champ ajouté est
+    // de la matière à reformuler, et à déborder. Un chemin de Storage n'aide
+    // pas à rédiger trois phrases.
     const contexte = salles.map((s) => ({
       venue_id: s.venue_id,
       nom: s.name,
@@ -1065,6 +1101,11 @@ Deno.serve(async (requete: Request): Promise<Response> => {
       creneau_du_prix: s.price_slot,
       note: s.rating == null ? null : Number(s.rating),
       nombre_avis: s.review_count,
+    }));
+
+    const pourLApplication = salles.map((s, i) => ({
+      ...contexte[i],
+      photo: s.cover_photo,
     }));
 
     const entree = JSON.stringify({
@@ -1115,7 +1156,7 @@ Deno.serve(async (requete: Request): Promise<Response> => {
 
     return reponseHttp({
       reponse: texte,
-      salles: contexte,
+      salles: pourLApplication,
       criteres,
       modele,
       rejeux,

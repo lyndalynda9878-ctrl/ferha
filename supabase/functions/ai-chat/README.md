@@ -13,12 +13,60 @@ secret `GEMINI_MODEL` sans redéploiement.
 | Facultatif | `GEMINI_MODEL` |
 | Déjà posés au J19 | `EMBEDDINGS_URL`, `EMBED_TOKEN` |
 | `verify_jwt` | `true` — c'est l'application qui appelle |
+| Appelée par | l'écran 8 (`lib/features/assistant/`), sans compte |
 
 ```powershell
 $env:FERHA_SUPABASE_ANON_KEY = "..."          # SUPABASE_ANON_KEY de env.json
 .\..\..\tests\agent_30_questions.ps1          # les 30 questions de référence
 .\..\..\tests\agent_30_questions.ps1 -detail  # avec les réponses rédigées
 ```
+
+---
+
+## LES EN-TÊTES CORS, ET POURQUOI ILS N'ÉTAIENT PAS LÀ AVANT
+
+Jusqu'au J20, cette fonction n'était appelée que par le banc des 30 questions —
+un script PowerShell, qui n'est pas un navigateur et ne demande donc aucune
+permission. L'écran 8 change cela : la page Flutter web est servie depuis
+`localhost`, la fonction depuis `*.supabase.co`, et le navigateur envoie
+d'abord un `OPTIONS` de pré-vol.
+
+**Sans réponse à ce pré-vol, l'appel n'a pas lieu** — et il n'échoue même pas
+d'une façon qu'on puisse afficher : il ne part jamais. Ce sont les mêmes
+en-têtes que « create-checkout », posés pour la même raison.
+
+---
+
+## LA PHOTO PART VERS L'APPLICATION, PAS VERS LE MODÈLE
+
+L'écran 8 ne montre pas une liste de noms : il montre des **cartes** — photo,
+nom, commune, prix —, et chacune ouvre la vraie fiche. La migration 031 fait
+donc remonter `cover_photo` depuis `search_venues()`, où elle était déjà.
+
+La fonction compose désormais **deux objets** là où il y en avait un :
+
+| | Contenu |
+|---|---|
+| `contexte` — ce que le MODÈLE lit | nom, commune, wilaya, capacité, parking, équipements, prix, note |
+| `salles` — ce que l'APPLICATION reçoit | le même, **plus la photo** |
+
+Un chemin de Storage n'aide pas à rédiger trois phrases ; il occupe du contexte,
+et le §8.5 tient parce que ce contexte est PAUVRE. Chaque champ ajouté est de la
+matière à reformuler — et à déborder. Une photo s'affiche, elle ne se raconte
+pas.
+
+---
+
+## LES SUGGESTIONS QUE CETTE FONCTION NE RENVOIE PAS
+
+La maquette de l'écran 8 dessine trois puces sous la réponse — « Avec espace
+femmes », « Moins de 200 000 », « Avec jardin ». **Cette fonction n'en renvoie
+aucune** : elle rédige une réponse, elle ne propose pas de suite.
+
+L'écran lit pourtant le champ `suggestions` et n'affiche la rangée que s'il est
+rempli. Le jour où la fonction en produira, les puces apparaîtront sans qu'on
+touche à Flutter — et d'ici là il n'y a aucun bouton décoratif qui relancerait
+une recherche que personne n'a choisie.
 
 ---
 
@@ -204,6 +252,11 @@ libre d'une salle, le modèle aura de la matière à reformuler — et à débor
   reste sans réponse.
 * **`ai_cache`, les 30 réponses pré-générées du §8.5**, pour que la démonstration
   survive à un quota épuisé.
+* **L'agent n'a AUCUNE MÉMOIRE.** Il reçoit une question et rien d'autre : chaque
+  question est traitée seule. Ce que l'écran 8 affiche est un compte rendu de ce
+  qui s'est dit, pas un fil que l'agent relit — « et avec un jardin ? » posé
+  après coup ne marche pas. L'écran le dit à sa façon, en proposant des exemples
+  de questions ENTIÈRES.
 * **La limite de débit par utilisateur** (20 messages/jour). Elle demande
   d'identifier l'utilisateur, ce que le journal s'interdit — il faudra décider
   où cette identité vit.

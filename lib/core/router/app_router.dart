@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/assistant/assistant_screen.dart';
 import '../../features/auth/auth_providers.dart';
 import '../../features/auth/connexion_screen.dart';
 import '../../features/auth/inscription_screen.dart';
@@ -48,13 +49,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             HomeShell(navigationShell: navigationShell),
         branches: <StatefulShellBranch>[
           _branch(FerhaRoutes.accueil, const AccueilScreen()),
-          _branch(
-            FerhaRoutes.assistant,
-            const PlaceholderScreen(
-              title: 'Assistant',
-              icon: Icons.auto_awesome_outlined,
-            ),
-          ),
+          // L'ASSISTANT N'A AUCUNE REDIRECTION, comme l'accueil et la fiche :
+          // chercher une salle se fait sans compte (§3, étapes 1 et 2), et
+          // poser la question à un agent plutôt qu'à un formulaire ne change
+          // rien à cette règle.
+          _branch(FerhaRoutes.assistant, const AssistantScreen()),
           _branch(
             FerhaRoutes.favoris,
             const PlaceholderScreen(
