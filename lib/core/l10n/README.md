@@ -97,6 +97,64 @@ français suffisent à faire déborder un formulaire qui tenait.
 
 ---
 
+## LA RELECTURE ÉCRAN PAR ÉCRAN : TROIS ÉTATS, ET NON UN SEUL
+
+Les deux bancs ci-dessus montent les écrans **pleins** — une salle, un devis, un
+profil. C'est l'état qu'on dessine, et c'est celui qu'on regarde le moins mal.
+
+`test/relecture_arabe_test.dart` monte les mêmes dix écrans dans les trois
+autres : **le chargement**, **le vide**, **l'erreur de réseau**. Trente images,
+et quatre contrôles sur chacune — ils sont dans `test/controles_arabe.dart`,
+avec ce qu'ils cherchent et pourquoi. Ces trois états-là ne se dessinent pas,
+ils se déduisent, et c'est pour cela qu'ils cassent : un squelette calé sur la
+longueur du texte français, une phrase de vide plus longue que tout le reste de
+l'écran, un message d'erreur et son bouton sur une même ligne.
+
+`test/ecrans_non_traduits_en_arabe_test.dart` monte en arabe les écrans qui sont
+restés en français — propriétaire, assistant, avis — et ne leur demande que deux
+choses : ne pas tomber, ne pas déborder. Ils s'affichent de droite à gauche dès
+que la langue change, et un `left` oublié ne se voit qu'en RTL. Il les monte
+aussi **en français, à la même taille** : sans ce témoin, un débordement ne dit
+pas s'il vient de l'arabe ou de la largeur du téléphone.
+
+### Le piège du banc lui-même : `flutter test` n'a pas de police
+
+`flutter test` ne charge aucune police et rend chaque signe dans un **carré** de
+la taille du corps. « Assistant Ferha » en corps 20 y mesure 297 px là où
+Bricolage Grotesque en donne environ 150 — et la barre de titre de l'assistant
+« débordait » de 69 px sans que rien ne cloche à l'écran.
+
+Sur une fenêtre de 1000 px, cela ne se voyait pas. Sur les 390 px des maquettes,
+cela invente des défauts. Les deux bancs de la relecture chargent donc la police
+de la charte (`chargeLaPoliceDeLaCharte`, dans `controles_arabe.dart`) avant de
+mesurer quoi que ce soit. Le texte courant, lui, prend la police système, que le
+test ne sait pas charger : sur lui, le contrôle exagère encore la largeur. Il
+peut crier pour rien, il ne peut pas se taire à tort — c'est le bon sens de
+l'erreur, et c'est pour cela qu'on le garde ainsi.
+
+---
+
+## CE QUI RESTE EN FRANÇAIS À L'ÉCRAN, ET QUI N'EST PAS UN OUBLI
+
+Trois catégories, et le contrôle des textes français les nomme une par une
+(`donneesDeLaBase` et `motsQuiRestentLatins`) :
+
+1. **Les libellés d'options**, qui viennent de `venue_options.label_fr`.
+   `label_ar` existe et personne ne l'écrit encore.
+2. **Les équipements, les types d'événement et les wilayas**, qui viennent
+   d'`amenities.label_fr`, d'`event_types.label_fr` et de `wilayas.name_fr` —
+   les trois `select` de `search_providers.dart` le disent. Voir plus bas : ces
+   73 libellés attendent une relecture humaine.
+3. **Des mots latins DANS une phrase arabe**, et la phrase, elle, est bien
+   traduite : « بطاقة CIB » (une marque), « الدخول بحساب Amina » (un compte de
+   démonstration), « الترحيل 007_auth.sql … مشروع Supabase » (un nom de fichier
+   et un nom de produit, dans une phrase qui s'adresse à celui qui installe), et
+   « Français » — la bascule annonce toujours la langue vers laquelle elle mène.
+
+La troisième n'était pas prévue : c'est le banc qui l'a trouvée.
+
+---
+
 ## L'ESPACEMENT DES CAPITALES NE VAUT PAS POUR L'ARABE
 
 Les intitulés de section de la charte sont des capitales espacées
