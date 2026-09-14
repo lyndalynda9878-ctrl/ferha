@@ -5,7 +5,8 @@
 * **J22 — le parcours client, sept écrans** : accueil/recherche, résultats,
   fiche salle, calendrier, demande, l'écran de confirmation qui suit l'envoi, et
   l'acompte.
-* **J23 — l'authentification, trois écrans** : connexion, inscription, profil.
+* **Après le J22 — l'authentification, trois écrans** : connexion,
+  inscription, profil. Hors plan, et fait d'un bloc.
 
 Le reste de l'application est **en français, et volontairement** : les écrans du
 propriétaire, l'assistant, les avis. Une traduction à moitié faite dit plus fort
@@ -183,8 +184,9 @@ de passe faible, adresse déjà prise, compte suspendu — et passe **tout le re
 connectant ou en envoyant une demande.
 
 **Un repli sur le message anglais vivait là**, pour les versions de GoTrue qui ne
-renvoyaient pas de code sur certaines réponses. Il est parti au J23, pour une
-raison qui n'existait pas tant que ces écrans étaient français : reconnaître une
+renvoyaient pas de code sur certaines réponses. Il est parti avec la traduction
+de ces écrans-là, pour une raison qui n'existait pas tant qu'ils étaient
+français : reconnaître une
 phrase anglaise pour en choisir une française marchait ; le faire pour en choisir
 une arabe revient à traduire une traduction. Le code est un contrat, le message
 est une formulation.
@@ -223,19 +225,24 @@ aura été relu.
 ce sont des données, pas des textes d'interface. Un équipement ajouté en base
 apparaît dans l'application sans qu'on recompile quoi que ce soit.
 
-## LES TRADUCTIONS DE L'AUTHENTIFICATION ATTENDENT UNE RELECTURE AUSSI
+## LES TRADUCTIONS DE L'AUTHENTIFICATION ONT ÉTÉ RELUES
 
-Les 52 clés ajoutées au J23 n'ont **pas** été relues par un locuteur natif.
-`docs/traductions-auth-a-relire.md` les présente groupées par écran — clé,
-français, arabe proposé, et une colonne vide pour la correction.
+Les 52 clés ajoutées après le J22 pour la connexion, l'inscription et le profil
+ont été **relues et validées** par un locuteur natif, sans aucune correction.
+`docs/traductions-auth-a-relire.md` en garde la trace, groupée par écran.
 
-Ce document est une **vue** : la traduction ne vit que dans `app_ar.arb`, et le
-corriger ne corrigerait rien dans l'application.
+Ce document est une **vue** : la traduction ne vit que dans `app_ar.arb`. Une
+relecture sans correction ne change donc pas une ligne — rien n'a été touché.
 
 **Aucun test ne peut dire si une traduction est juste.** Les bancs vérifient
 qu'un écran tient, qu'il se lit dans le bon sens et qu'il ne montre pas de
 chiffres arabes-indiens ; que « أنشئ حسابي » soit la bonne façon de dire « Créer
-mon compte » ne se vérifie qu'en le lisant.
+mon compte » ne se vérifie qu'en le lisant. C'est pour cela que ces 52 lignes
+sont passées sous des yeux, et c'est la seule vérification qui vaille pour
+elles.
+
+Les libellés arabes de la **base**, eux, attendent toujours — voir la section
+précédente.
 
 ---
 

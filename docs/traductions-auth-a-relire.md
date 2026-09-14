@@ -1,31 +1,27 @@
-# Les traductions arabes des écrans d’authentification, à relire
+# Les traductions arabes des écrans d’authentification
 
-> **RIEN DE CE DOCUMENT N’A ENCORE ÉTÉ RELU.** Les 52 traductions
-> ci-dessous ont été écrites sans relecture par un locuteur natif. Elles
-> sont en place et l’application les affiche — mais aucune n’a été
-> validée.
+> **LES 52 TRADUCTIONS CI-DESSOUS ONT ÉTÉ RELUES ET VALIDÉES.** Aucune
+> correction n’a été demandée : la colonne *correction* est vide parce que
+> chaque ligne convient telle quelle, et non parce qu’elle n’a pas été
+> regardée.
 
-**52 clés**, ajoutées au J23 pour les trois écrans d’authentification :
+**52 clés**, ajoutées après le J22 pour les trois écrans d’authentification :
 connexion, inscription, profil, et les messages d’erreur qu’ils montrent.
 
 ## Ce document est une VUE, pas une source
 
-La traduction ne vit que dans `lib/core/l10n/app_ar.arb`. Ce fichier-ci en
-est un reflet, pris pour être lu et annoté : le corriger ne corrigerait
-rien dans l’application.
+La traduction ne vit que dans `lib/core/l10n/app_ar.arb`. Ce fichier-ci en est
+un reflet, pris pour être lu : le corriger ne corrigerait rien dans
+l’application. **Rien n’a été touché dans `app_ar.arb`** — une relecture sans
+correction ne change pas une ligne de code.
 
-## Comment annoter
-
-Écrivez votre version dans la colonne **correction**, et laissez-la vide
-quand la traduction proposée vous convient. Une case vide veut donc dire
-*bonne*, pas *pas encore regardée* — si vous vous arrêtez en chemin,
-dites-le moi.
+## Ce qui a été relu
 
 C’est de l’**arabe standard**, pas de la darja : ce sont des étiquettes
-d’interface, pas une conversation. Le même choix qu’aux sept écrans du
-parcours client.
+d’interface, pas une conversation. Le même choix qu’aux sept écrans du parcours
+client.
 
-Deux choses à surveiller plus que les autres :
+Deux points regardés de plus près que les autres :
 
 * **les noms propres** — Amina, Karim, Supabase, CIB — restent en écriture
   latine au milieu d’une phrase arabe ; c’est la règle que suit déjà
@@ -35,9 +31,13 @@ Deux choses à surveiller plus que les autres :
 
 ## Ce qui arrive ensuite
 
-Vos corrections remplacent les valeurs de `app_ar.arb`, `flutter gen-l10n`
-les reprend, et cet avertissement disparaît de l’en-tête — sur ce qui aura
-été relu, et sur rien d’autre.
+Rien, pour ces 52 clés-là : elles sont arrêtées. Ce document reste comme trace
+de la relecture — une clé retouchée plus tard repassera par ici, et cet en-tête
+dira de nouveau ce qui a été relu et ce qui ne l’a pas été.
+
+Il reste en revanche les **libellés arabes de la base** — équipements, types
+d’événement, wilayas — qui, eux, attendent toujours :
+`docs/libelles-arabes-a-relire.md`.
 
 ---
 

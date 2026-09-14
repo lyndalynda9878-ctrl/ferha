@@ -40,7 +40,7 @@ import 'package:flutter_test/flutter_test.dart';
 /// écrire, c'est que la chaîne avait sa place dans un fichier ARB.
 void main() {
   /// Les fichiers traduits — les sept écrans du parcours client (§10) et les
-  /// trois écrans d'authentification (J23).
+  /// trois écrans d'authentification.
   ///
   /// LES WIDGETS PARTAGÉS EN FONT PARTIE. `etats.dart` porte les états vides et
   /// les erreurs de quatre de ces écrans, `grille_calendrier.dart` le titre du
@@ -72,7 +72,7 @@ void main() {
     // Ce que les six partagent
     'lib/core/l10n/message_erreur.dart',
     'lib/core/validation/telephone.dart',
-    // Les trois écrans d'authentification (J23) et ce qu'ils partagent.
+    // Les trois écrans d'authentification, et ce qu'ils partagent.
     'lib/features/auth/connexion_screen.dart',
     'lib/features/auth/inscription_screen.dart',
     'lib/features/auth/profil_screen.dart',

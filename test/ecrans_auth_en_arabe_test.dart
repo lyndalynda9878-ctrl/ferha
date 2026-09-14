@@ -18,7 +18,7 @@ import 'package:ferha/features/auth/profil_screen.dart';
 import 'owner_fakes.dart';
 import 'textes_traduits.dart';
 
-/// LES TROIS ÉCRANS D'AUTHENTIFICATION, CONSTRUITS EN ARABE (J23).
+/// LES TROIS ÉCRANS D'AUTHENTIFICATION, CONSTRUITS EN ARABE.
 ///
 /// Le même banc que `six_ecrans_en_arabe_test.dart`, sur le même modèle et pour
 /// les mêmes raisons : un écran traduit peut être faux de quatre façons, et

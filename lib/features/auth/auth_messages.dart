@@ -23,11 +23,11 @@
 /// documenté.
 ///
 /// UN REPLI SUR LE MESSAGE ANGLAIS VIVAIT ICI, pour les versions de GoTrue qui
-/// ne renvoyaient pas encore de code sur certaines réponses. Il est parti au
-/// J23, et pour une raison qui n'existait pas tant que l'application était
-/// française : reconnaître une phrase anglaise pour en choisir une française
-/// marchait ; le faire pour en choisir une arabe revient à traduire une
-/// traduction. Le code est un contrat, le message est une formulation — et une
+/// ne renvoyaient pas encore de code sur certaines réponses. Il est parti le
+/// jour où ces écrans sont passés à l'arabe, pour une raison qui n'existait pas
+/// tant qu'ils étaient français : reconnaître une phrase anglaise pour en
+/// choisir une française marchait ; le faire pour en choisir une arabe revient
+/// à traduire une traduction. Le code est un contrat, le message est une formulation — et une
 /// formulation peut changer d'une version à l'autre sans prévenir.
 ///
 /// Quand le code est inconnu, on le NOMME et on montre le message d'origine.
@@ -74,8 +74,8 @@ String messageErreurAuth(AppLocalizations textes, Object erreur) {
 /// La même phrase, en français, pour les écrans qui ne sont pas traduits.
 ///
 /// LES ÉCRANS DU PROPRIÉTAIRE ET LES AVIS S'EN SERVENT comme repli, au bout de
-/// leurs propres traducteurs. Ils restent en français au J23, et ce n'est pas
-/// une raison pour que leurs phrases vivent ailleurs que dans les fichiers ARB :
+/// leurs propres traducteurs. Ils restent en français, et ce n'est pas une
+/// raison pour que leurs phrases vivent ailleurs que dans les fichiers ARB :
 /// celle-ci lit le MODÈLE français, la même source que la version traduite.
 ///
 /// Le jour où ces écrans passeront à l'arabe, cette fonction disparaîtra et
