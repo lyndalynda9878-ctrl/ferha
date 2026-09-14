@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/l10n/generated/app_localizations.dart';
 import '../../core/l10n/locale_controller.dart';
 import '../../core/router/routes.dart';
 import '../../core/theme/ferha_colors.dart';
@@ -34,14 +35,25 @@ class ProfilScreen extends ConsumerWidget {
         actions: <Widget>[
           Padding(
             padding: const EdgeInsetsDirectional.only(end: 8),
+            // LA BASCULE DE LANGUE (§10, CORE-03).
+            //
+            // Elle annonce la langue vers laquelle elle mène, jamais celle
+            // qu'on lit : un bouton « Français » sur une page française ne dit
+            // pas s'il change quelque chose. C'est `switchLanguage`, et c'est
+            // pour cela que la clé porte l'AUTRE langue dans chaque fichier.
+            //
+            // Elle écrit deux fois — l'appareil et `profiles.locale` — et
+            // l'écran a déjà changé quand la seconde écriture part. Voir
+            // LocaleController.
             child: TextButton.icon(
-              onPressed: () => ref.read(localeProvider.notifier).toggle(),
+              onPressed: () async {
+                await ref.read(localeProvider.notifier).toggle();
+                // Le profil porte `locale` : on le relit pour que la ligne
+                // « Langue » plus bas ne reste pas sur l'ancienne valeur.
+                ref.invalidate(profilProvider);
+              },
               icon: const Icon(Icons.translate, size: 18),
-              label: Text(
-                ref.watch(localeProvider).languageCode == 'fr'
-                    ? 'العربية'
-                    : 'Français',
-              ),
+              label: Text(AppLocalizations.of(context).switchLanguage),
             ),
           ),
         ],
@@ -123,6 +135,7 @@ class _ProfilConnecte extends ConsumerWidget {
     final profil = ref.watch(profilProvider);
     final colors = context.ferhaColors;
     final text = Theme.of(context).textTheme;
+    final textes = AppLocalizations.of(context);
 
     return profil.when(
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -264,12 +277,19 @@ class _ProfilConnecte extends ConsumerWidget {
               valeur: telephone ?? 'Non renseigné',
               estVide: telephone == null,
             ),
+            // CE QUI S'AFFICHE EST LA LANGUE ACTIVE, et non `profiles.locale`.
+            //
+            // Les deux disent la même chose une fois l'écriture passée ; mais
+            // entre le tap et la réponse de Supabase — ou quand le réseau est
+            // tombé et que l'écriture a échoué en silence — c'est la langue
+            // qu'on LIT qui est vraie. Montrer le profil ferait dire à l'écran
+            // « Français » pendant qu'il est écrit en arabe.
             _Ligne(
               icone: Icons.translate,
-              libelle: 'Langue',
-              valeur: (donnees['locale'] as String?) == 'ar'
-                  ? 'العربية'
-                  : 'Français',
+              libelle: textes.profilLangue,
+              valeur: ref.watch(localeProvider).languageCode == 'ar'
+                  ? textes.langueArabe
+                  : textes.langueFrancais,
             ),
 
             const SizedBox(height: 32),

@@ -43,6 +43,14 @@ class PreferencesEnMemoire implements PreferencesAffichage {
   int ecritures = 0;
 
   @override
+  Future<String?> langue() async => _langue;
+
+  @override
+  Future<void> retenirLangue(String codeLangue) async => _langue = codeLangue;
+
+  String? _langue;
+
+  @override
   Future<String?> salleChoisie() async => _salle;
 
   @override

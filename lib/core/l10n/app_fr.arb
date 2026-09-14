@@ -1,5 +1,8 @@
 {
   "@@locale": "fr",
+
+  "@_A": "=== L'APPLICATION ==========================================",
+
   "appTitle": "Ferha",
   "@appTitle": {
     "description": "Nom de l'application, affiche dans la barre de titre."
@@ -10,6 +13,811 @@
   },
   "switchLanguage": "العربية",
   "@switchLanguage": {
-    "description": "Libelle du bouton de bascule de langue : il annonce toujours la langue vers laquelle on bascule."
+    "description": "Libelle du bouton de bascule de langue : il annonce toujours la langue vers laquelle on bascule, donc il est ecrit dans CETTE langue-la et non dans la langue courante."
+  },
+  "langueFrancais": "Français",
+  "@langueFrancais": {
+    "description": "Le nom de la langue francaise, ecrit en francais dans les deux fichiers : un nom de langue ne se traduit pas."
+  },
+  "langueArabe": "العربية",
+  "@langueArabe": {
+    "description": "Le nom de la langue arabe, ecrit en arabe dans les deux fichiers."
+  },
+
+  "@_B": "=== LES GESTES COMMUNS =====================================",
+
+  "annuler": "Annuler",
+  "@annuler": { "description": "Bouton d'annulation d'une boite de dialogue." },
+  "valider": "Valider",
+  "@valider": { "description": "Bouton qui confirme une saisie." },
+  "choisir": "Choisir",
+  "@choisir": { "description": "Bouton de confirmation du selecteur de date." },
+  "effacer": "Effacer",
+  "@effacer": { "description": "Bouton qui vide un critere deja pose." },
+  "reessayer": "Réessayer",
+  "@reessayer": { "description": "Bouton qui relance une requete qui a echoue." },
+  "continuer": "Continuer",
+  "@continuer": { "description": "Bouton du calendrier vers le formulaire de demande." },
+  "separateurListe": ", ",
+  "@separateurListe": {
+    "description": "CE QUI SEPARE DEUX ELEMENTS D'UNE ENUMERATION — « samedi, haute saison », « DJ, jardin ». La virgule arabe est un signe DIFFERENT de la notre : U+060C, couchee dans l'autre sens. L'ecrire en dur dans un ecran poserait une virgule francaise au milieu d'une phrase arabe."
+  },
+  "detailTechnique": "Détail technique",
+  "@detailTechnique": {
+    "description": "Titre du bloc replie qui montre l'erreur d'origine, sous un message d'erreur traduit."
+  },
+  "mesReservations": "Mes réservations",
+  "@mesReservations": { "description": "Vers l'ecran qui suit les demandes envoyees." },
+
+  "@_C": "=== LES CRENEAUX ===========================================",
+
+  "creneauMidi": "Midi",
+  "@creneauMidi": { "description": "Le creneau de 11 h a 17 h, sur une puce ou un bouton." },
+  "creneauSoir": "Soir",
+  "@creneauSoir": { "description": "Le creneau de 18 h a 1 h, sur une puce ou un bouton." },
+  "creneauJournee": "Journée",
+  "@creneauJournee": { "description": "Les deux creneaux vendus ensemble, sur une puce etroite." },
+  "creneauMidiPhrase": "Midi",
+  "@creneauMidiPhrase": {
+    "description": "Le creneau tel qu'il se lit DANS UNE PHRASE. Le francais distingue la puce (« Soir ») de la phrase (« Soiree ») ; l'arabe n'a pas cette difference, et les deux cles y portent le meme mot. Ecrire deux cles plutot qu'appeler toLowerCase() sur la premiere : une casse n'est pas une traduction."
+  },
+  "creneauSoirPhrase": "Soirée",
+  "@creneauSoirPhrase": { "description": "Voir creneauMidiPhrase." },
+  "creneauJourneePhrase": "Journée entière",
+  "@creneauJourneePhrase": { "description": "Voir creneauMidiPhrase." },
+  "creneauMidiMinuscule": "midi",
+  "@creneauMidiMinuscule": {
+    "description": "Le creneau au milieu d'une phrase, la ou le francais ne met pas de majuscule : « le 14 aout au soir »."
+  },
+  "creneauSoirMinuscule": "soirée",
+  "@creneauSoirMinuscule": { "description": "Voir creneauMidiMinuscule." },
+  "creneauJourneeMinuscule": "journée entière",
+  "@creneauJourneeMinuscule": { "description": "Voir creneauMidiMinuscule." },
+
+  "@_D": "=== LES DATES ==============================================",
+
+  "moisJanvier": "janvier",
+  "@moisJanvier": {
+    "description": "Les douze mois, en minuscules : ils s'ecrivent au milieu d'une date (« 14 aout 2027 »). Le titre d'un mois de calendrier les met en capitale initiale par moisEnTitre."
+  },
+  "moisFevrier": "février",
+  "moisMars": "mars",
+  "moisAvril": "avril",
+  "moisMai": "mai",
+  "moisJuin": "juin",
+  "moisJuillet": "juillet",
+  "moisAout": "août",
+  "moisSeptembre": "septembre",
+  "moisOctobre": "octobre",
+  "moisNovembre": "novembre",
+  "moisDecembre": "décembre",
+
+  "jourLundi": "lundi",
+  "@jourLundi": {
+    "description": "Les sept jours, dans l'ordre de DateTime.weekday (1 = lundi). Ils servent a nommer un jour majore : « Soiree samedi (haute saison) »."
+  },
+  "jourMardi": "mardi",
+  "jourMercredi": "mercredi",
+  "jourJeudi": "jeudi",
+  "jourVendredi": "vendredi",
+  "jourSamedi": "samedi",
+  "jourDimanche": "dimanche",
+
+  "initialeDimanche": "D",
+  "@initialeDimanche": {
+    "description": "Les sept initiales de l'en-tete du calendrier, DIMANCHE EN TETE. L'ordre ne change pas en arabe : c'est la direction du texte qui retourne la grille, pas l'ordre des colonnes."
+  },
+  "initialeLundi": "L",
+  "initialeMardi": "M",
+  "initialeMercredi": "M",
+  "initialeJeudi": "J",
+  "initialeVendredi": "V",
+  "initialeSamedi": "S",
+
+  "dateEnClair": "{jour} {mois} {annee}",
+  "@dateEnClair": {
+    "description": "« 14 aout 2027 ». LES TROIS PARTIES SONT DES PLACEHOLDERS et l'arabe les remet dans son ordre a lui. Le jour et l'annee sont des NOMBRES DEJA MIS EN FORME, en chiffres latins : voir FormatsFerha.",
+    "placeholders": {
+      "jour": { "type": "String" },
+      "mois": { "type": "String" },
+      "annee": { "type": "String" }
+    }
+  },
+  "dateCourte": "{jour} {mois}",
+  "@dateCourte": {
+    "description": "« 14 aout », sans l'annee, pour les puces ou la place manque.",
+    "placeholders": {
+      "jour": { "type": "String" },
+      "mois": { "type": "String" }
+    }
+  },
+  "moisEtAnnee": "{mois} {annee}",
+  "@moisEtAnnee": {
+    "description": "Le titre d'un mois du calendrier : « Aout 2027 ».",
+    "placeholders": {
+      "mois": { "type": "String" },
+      "annee": { "type": "String" }
+    }
+  },
+  "jourEtDate": "{jour} {date}",
+  "@jourEtDate": {
+    "description": "« samedi 14 aout 2027 » — le nom du jour devant la date.",
+    "placeholders": {
+      "jour": { "type": "String" },
+      "date": { "type": "String" }
+    }
+  },
+
+  "@_E": "=== LES MONTANTS ===========================================",
+
+  "devise": "DA",
+  "@devise": {
+    "description": "LA DEVISE SEULE. Elle sert là où le nombre et la devise ne portent pas le même style — le prix d'une carte de salle, où le montant est gras et « DA / soirée » discret. UN TEST VÉRIFIE QUE `montantEnDinars` LA CONTIENT : deux clés qui disent la même chose finiraient par ne plus la dire pareil."
+  },
+  "montantEnDinars": "{montant} DA",
+  "@montantEnDinars": {
+    "description": "UN MONTANT ET SA DEVISE. Le nombre arrive DEJA MIS EN FORME, en CHIFFRES LATINS et avec ses espaces de milliers — en arabe aussi (§10 des maquettes). Seule la devise se traduit : « DA » devient « دج ».",
+    "placeholders": { "montant": { "type": "String" } }
+  },
+
+  "@_F": "=== ECRAN 1 — ACCUEIL / RECHERCHE ==========================",
+
+  "accueilTitre": "Trouvez votre salle",
+  "@accueilTitre": { "description": "Barre de titre de l'ecran 1." },
+  "accueilRechercheIndice": "Wilaya, commune ou nom de salle",
+  "@accueilRechercheIndice": { "description": "Texte d'aide du champ de recherche libre." },
+  "accueilDateDeLEvenement": "Date de l’événement",
+  "@accueilDateDeLEvenement": { "description": "Titre du selecteur de date." },
+  "accueilNombreInvites": "Nombre d’invités",
+  "@accueilNombreInvites": { "description": "Titre de la boite de dialogue du nombre d'invites." },
+  "accueilCouverts": "Couverts",
+  "@accueilCouverts": { "description": "Libelle du champ du nombre d'invites." },
+  "accueilCouvertsAide": "Sert aussi au calcul du prix.",
+  "@accueilCouvertsAide": { "description": "Sous le champ : pourquoi ce nombre compte deux fois." },
+  "critereDate": "Date",
+  "@critereDate": { "description": "Le critere de date tant qu'aucune n'est choisie." },
+  "critereInvites": "Invités",
+  "@critereInvites": { "description": "Le critere d'invites tant qu'aucun nombre n'est choisi." },
+  "critereInvitesRempli": "{nombre} invités",
+  "@critereInvitesRempli": {
+    "description": "Le critere d'invites une fois rempli. Le nombre reste en chiffres latins.",
+    "placeholders": { "nombre": { "type": "String" } }
+  },
+  "typeDEvenement": "Type d’événement",
+  "@typeDEvenement": { "description": "Intitule de la rangee de puces de type d'evenement." },
+  "rechercher": "Rechercher",
+  "@rechercher": { "description": "Le bouton qui lance la recherche." },
+  "accueilSelection": "Sélection",
+  "@accueilSelection": { "description": "Intitule de la vitrine du bas, pendant le chargement." },
+  "accueilMieuxNotees": "Les mieux notées",
+  "@accueilMieuxNotees": { "description": "Intitule de la vitrine quand au moins une salle a des avis." },
+  "accueilADecouvrir": "Salles à découvrir",
+  "@accueilADecouvrir": {
+    "description": "Intitule de la vitrine quand aucune salle n'a d'avis : parler des « mieux notees » serait faux."
+  },
+  "accueilIntituleAvecWilaya": "{intitule} à {wilaya}",
+  "@accueilIntituleAvecWilaya": {
+    "description": "« Les mieux notees a Oran ».",
+    "placeholders": {
+      "intitule": { "type": "String" },
+      "wilaya": { "type": "String" }
+    }
+  },
+  "accueilVideTitre": "Aucune salle publiée ici",
+  "@accueilVideTitre": { "description": "Etat vide de la vitrine de l'accueil." },
+  "accueilVideCatalogue": "Le catalogue est encore vide. Lancez les données de démonstration, ou publiez une première salle.",
+  "@accueilVideCatalogue": { "description": "Etat vide, aucune wilaya choisie." },
+  "accueilVideWilaya": "Aucune salle n’est publiée à {wilaya} pour l’instant. Essayez une autre wilaya.",
+  "@accueilVideWilaya": {
+    "description": "Etat vide, une wilaya choisie.",
+    "placeholders": { "wilaya": { "type": "String" } }
+  },
+
+  "@_G": "=== ECRAN 2 — RESULTATS ====================================",
+
+  "resultatsRecherche": "Recherche…",
+  "@resultatsRecherche": { "description": "Barre de titre pendant que la recherche tourne." },
+  "resultatsTitre": "Résultats",
+  "@resultatsTitre": { "description": "Barre de titre quand la recherche a echoue." },
+  "resultatsSalles": "{nombre, plural, =0{Aucune salle} =1{1 salle} other{{nombre} salles}}",
+  "@resultatsSalles": {
+    "description": "Le compte de salles trouvees, dans la barre de titre. L'ARABE A SIX FORMES et le pluriel ICU les porte toutes : c'est la raison d'etre de cette syntaxe ici plutot qu'un « s » conditionnel.",
+    "placeholders": { "nombre": { "type": "int" } }
+  },
+  "resultatsSallesA": "{salles} à {wilaya}",
+  "@resultatsSallesA": {
+    "description": "« 12 salles a Oran ».",
+    "placeholders": {
+      "salles": { "type": "String" },
+      "wilaya": { "type": "String" }
+    }
+  },
+  "puceDateCreneau": "{date} · {creneau}",
+  "@puceDateCreneau": {
+    "description": "La puce de filtre qui porte la date et le creneau.",
+    "placeholders": {
+      "date": { "type": "String" },
+      "creneau": { "type": "String" }
+    }
+  },
+  "puceInvites": "{nombre}+ couverts",
+  "@puceInvites": {
+    "description": "La puce de filtre du nombre d'invites : un seuil, d'ou le « + ».",
+    "placeholders": { "nombre": { "type": "String" } }
+  },
+  "puceBudget": "≤ {montant}",
+  "@puceBudget": {
+    "description": "La puce de filtre du budget. Le montant arrive avec sa devise.",
+    "placeholders": { "montant": { "type": "String" } }
+  },
+  "puceTexte": "« {texte} »",
+  "@puceTexte": {
+    "description": "La puce de filtre du texte cherche. LES GUILLEMETS SE TRADUISENT : l'arabe ecrit « » comme le francais, mais une langue qui utiliserait d'autres signes les porterait ici.",
+    "placeholders": { "texte": { "type": "String" } }
+  },
+  "retirerFiltre": "Retirer ce filtre",
+  "@retirerFiltre": { "description": "Infobulle de la croix d'une puce de filtre." },
+  "resultatsVideTitre": "Aucune salle ne réunit tous ces critères",
+  "@resultatsVideTitre": { "description": "Etat vide des resultats." },
+  "resultatsVideDate": "Le {date} au {creneau}, les salles restantes sont peut-être déjà réservées. Essayez une autre date, ou retirez-la pour voir tout le catalogue.",
+  "@resultatsVideDate": {
+    "description": "Etat vide : la date est le critere le plus souvent responsable.",
+    "placeholders": {
+      "date": { "type": "String" },
+      "creneau": { "type": "String" }
+    }
+  },
+  "resultatsVideBudget": "Le budget est comparé au prix réel de la date, majorations comprises — il monte vite un vendredi d’été. Essayez sans limite pour voir les montants.",
+  "@resultatsVideBudget": { "description": "Etat vide : le budget est en cause." },
+  "resultatsVideInvites": "Aucune salle n’atteint {nombre} couverts avec ces critères. Un chiffre plus bas ouvrira le catalogue.",
+  "@resultatsVideInvites": {
+    "description": "Etat vide : la capacite demandee est en cause.",
+    "placeholders": { "nombre": { "type": "String" } }
+  },
+  "resultatsVideWilaya": "Rien ne correspond à {wilaya}. Le catalogue ne couvre pas encore toutes les wilayas.",
+  "@resultatsVideWilaya": {
+    "description": "Etat vide : la wilaya est en cause.",
+    "placeholders": { "wilaya": { "type": "String" } }
+  },
+  "resultatsVideDefaut": "Retirez un critère pour élargir la recherche.",
+  "@resultatsVideDefaut": { "description": "Etat vide, aucun critere ne se detache." },
+  "pisteSansDate": "Chercher sans date",
+  "@pisteSansDate": { "description": "Bouton de l'etat vide : retire la date." },
+  "pisteSansSeuil": "Sans le seuil de {nombre} couverts",
+  "@pisteSansSeuil": {
+    "description": "Bouton de l'etat vide : retire le nombre d'invites.",
+    "placeholders": { "nombre": { "type": "String" } }
+  },
+  "pisteSansBudget": "Sans limite de budget",
+  "@pisteSansBudget": { "description": "Bouton de l'etat vide : retire le budget." },
+  "pisteToutesWilayas": "Toutes les wilayas",
+  "@pisteToutesWilayas": { "description": "Bouton de l'etat vide : retire la wilaya." },
+  "pisteSansEquipements": "Sans les équipements",
+  "@pisteSansEquipements": { "description": "Bouton de l'etat vide : retire les equipements." },
+  "pisteSansTexte": "Sans le texte cherché",
+  "@pisteSansTexte": { "description": "Bouton de l'etat vide : retire le texte libre." },
+  "pisteRepartirDeZero": "Repartir de zéro",
+  "@pisteRepartirDeZero": { "description": "Bouton de l'etat vide quand aucun critere n'est retirable." },
+
+  "@_H": "=== LA CARTE DE SALLE ======================================",
+
+  "carteCommuneEtCapacite": "{commune} · {capacite} couverts",
+  "@carteCommuneEtCapacite": {
+    "description": "La ligne sous le nom, sur une carte de salle.",
+    "placeholders": {
+      "commune": { "type": "String" },
+      "capacite": { "type": "String" }
+    }
+  },
+  "cartePuceParking": "Parking {places}",
+  "@cartePuceParking": {
+    "description": "La puce du parking. Le parking n'est pas un equipement : il vient de venues.parking_spaces, qui dit aussi combien de places.",
+    "placeholders": { "places": { "type": "String" } }
+  },
+  "cartePrixParCreneau": "{montant} / {creneau}",
+  "@cartePrixParCreneau": {
+    "description": "« 180 000 DA / soiree » sur l'accueil, ou aucune date n'est encore choisie.",
+    "placeholders": {
+      "montant": { "type": "String" },
+      "creneau": { "type": "String" }
+    }
+  },
+
+  "@_I": "=== LES ETATS PARTAGES =====================================",
+
+  "erreurRechercheTitre": "La recherche n’a pas abouti",
+  "@erreurRechercheTitre": {
+    "description": "Titre par defaut de l'etat d'erreur. Les ecrans qui ne cherchent rien en passent un autre."
+  },
+
+  "@_J": "=== ECRAN 3 — FICHE SALLE ==================================",
+
+  "fichePhotos": "{nombre} photos",
+  "@fichePhotos": {
+    "description": "La puce qui ouvre la galerie, en haut de la fiche.",
+    "placeholders": { "nombre": { "type": "String" } }
+  },
+  "ficheEquipements": "Équipements",
+  "@ficheEquipements": { "description": "Intitule de la section des equipements." },
+  "ficheEvenementsAccueillis": "Événements accueillis",
+  "@ficheEvenementsAccueillis": { "description": "Intitule de la section des types d'evenement." },
+  "ficheTarifs": "Tarifs",
+  "@ficheTarifs": { "description": "Intitule de la grille tarifaire." },
+  "ficheCapacite": "Capacité",
+  "@ficheCapacite": { "description": "Le premier des trois chiffres de la fiche." },
+  "ficheSuperficie": "Superficie",
+  "@ficheSuperficie": { "description": "Le deuxieme des trois chiffres." },
+  "ficheParking": "Parking",
+  "@ficheParking": { "description": "Le troisieme des trois chiffres." },
+  "uniteCouverts": "couverts",
+  "@uniteCouverts": { "description": "L'unite sous le chiffre de capacite." },
+  "uniteMetresCarres": "m²",
+  "@uniteMetresCarres": { "description": "L'unite sous le chiffre de superficie." },
+  "unitePlaces": "places",
+  "@unitePlaces": { "description": "L'unite sous le chiffre de parking." },
+  "superficieNonRenseignee": "non renseignée",
+  "@superficieNonRenseignee": {
+    "description": "Sous le tiret, quand la superficie est NULL. On l'ecrit, on n'invente pas un zero."
+  },
+  "parkingNonRenseigne": "non renseigné",
+  "@parkingNonRenseigne": {
+    "description": "Sous le tiret, quand le parking est NULL. NULL et 0 ne se disent pas pareil."
+  },
+  "parkingAucunePlace": "aucune place",
+  "@parkingAucunePlace": { "description": "Quand le parking vaut 0 : il n'y en a pas." },
+  "ficheTarifsAbsents": "Le propriétaire n’a pas encore renseigné ses tarifs.",
+  "@ficheTarifsAbsents": { "description": "Quand la grille tarifaire est vide." },
+  "ficheTarifsNote": "Prix calculés pour le {date}. Majorations comprises — ce n’est pas un « à partir de ».",
+  "@ficheTarifsNote": {
+    "description": "Sous la grille tarifaire, sans nombre d'invites.",
+    "placeholders": { "date": { "type": "String" } }
+  },
+  "ficheTarifsNoteInvites": "Prix calculés pour le {date}, {invites} couverts. Majorations comprises — ce n’est pas un « à partir de ».",
+  "@ficheTarifsNoteInvites": {
+    "description": "Sous la grille tarifaire, avec un nombre d'invites.",
+    "placeholders": {
+      "date": { "type": "String" },
+      "invites": { "type": "String" }
+    }
+  },
+  "majorationJour": "jour majoré",
+  "@majorationJour": { "description": "D'ou vient une majoration : le jour de la semaine." },
+  "majorationSaison": "haute saison",
+  "@majorationSaison": { "description": "D'ou vient une majoration : la periode de l'annee." },
+  "tarifCouvertsCompris": "{inclus} couverts compris · au-delà, {prixSup} le couvert",
+  "@tarifCouvertsCompris": {
+    "description": "Le detail d'une ligne tarifaire. Le prix arrive avec sa devise.",
+    "placeholders": {
+      "inclus": { "type": "String" },
+      "prixSup": { "type": "String" }
+    }
+  },
+  "tarifCouvertsSupplement": "{base} ({nombre} en supplément, {montant})",
+  "@tarifCouvertsSupplement": {
+    "description": "La meme ligne quand des couverts depassent le forfait.",
+    "placeholders": {
+      "base": { "type": "String" },
+      "nombre": { "type": "String" },
+      "montant": { "type": "String" }
+    }
+  },
+  "ficheEstimationCreneau": "Estimation {creneau}",
+  "@ficheEstimationCreneau": {
+    "description": "L'intitule au-dessus du prix, dans la barre d'action.",
+    "placeholders": { "creneau": { "type": "String" } }
+  },
+  "ficheEstimationInvites": "Estimation {nombre} invités",
+  "@ficheEstimationInvites": {
+    "description": "Le meme intitule quand un nombre d'invites est connu.",
+    "placeholders": { "nombre": { "type": "String" } }
+  },
+  "creneauNonPropose": "Créneau non proposé",
+  "@creneauNonPropose": {
+    "description": "Quand la salle ne vend pas ce creneau : on le dit plutot que d'afficher un prix qui n'existe pas."
+  },
+  "ficheDisponibilite": "Disponibilité",
+  "@ficheDisponibilite": { "description": "Le bouton de la fiche vers le calendrier, et le titre du calendrier." },
+  "ficheAvisVerifies": "{nombre, plural, =1{1 avis vérifié} other{{nombre} avis vérifiés}}",
+  "@ficheAvisVerifies": {
+    "description": "A cote de la note, sur la fiche : le nombre d'avis qui la composent.",
+    "placeholders": { "nombre": { "type": "int" } }
+  },
+
+  "@_K": "=== ECRAN 4 — CALENDRIER ===================================",
+
+  "calendrierLibre": "Libre",
+  "@calendrierLibre": { "description": "Legende : le jour est disponible." },
+  "calendrierReserve": "Réservé",
+  "@calendrierReserve": { "description": "Legende : le jour est pris." },
+  "calendrierIndisponible": "Indisponible",
+  "@calendrierIndisponible": { "description": "Legende : le proprietaire a ferme ce jour, ou il est passe." },
+  "calendrierLibreMinuscule": "libre",
+  "@calendrierLibreMinuscule": {
+    "description": "Le meme etat, dit par un lecteur d'ecran au milieu d'une phrase : « 14 aout, libre »."
+  },
+  "calendrierReserveMinuscule": "réservé",
+  "@calendrierReserveMinuscule": { "description": "Voir calendrierLibreMinuscule." },
+  "calendrierIndisponibleMinuscule": "indisponible",
+  "@calendrierIndisponibleMinuscule": { "description": "Voir calendrierLibreMinuscule." },
+  "calendrierJourEtat": "{jour} {mois}, {etat}",
+  "@calendrierJourEtat": {
+    "description": "CE QUE LIT UN LECTEUR D'ECRAN sur une case. La couleur ne porte jamais l'information seule.",
+    "placeholders": {
+      "jour": { "type": "String" },
+      "mois": { "type": "String" },
+      "etat": { "type": "String" }
+    }
+  },
+  "calendrierJourPasse": "{jour} {mois}, date passée",
+  "@calendrierJourPasse": {
+    "description": "Ce que lit un lecteur d'ecran sur une case du passe.",
+    "placeholders": {
+      "jour": { "type": "String" },
+      "mois": { "type": "String" }
+    }
+  },
+  "calendrierJourSelectionne": "{libelle}, sélectionné",
+  "@calendrierJourSelectionne": {
+    "description": "Ajoute a la case choisie, pour un lecteur d'ecran.",
+    "placeholders": { "libelle": { "type": "String" } }
+  },
+  "calendrierCreneauNonPropose": "Créneau non proposé par cette salle",
+  "@calendrierCreneauNonPropose": {
+    "description": "Dans le bandeau du bas, quand la salle ne vend pas le creneau regarde."
+  },
+  "calendrierResumeJour": "{date} · {creneau}",
+  "@calendrierResumeJour": {
+    "description": "Le bandeau du bas : la date choisie et son creneau.",
+    "placeholders": {
+      "date": { "type": "String" },
+      "creneau": { "type": "String" }
+    }
+  },
+  "calendrierPrixEtMajorations": "{montant} · {majorations}",
+  "@calendrierPrixEtMajorations": {
+    "description": "Le prix du jour choisi, suivi de ce qui l'a majore.",
+    "placeholders": {
+      "montant": { "type": "String" },
+      "majorations": { "type": "String" }
+    }
+  },
+
+  "@_L": "=== ECRAN 5 — LA DEMANDE ===================================",
+
+  "demandeTitre": "Votre demande",
+  "@demandeTitre": { "description": "Barre de titre de l'ecran 5." },
+  "demandeMaSalleTitre": "{salle} est votre salle",
+  "@demandeMaSalleTitre": {
+    "description": "Ce qu'on montre a un proprietaire arrive sur le formulaire de sa propre salle.",
+    "placeholders": { "salle": { "type": "String" } }
+  },
+  "demandeMaSalleTexte": "On ne réserve pas chez soi : une demande sur sa propre salle serait refusée. Les demandes de vos clients, elles, vous attendent dans votre tableau de bord.",
+  "@demandeMaSalleTexte": { "description": "Pourquoi il n'y a pas de formulaire ici pour lui." },
+  "demandeEvenement": "Événement",
+  "@demandeEvenement": { "description": "Intitule de la section du type d'evenement." },
+  "demandeNombreInvites": "Nombre d’invités",
+  "@demandeNombreInvites": { "description": "Intitule de la section du nombre d'invites." },
+  "demandeOptions": "Options",
+  "@demandeOptions": { "description": "Intitule de la section des options payantes." },
+  "demandeSuffixeInvites": "invités",
+  "@demandeSuffixeInvites": { "description": "Le mot colle apres le nombre, dans le selecteur." },
+  "demandeMoinsInvites": "{pas} invités de moins",
+  "@demandeMoinsInvites": {
+    "description": "Infobulle du bouton moins.",
+    "placeholders": { "pas": { "type": "String" } }
+  },
+  "demandePlusInvites": "{pas} invités de plus",
+  "@demandePlusInvites": {
+    "description": "Infobulle du bouton plus.",
+    "placeholders": { "pas": { "type": "String" } }
+  },
+  "demandeCapaciteSalle": "Capacité de la salle : {capacite} couverts.",
+  "@demandeCapaciteSalle": {
+    "description": "Sous le selecteur : la borne, dite plutot qu'appliquee en silence.",
+    "placeholders": { "capacite": { "type": "String" } }
+  },
+  "demandeOptionIncluse": "Incluse",
+  "@demandeOptionIncluse": {
+    "description": "Une option a zero dinar n'est pas « 0 DA » : la salle la comprend dans son prix."
+  },
+  "demandeCouvertsAuDela": "{nombre, plural, =1{1 couvert au-delà de {inclus}} other{{nombre} couverts au-delà de {inclus}}}",
+  "@demandeCouvertsAuDela": {
+    "description": "Une ligne du recapitulatif : les couverts qui depassent le forfait.",
+    "placeholders": {
+      "nombre": { "type": "int" },
+      "inclus": { "type": "String" }
+    }
+  },
+  "demandeEstimationTotale": "Estimation totale",
+  "@demandeEstimationTotale": { "description": "La ligne en gras du recapitulatif." },
+  "demandeAcompteAVerser": "Acompte à verser ({part} %)",
+  "@demandeAcompteAVerser": {
+    "description": "La derniere ligne du recapitulatif. Le taux vient de la base, il n'est pas ecrit en dur.",
+    "placeholders": { "part": { "type": "String" } }
+  },
+  "demandeCreneauMajore": "{creneau} ({raisons})",
+  "@demandeCreneauMajore": {
+    "description": "« Soiree (samedi, haute saison) » : les majorations se nomment, elles ne se devinent pas.",
+    "placeholders": {
+      "creneau": { "type": "String" },
+      "raisons": { "type": "String" }
+    }
+  },
+  "demandeTelephoneIntitule": "Téléphone pour que la salle vous rappelle",
+  "@demandeTelephoneIntitule": { "description": "Intitule du champ du telephone." },
+  "demandeTelephoneExemple": "0770 11 22 33",
+  "@demandeTelephoneExemple": {
+    "description": "Le texte d'aide du champ. UN NUMERO RESTE EN CHIFFRES LATINS, en arabe comme en francais : c'est celui qu'on compose."
+  },
+  "telephoneManquant": "Indiquez un numéro de téléphone.",
+  "@telephoneManquant": {
+    "description": "Sous le bouton eteint : le champ est vide. UN CHAMP VIDE N'EST PAS UNE FAUTE, et la phrase ne gronde personne."
+  },
+  "telephoneMalForme": "Ce numéro n’a pas la bonne forme. Exemples : 0770 11 22 33, ou 041 23 45 67 pour un fixe.",
+  "@telephoneMalForme": {
+    "description": "Sous le bouton eteint : le numero est a moitie tape. ON DONNE UN EXEMPLE PLUTOT QU'UNE REGLE A DECHIFFRER, et les deux numeros restent en chiffres latins (§10)."
+  },
+  "demandeTelephoneQuiLeVoit": "Le propriétaire ne le voit qu’après avoir accepté votre demande.",
+  "@demandeTelephoneQuiLeVoit": {
+    "description": "La regle du §9 dite au client dont c'est le numero. Sans elle, le champ ressemble a une collecte de coordonnees."
+  },
+  "demandeEnvoyer": "Envoyer la demande",
+  "@demandeEnvoyer": { "description": "Le bouton d'envoi." },
+  "demandeAucunPaiement": "Aucun paiement à cette étape. Le propriétaire répond sous 48 h.",
+  "@demandeAucunPaiement": {
+    "description": "Sous le bouton : la phrase des maquettes, qui leve le principal frein a l'envoi."
+  },
+  "demandeDevisImpossible": "Le devis n’a pas pu être calculé",
+  "@demandeDevisImpossible": { "description": "Titre du bloc rouge quand booking_quote() a echoue." },
+
+  "@_M": "=== L'ECRAN QUI SUIT L'ENVOI ===============================",
+
+  "envoyeeTitre": "Demande envoyée",
+  "@envoyeeTitre": { "description": "Barre de titre de l'ecran de confirmation." },
+  "envoyeePartie": "Votre demande est partie",
+  "@envoyeePartie": { "description": "Le titre, sous la coche verte." },
+  "envoyeeRecue": "Le propriétaire l’a reçue et vous répond sous 48 h.",
+  "@envoyeeRecue": { "description": "Quand le detail de la demande n'a pas survecu a un rechargement." },
+  "envoyeeRecueParSalle": "{salle} a reçu votre demande et vous répond sous 48 h.",
+  "@envoyeeRecueParSalle": {
+    "description": "Le cas courant : on nomme la salle.",
+    "placeholders": { "salle": { "type": "String" } }
+  },
+  "envoyeeLigneDate": "Date",
+  "@envoyeeLigneDate": { "description": "Libelle d'une ligne du recapitulatif." },
+  "envoyeeLigneInvites": "Invités",
+  "@envoyeeLigneInvites": { "description": "Libelle d'une ligne du recapitulatif." },
+  "envoyeeLigneEvenement": "Événement",
+  "@envoyeeLigneEvenement": { "description": "Libelle d'une ligne du recapitulatif." },
+  "envoyeeLigneOptions": "Options",
+  "@envoyeeLigneOptions": { "description": "Libelle d'une ligne du recapitulatif." },
+  "envoyeeEstimation": "Estimation",
+  "@envoyeeEstimation": { "description": "La ligne du montant, en bas du recapitulatif." },
+  "envoyeeMontantPeutChanger": "Le propriétaire peut proposer un montant différent en acceptant la demande.",
+  "@envoyeeMontantPeutChanger": { "description": "Sous le montant : ce n'est pas encore un prix ferme." },
+  "envoyeeReference": "Référence : {reference}",
+  "@envoyeeReference": {
+    "description": "La reference de la demande, abregee.",
+    "placeholders": { "reference": { "type": "String" } }
+  },
+  "envoyeeRetourAccueil": "Revenir à l’accueil",
+  "@envoyeeRetourAccueil": { "description": "Le bouton du bas." },
+  "envoyeeSuiteTitre": "Ce qui se passe ensuite",
+  "@envoyeeSuiteTitre": { "description": "Titre du bloc des trois etapes." },
+  "envoyeeSuite1Titre": "Le propriétaire répond sous 48 h",
+  "@envoyeeSuite1Titre": { "description": "Premiere etape." },
+  "envoyeeSuite1Detail": "Il accepte, refuse, ou vous propose un autre montant. Tant qu’il n’a pas répondu, la date reste ouverte à d’autres demandes.",
+  "@envoyeeSuite1Detail": {
+    "description": "LA PHRASE QUI COMPTE LE PLUS DE L'ECRAN : une demande en attente ne bloque pas la date (§5.1)."
+  },
+  "envoyeeSuite2Titre": "S’il accepte, la date vous est gardée 72 h",
+  "@envoyeeSuite2Titre": { "description": "Deuxieme etape." },
+  "envoyeeSuite2Detail": "C’est le délai pour verser l’acompte. Passé ce délai sans paiement, la date repart à la vente.",
+  "@envoyeeSuite2Detail": { "description": "Deuxieme etape, le detail." },
+  "envoyeeSuite3Titre": "L’acompte versé, la date est à vous",
+  "@envoyeeSuite3Titre": { "description": "Troisieme etape." },
+  "envoyeeSuite3Detail": "Par carte CIB ou Edahabia, ou en main propre si le propriétaire l’accepte. Le solde se règle le jour J.",
+  "@envoyeeSuite3Detail": { "description": "Troisieme etape, le detail." },
+
+  "@_N": "=== ECRAN 6 — L'ACOMPTE ====================================",
+
+  "acompteTitre": "Verser l’acompte",
+  "@acompteTitre": { "description": "Barre de titre de l'ecran 6." },
+  "acompteDemandeAcceptee": "Demande acceptée",
+  "@acompteDemandeAcceptee": { "description": "Le bandeau vert du haut." },
+  "acompteConfirmePar": "{proprietaire} a confirmé le {jour} en {creneau}.",
+  "@acompteConfirmePar": {
+    "description": "Qui a confirme, quand, pour quel creneau.",
+    "placeholders": {
+      "proprietaire": { "type": "String" },
+      "jour": { "type": "String" },
+      "creneau": { "type": "String" }
+    }
+  },
+  "acompteConfirmeParProprietaire": "Le propriétaire a confirmé le {jour} en {creneau}.",
+  "@acompteConfirmeParProprietaire": {
+    "description": "La meme phrase quand la base ne donne pas de nom.",
+    "placeholders": {
+      "jour": { "type": "String" },
+      "creneau": { "type": "String" }
+    }
+  },
+  "acompteDateReserveePendant": "La date vous est réservée pendant ",
+  "@acompteDateReserveePendant": {
+    "description": "Devant le compte a rebours. L'ESPACE FINALE EST VOULUE : le compteur est un widget separe, colle a cette phrase."
+  },
+  "acompteRecapitulatif": "Récapitulatif",
+  "@acompteRecapitulatif": { "description": "Premier intertitre." },
+  "acompteMoyenDePaiement": "Moyen de paiement",
+  "@acompteMoyenDePaiement": { "description": "Second intertitre." },
+  "acompteEvenement": "Événement",
+  "@acompteEvenement": { "description": "Libelle de la ligne du type d'evenement." },
+  "acompteInvitesAbrege": "{nombre} inv.",
+  "@acompteInvitesAbrege": {
+    "description": "Le nombre d'invites, abrege faute de place.",
+    "placeholders": { "nombre": { "type": "String" } }
+  },
+  "acompteMontantConvenu": "Montant convenu",
+  "@acompteMontantConvenu": { "description": "La ligne du total de la reservation." },
+  "acompteLigne": "Acompte",
+  "@acompteLigne": { "description": "La ligne de l'acompte, quand la part n'est pas calculable." },
+  "acompteLignePart": "Acompte ({part} %)",
+  "@acompteLignePart": {
+    "description": "La ligne de l'acompte avec sa part. Elle est LUE des deux montants, jamais ecrite en dur : le §5.3 laisse le proprietaire la fixer entre 20 et 30 %.",
+    "placeholders": { "part": { "type": "String" } }
+  },
+  "acomptePayer": "Payer {montant}",
+  "@acomptePayer": {
+    "description": "Le bouton, pour une carte.",
+    "placeholders": { "montant": { "type": "String" } }
+  },
+  "acompteAnnoncerVersement": "Annoncer un versement de {montant}",
+  "@acompteAnnoncerVersement": {
+    "description": "Le bouton, pour les especes. IL NE DIT PAS « PAYER » : l'argent ne part pas maintenant.",
+    "placeholders": { "montant": { "type": "String" } }
+  },
+  "acompteVersementDejaAnnonce": "Versement déjà annoncé",
+  "@acompteVersementDejaAnnonce": { "description": "Le bouton eteint, quand l'intention est deja posee." },
+  "acompteSoldeJourJ": "Solde de {montant} réglé sur place le jour J.",
+  "@acompteSoldeJourJ": {
+    "description": "Sous le bouton.",
+    "placeholders": { "montant": { "type": "String" } }
+  },
+  "acompteModeTest": "Paiement en mode test : aucune somme n’est réellement débitée.",
+  "@acompteModeTest": {
+    "description": "Dit au client plutot que cache : il vaut mieux qu'il l'apprenne ici que devant un releve bancaire vide."
+  },
+  "acompteEspecesTitre": "Versement en espèces annoncé",
+  "@acompteEspecesTitre": { "description": "Le bandeau des especes annoncees." },
+  "acompteEspecesTexte": "Le propriétaire vous attend avec {montant}. La date sera confirmée quand il aura reçu l’acompte — et l’option court toujours d’ici là.",
+  "@acompteEspecesTexte": {
+    "description": "CE BANDEAU NE DIT PAS QUE C'EST REGLE : une promesse de billets ne prend rien tant que personne n'a compte.",
+    "placeholders": { "montant": { "type": "String" } }
+  },
+  "acompteEnVerification": "Un paiement est en cours de vérification. Votre réservation sera confirmée dès que la banque aura répondu.",
+  "@acompteEnVerification": {
+    "description": "Revenir de Chargily ne confirme rien : c'est le webhook qui confirmera."
+  },
+  "acompteDejaSoumis": "Ce paiement a déjà été soumis. Il est en cours de vérification ; votre réservation sera confirmée dès que la banque aura répondu.",
+  "@acompteDejaSoumis": { "description": "Quand la caisse a deja encaisse cette page." },
+  "acomptePageNonOuverte": "La page de paiement n’a pas pu s’ouvrir. Vérifiez que votre navigateur n’a pas bloqué la redirection.",
+  "@acomptePageNonOuverte": { "description": "Quand launchUrl a rendu faux." },
+  "acompteRienAVerser": "Il n’y a pas d’acompte à verser ici",
+  "@acompteRienAVerser": { "description": "Etat vide, refus definitif." },
+  "acompteLectureImpossible": "L’acompte n’a pas pu être lu",
+  "@acompteLectureImpossible": { "description": "Etat vide, refus passager." },
+  "moyenCib": "Carte CIB",
+  "@moyenCib": { "description": "La carte interbancaire, SATIM." },
+  "moyenCibExplication": "La carte de votre banque",
+  "@moyenCibExplication": { "description": "Ce que c'est, en une ligne." },
+  "moyenEdahabia": "Carte Edahabia",
+  "@moyenEdahabia": { "description": "La carte d'Algerie Poste." },
+  "moyenEdahabiaExplication": "La carte d’Algérie Poste",
+  "@moyenEdahabiaExplication": { "description": "Ce que c'est, en une ligne." },
+  "moyenEspeces": "Espèces sur place",
+  "@moyenEspeces": { "description": "L'acompte porte en main propre." },
+  "moyenEspecesExplication": "Vous portez l’acompte à la salle, sous 72 h",
+  "@moyenEspecesExplication": { "description": "Ce que c'est, en une ligne." },
+
+  "@_O": "=== LE COMPTE A REBOURS ====================================",
+
+  "resteHeuresMinutes": "{heures} h {minutes} min",
+  "@resteHeuresMinutes": {
+    "description": "« 71 h 12 min ». LES HEURES NE SE CONVERTISSENT PAS EN JOURS : « 71 h » se compare directement aux 72 h annoncees. Les minutes arrivent sur deux chiffres pour que les lignes s'alignent.",
+    "placeholders": {
+      "heures": { "type": "String" },
+      "minutes": { "type": "String" }
+    }
+  },
+  "resteMinutes": "{minutes} min",
+  "@resteMinutes": {
+    "description": "Moins d'une heure.",
+    "placeholders": { "minutes": { "type": "String" } }
+  },
+  "resteMoinsDUneMinute": "moins d’une minute",
+  "@resteMoinsDUneMinute": { "description": "Le dernier palier avant l'echeance." },
+  "delaiEcoule": "délai écoulé",
+  "@delaiEcoule": {
+    "description": "Apres l'echeance. Plus honnete que « 0 h 00 min » ou qu'un compteur qui passerait en negatif."
+  },
+
+  "@_P": "=== LES ERREURS QUE CES SIX ECRANS PEUVENT MONTRER =========",
+
+  "erreurReseau": "Impossible de joindre le serveur. Vérifiez votre connexion, puis réessayez.",
+  "@erreurReseau": { "description": "Reseau injoignable, DNS en echec, requete interrompue." },
+  "erreurDelaiDepasse": "Le serveur met trop de temps à répondre. Réessayez.",
+  "@erreurDelaiDepasse": { "description": "Le serveur n'a pas repondu a temps." },
+  "erreurSessionExpiree": "Votre session a expiré. Reconnectez-vous.",
+  "@erreurSessionExpiree": { "description": "La session Supabase n'est plus valable." },
+  "erreurBaseRefuse": "La base a refusé la requête : {message}",
+  "@erreurBaseRefuse": {
+    "description": "Un refus PostgREST sans code Ferha. Le message d'origine est montre : une erreur imprevue doit rester lisible pour qui devra la corriger.",
+    "placeholders": { "message": { "type": "String" } }
+  },
+  "erreurInattendue": "Une erreur inattendue est survenue : {erreur}",
+  "@erreurInattendue": {
+    "description": "Le repli, qui n'invente rien.",
+    "placeholders": { "erreur": { "type": "String" } }
+  },
+
+  "@_Q": "=== LES REFUS DE request_booking() (FE001 a FE007) =========",
+
+  "refusCreneauPris": "Ce créneau vient d’être réservé. Revenez au calendrier pour choisir une autre date.",
+  "@refusCreneauPris": {
+    "description": "FE001 — la course perdue. Le calendrier disait « libre » a l'ouverture ; quelqu'un a confirme entre-temps."
+  },
+  "refusCreneauBloque": "Le propriétaire a bloqué ce créneau. Choisissez une autre date au calendrier.",
+  "@refusCreneauBloque": { "description": "FE002." },
+  "refusDatePassee": "Cette date est passée. Choisissez une date à venir.",
+  "@refusDatePassee": { "description": "FE003." },
+  "refusSalleFermee": "Cette salle n’accepte plus de réservation pour le moment.",
+  "@refusSalleFermee": { "description": "FE004." },
+  "refusSaPropreSalle": "Vous ne pouvez pas réserver votre propre salle.",
+  "@refusSaPropreSalle": { "description": "FE005." },
+  "refusSessionDemande": "Votre session a expiré. Reconnectez-vous, votre demande est conservée.",
+  "@refusSessionDemande": { "description": "FE006 — le seul de la liste qu'un geste depuis cet ecran repare, avec FE007." },
+  "refusTelephone": "Un numéro de téléphone valide est nécessaire : 0770 11 22 33 pour un mobile, 041 23 45 67 pour un fixe.",
+  "@refusTelephone": {
+    "description": "FE007 — on redonne la FORME attendue plutot que de dire « invalide ». Les deux numeros restent en chiffres latins."
+  },
+  "refusOptionDisparue": "Une des options choisies n’est plus proposée par cette salle. Décochez-la et renvoyez la demande.",
+  "@refusOptionDisparue": { "description": "SQLSTATE 23503 — une option retiree du catalogue pendant que l'ecran etait ouvert." },
+  "refusCreneauNonTarife": "Cette salle ne propose pas ce créneau à cette date.",
+  "@refusCreneauNonTarife": { "description": "SQLSTATE P0002 — estimate_price() ne sait pas tarifer." },
+
+  "@_R": "=== LES REFUS DU PARCOURS DE L'ACOMPTE (FE050 a FE059) =====",
+
+  "refusPaiementHorsDuWeb": "Le paiement en ligne se fait depuis un navigateur. Sur téléphone, choisissez « Espèces sur place ».",
+  "@refusPaiementHorsDuWeb": {
+    "description": "Aucune adresse de retour a donner a Chargily hors du web. LA PHRASE NE RENVOIE PLUS VERS LE PROPRIETAIRE : le §9 interdit le contact direct, et l'ecran porte justement le moyen qui marche."
+  },
+  "refusSessionAcompte": "Votre session a expiré. Reconnectez-vous, votre réservation vous attend.",
+  "@refusSessionAcompte": { "description": "FE050." },
+  "refusPasVotreReservation": "Cette réservation n’est pas la vôtre.",
+  "@refusPasVotreReservation": {
+    "description": "FE051 — la base ne distingue pas « pas la votre » de « n'existe pas », et l'ecran non plus : rien ici n'apprend a un curieux qu'un identifiant existe."
+  },
+  "refusPasEncoreRepondu": "Le propriétaire n’a pas encore répondu à cette demande. Il n’y a pas encore d’acompte à verser.",
+  "@refusPasEncoreRepondu": { "description": "FE052." },
+  "refusOptionEteinte": "La date n’est plus tenue pour cette demande : le délai de 72 h est passé. Vous pouvez envoyer une nouvelle demande.",
+  "@refusOptionEteinte": { "description": "FE053 — le refus le plus dur de la liste : la date est repartie a la vente." },
+  "refusDejaRegle": "L’acompte de cette réservation est déjà réglé.",
+  "@refusDejaRegle": { "description": "FE054 — une bonne nouvelle, pas une erreur." },
+  "refusChoisirUneCarte": "Choisissez d’abord une carte, CIB ou Edahabia.",
+  "@refusChoisirUneCarte": { "description": "FE055 — le geste est a deux centimetres du bouton." },
+  "refusPaiementNonLance": "Le paiement n’a pas pu être lancé. Fermez puis rouvrez cet écran.",
+  "@refusPaiementNonLance": { "description": "FE056 et FE057 — des erreurs de programme, dont le client n'est pas responsable." },
+  "refusPaiementPasOuvert": "Le paiement en ligne n’est pas encore ouvert. Choisissez « Espèces sur place ».",
+  "@refusPaiementPasOuvert": {
+    "description": "FE058 — un defaut d'installation, pas un incident. ELLE NE NOMME AUCUN SECRET, et ne renvoie plus vers un contact direct (§9)."
+  },
+  "refusPageNonOuverte": "La page de paiement n’a pas pu être ouverte. Réessayez dans un instant.",
+  "@refusPageNonOuverte": { "description": "FE059 — Chargily n'a pas repondu, ou a repondu de travers." },
+
+  "@_S": "=== LE PROFIL, POUR LA SEULE BASCULE DE LANGUE =============",
+
+  "profilLangue": "Langue",
+  "@profilLangue": {
+    "description": "La ligne « Langue » du profil. LE RESTE DE CET ECRAN N'EST PAS TRADUIT au J22 : il est hors du parcours des six ecrans, et une traduction a moitie dirait que le travail est inacheve."
   }
 }

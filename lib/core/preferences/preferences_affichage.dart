@@ -24,6 +24,22 @@ abstract interface class PreferencesAffichage {
 
   /// Retient la salle ouverte. `null` oublie le choix.
   Future<void> retenirSalle(String? venueId);
+
+  /// Le code de langue retenu — `fr`, `ar` — ou `null` si personne n'a choisi.
+  ///
+  /// UNE LANGUE EST UNE PRÉFÉRENCE D'AFFICHAGE, et c'est ce qui lui donne le
+  /// droit d'être ici : elle ne dit rien de qui vous êtes, elle dit comment
+  /// vous voulez lire. Elle est aussi la seule chose qu'il faut connaître AVANT
+  /// la première image — avant la session, avant le réseau, avant le profil.
+  /// Une langue qui attendrait une réponse de Supabase ferait clignoter
+  /// l'application en français chez quelqu'un qui l'a mise en arabe.
+  ///
+  /// `profiles.locale` reste la trace durable, celle qui suit le compte d'un
+  /// appareil à l'autre ; les deux s'écrivent ensemble.
+  Future<String?> langue();
+
+  /// Retient la langue choisie.
+  Future<void> retenirLangue(String codeLangue);
 }
 
 /// L'implémentation qui écrit vraiment sur l'appareil.
@@ -38,6 +54,9 @@ class PreferencesAffichagePartagees implements PreferencesAffichage {
   /// avec tout ce qui tourne sur le même domaine, la session Supabase comprise.
   static const String _cleSalle = 'ferha.owner.venue';
 
+  /// Préfixée comme la précédente, et pour la même raison.
+  static const String _cleLangue = 'ferha.langue';
+
   @override
   Future<String?> salleChoisie() => _stockage.getString(_cleSalle);
 
@@ -45,6 +64,13 @@ class PreferencesAffichagePartagees implements PreferencesAffichage {
   Future<void> retenirSalle(String? venueId) => venueId == null
       ? _stockage.remove(_cleSalle)
       : _stockage.setString(_cleSalle, venueId);
+
+  @override
+  Future<String?> langue() => _stockage.getString(_cleLangue);
+
+  @override
+  Future<void> retenirLangue(String codeLangue) =>
+      _stockage.setString(_cleLangue, codeLangue);
 }
 
 /// Les préférences d'affichage de l'appareil.
