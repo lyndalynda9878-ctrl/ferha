@@ -55,8 +55,9 @@ import 'owner_fakes.dart';
 ///   * L'ERREUR DE RÉSEAU — un message, un détail technique et un bouton, tous
 ///     trois arrivés après coup, parfois sur une seule ligne.
 ///
-/// Trente images, donc, et quatre contrôles sur chacune. Les contrôles sont
-/// dans `controles_arabe.dart`, avec ce qu'ils cherchent et pourquoi.
+/// Trente images, donc — soixante en comptant les deux thèmes —, et quatre
+/// contrôles sur chacune. Les contrôles sont dans `controles_arabe.dart`, avec
+/// ce qu'ils cherchent et pourquoi.
 ///
 /// =============================================================================
 /// ON N'ATTEND PAS LE REPOS, ON AVANCE D'UNE SECONDE
@@ -233,6 +234,7 @@ void main() {
     WidgetTester tester,
     Widget ecran,
     Etat etat, {
+    required ThemeData theme,
     bool connecte = false,
   }) async {
     tester.view.physicalSize = telephoneDesMaquettes;
@@ -251,7 +253,7 @@ void main() {
           locale: const Locale('ar'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: ferhaSupportedLocales,
-          theme: FerhaTheme.light(),
+          theme: theme,
           home: const Scaffold(body: SizedBox.shrink()),
         ),
       ),
@@ -273,6 +275,16 @@ void main() {
       reason:
           'L’écran ne s’est pas monté. Ce n’est pas un défaut de traduction : '
           'regardez d’abord ce qu’il lui manque pour se construire.',
+    );
+
+    // ET EST-CE BIEN LE THÈME DEMANDÉ ? Monter deux fois le thème clair
+    // passerait les soixante images sans qu'une seule ne dise quoi que ce soit
+    // du sombre. La luminosité est ce qui les distingue : on la lit là où
+    // l'écran la lit, sous lui.
+    expect(
+      Theme.of(tester.element(find.byWidget(ecran))).brightness,
+      theme.brightness,
+      reason: 'Le thème posé n’est pas celui que le banc croit mesurer.',
     );
   }
 
@@ -322,24 +334,51 @@ void main() {
     'profil': (widget: const ProfilScreen(), connecte: true),
   };
 
-  for (final etat in Etat.values) {
-    group('En arabe, ${etat.libelle}', () {
-      ecrans.forEach((nom, cas) {
-        testWidgets(nom, (tester) async {
-          final ou = '$nom — ${etat.libelle}';
-          await monte(tester, cas.widget, etat, connecte: cas.connecte);
+  // LES DEUX THÈMES, ET LES QUATRE CONTRÔLES SUR CHACUN.
+  //
+  // C'est la règle du projet — clair ET sombre pour chaque écran — et ce n'est
+  // pas une formalité ici : un thème ne change pas la longueur d'un mot, mais
+  // il change les graisses et les contrastes, et `FerhaTheme` ne se contente
+  // pas d'échanger des couleurs. Une rangée qui tenait de justesse dans l'un
+  // peut céder dans l'autre, et l'état vide comme l'état d'erreur sont
+  // justement ceux où une phrase longue se retrouve seule dans sa colonne.
+  //
+  // Les trois autres contrôles ne devraient rien voir de nouveau : un thème ne
+  // traduit pas un texte et ne retourne pas une icône. On les passe quand même
+  // — ils coûtent une lecture d'arbre déjà monté, et le jour où un écran
+  // choisira un libellé ou un glyphe selon la luminosité, personne n'aura à y
+  // penser.
+  final themes = <String, ThemeData Function()>{
+    'clair': FerhaTheme.light,
+    'sombre': FerhaTheme.dark,
+  };
 
-          // L'ORDRE COMPTE : `takeException` vide la file, donc le contrôle du
-          // débordement passe en premier. Les trois autres lisent l'arbre, et
-          // un arbre qui a levé n'est pas lisible.
-          aucunDebordement(tester, ou);
-          aucunTexteFrancais(tester, ou);
-          aucunChiffreArabeIndien(tester, ou);
-          lesIconesSuiventLaDirection(tester, ou);
+  themes.forEach((nomDuTheme, theme) {
+    for (final etat in Etat.values) {
+      group('En arabe et en thème $nomDuTheme, ${etat.libelle}', () {
+        ecrans.forEach((nom, cas) {
+          testWidgets(nom, (tester) async {
+            final ou = '$nom — ${etat.libelle}, thème $nomDuTheme';
+            await monte(
+              tester,
+              cas.widget,
+              etat,
+              theme: theme(),
+              connecte: cas.connecte,
+            );
+
+            // L'ORDRE COMPTE : `takeException` vide la file, donc le contrôle
+            // du débordement passe en premier. Les trois autres lisent
+            // l'arbre, et un arbre qui a levé n'est pas lisible.
+            aucunDebordement(tester, ou);
+            aucunTexteFrancais(tester, ou);
+            aucunChiffreArabeIndien(tester, ou);
+            lesIconesSuiventLaDirection(tester, ou);
+          });
         });
       });
-    });
-  }
+    }
+  });
 
   // ===========================================================================
   // CE QUE LE BANC NE VOIT PAS TOUT SEUL
