@@ -222,10 +222,10 @@ class _GalerieEnTete extends StatelessWidget {
                   context,
                 ).fichePhotos('${salle.photos.length}'),
               ),
-              onPressed: () => context.push(
-                FerhaRoutes.galerieDe(salle.id),
-                extra: salle.photos,
-              ),
+              // RIEN N'EST TENDU À LA GALERIE. Elle relit la fiche elle-même :
+              // c'est ce qui lui permet de s'ouvrir sur une adresse collée, et
+              // de survivre au rechargement de la page.
+              onPressed: () => context.push(FerhaRoutes.galerieDe(salle.id)),
             ),
           ),
       ],

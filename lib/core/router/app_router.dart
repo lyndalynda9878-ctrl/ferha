@@ -106,15 +106,28 @@ final routerProvider = Provider<GoRouter>((ref) {
           );
         },
       ),
+      // LA GALERIE NE REÇOIT QUE L'IDENTIFIANT, ET ELLE VA CHERCHER LE RESTE.
+      //
+      // Elle recevait aussi les photos par `extra`, tendues par la fiche qui
+      // les avait déjà chargées. C'était une économie d'une requête, et elle
+      // coûtait la page : `go_router` range `extra` dans l'historique du
+      // navigateur, sérialisé en JSON faute d'`extraCodec` — voir
+      // `RouteMatchListCodec` dans go_router. Un décodeur JSON ne rend que des
+      // `List<dynamic>` ; le `as List<String>?` qui était ici ne pouvait donc
+      // pas réussir au retour d'un rechargement ou du bouton Précédent. Pas
+      // « parfois » : jamais.
+      //
+      // ON NE RÉPARE PAS LE TRANSTYPAGE, ON RETIRE LA DÉPENDANCE. Le README dit
+      // qu'une page doit survivre à un rechargement et se partager ; une
+      // galerie qui attend ce que l'écran précédent lui a tendu ne le peut pas,
+      // qu'elle plante ou qu'elle s'affiche vide. `GalerieScreen` savait déjà
+      // lire `ficheProvider` pour le cas du lien profond — c'est maintenant son
+      // seul chemin, et il n'y en a plus qu'un à tenir.
       GoRoute(
         path: FerhaRoutes.galerie,
         parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) => GalerieScreen(
-          venueId: state.pathParameters['id']!,
-          // Passées par la fiche, qui les a déjà chargées ; relues si l'on
-          // entre par un lien profond.
-          photos: (state.extra as List<String>?),
-        ),
+        builder: (context, state) =>
+            GalerieScreen(venueId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: FerhaRoutes.calendrier,
