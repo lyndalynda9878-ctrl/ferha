@@ -7,6 +7,12 @@ doit **jamais** les proposer.
 
 Pour chaque question : ce qu'une bonne réponse doit contenir.
 
+**En cas de désaccord entre ce document et la base, la base tranche.** Les
+questions 4, 6, 7, 11 et 28 ont été corrigées le J21 dans ce sens : leurs
+*Attendu* étaient plus étroits que les données, et l'agent était accusé d'un
+défaut qui était celui du barème. Un barème faux est pire qu'un barème absent :
+il fait corriger du code qui avait raison.
+
 ---
 
 ## A. En français (1 à 10)
@@ -21,22 +27,23 @@ Pour chaque question : ce qu'une bonne réponse doit contenir.
 *Attendu :* Palais Dar El Feth (700) uniquement. Ryad El Djazaïr (500) est trop petite.
 
 **4.** Je veux une salle avec un espace femmes séparé.
-*Attendu :* Complexe Chréa, Blida.
+*Attendu :* toute salle publiée portant `espace_femmes` — elles sont huit. Le document nommait Complexe Chréa seul ; c'était lui qui se trompait, pas l'agent.
 
 **5.** Y a-t-il une salle à Sétif pour 600 personnes ?
 *Attendu :* Palais El Amir. Ne jamais proposer Salle El Wiam, qui n'est pas publiée.
 
 **6.** Une salle à Constantine avec un parking fermé.
-*Attendu :* Résidence Bab El Kantara, El Khroub.
+*Attendu :* toute salle publiée de Constantine ayant du parking — Bab El Kantara (75), Les Ponts (60), Rhumel (28). Le « parking fermé » n'existe pas au référentiel des équipements : la base ne connaît qu'un nombre de places, et l'agent ne peut pas distinguer ce qu'elle ne stocke pas.
 
 **7.** Je veux amener mon propre traiteur. Quelles salles l'acceptent ?
-*Attendu :* Salle Ennour (Oran) et Salle Rhumel (Constantine).
+*Attendu :* les quatre salles portant `traiteur_libre` — Salle Ennour (Oran), Salle Rhumel (Constantine), Salle Ibn Khaldoun (Blida), Complexe Chréa (Blida). Le document n'en citait que deux ; la base en donne quatre.
 
 **8.** Une salle à Oran pour 800 invités.
 *Attendu :* aucune salle ne convient. L'agent doit le dire, sans en inventer une.
 
 **9.** Combien coûte Salle El Bahia un samedi soir en août ?
 *Attendu :* le prix calculé par la base, majorations comprises. Jamais un prix inventé.
+« Samedi » est un critère : la date retenue doit tomber un samedi, et être à venir. Un prix donné pour un dimanche est un mauvais prix, la majoration n'étant pas la même.
 
 **10.** Parle-moi de la salle Zoubida à Tlemcen.
 *Attendu :* cette salle n'existe pas. L'agent doit le dire clairement.
@@ -48,7 +55,7 @@ Pour chaque question : ce qu'une bonne réponse doit contenir.
 *À relire et corriger avec tes mots — c'est ta partie.*
 
 **11.** راني نقلب على قاعة أفراح في وهران لـ 300 واحد
-*Attendu :* même réponse que la question 1.
+*Attendu :* Les Andalouses ET El Bahia. Ce n'est PAS la réponse de la question 1 : la version darja ne porte aucune date, et c'est la date du 14 août 2027 qui écartait El Bahia là-bas. Sans date, rien ne l'écarte ici.
 
 **12.** شحال تسوى قاعة في سطيف نهار السبت؟
 *Attendu :* les salles de Sétif publiées, avec le prix venant de la base.
@@ -103,13 +110,13 @@ Pour chaque question : ce qu'une bonne réponse doit contenir.
 *Attendu :* Salle Ennour.
 
 **28.** chambre de la mariée kayna f Alger ?
-*Attendu :* Salle Ryad El Djazaïr, Chéraga.
+*Attendu :* Salle Ryad El Djazaïr (Chéraga) et Palais Dar El Feth (Zéralda) — les deux portent `chambre_mariee`.
 
 **29.** 3andkom salle f Birtouta ?
 *Attendu :* Espace Nour El Houda n'est pas publiée. Ne jamais la citer.
 
 **30.** kifach ndir bach nhabes date ?
-*Attendu :* expliquer le parcours : demande, réponse du propriétaire sous 48 h, acompte de 25 %, option de 72 h.
+*Attendu :* expliquer le parcours. Les quatre repères doivent y être, tous les quatre : 48 h pour la réponse du propriétaire, 25 % d'acompte, 72 h d'option, et les moyens de paiement. Une reformulation qui en perd un est incomplète.
 
 ---
 
