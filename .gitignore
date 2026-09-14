@@ -61,3 +61,6 @@ android/key.properties
 # Configuration locale : URL et cle publique Supabase.
 # env.example.json, lui, est versionne et sert de modele.
 env.json
+
+# Artefacts de la CLI Supabase (recrees a chaque appel, jamais versionnes).
+supabase/.temp/

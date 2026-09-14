@@ -139,8 +139,8 @@ $aJouer = if ($seulement.Count) { $seulement } else { $liste.Keys | Sort-Object 
 $resultats = @()
 
 Write-Host ""
-Write-Host ("  {0,-3} {1,-7} {2,-28} {3,-30} {4}" -f "N", "statut", "criteres", "salles proposees", "verifications")
-Write-Host ("  " + ("-" * 116))
+Write-Host ("  {0,-3} {1,-7} {2,-36} {3,-30} {4}" -f "N", "statut", "criteres", "salles proposees", "verifications")
+Write-Host ("  " + ("-" * 124))
 
 foreach ($n in $aJouer) {
   $q = $liste[[int]$n]
@@ -218,13 +218,19 @@ foreach ($n in $aJouer) {
   if ($crit.invites)        { $resumeCrit += "$($crit.invites)p" }
   if ($crit.date)           { $resumeCrit += $crit.date }
   if ($crit.creneau)        { $resumeCrit += $crit.creneau }
+  if ($crit.jour_semaine)   { $resumeCrit += $crit.jour_semaine }
   if ($crit.budget_max)     { $resumeCrit += "<=$($crit.budget_max)" }
   if ($crit.type_evenement) { $resumeCrit += $crit.type_evenement }
   if ($crit.equipements -and @($crit.equipements).Count) {
     $resumeCrit += (@($crit.equipements) -join "+")
   }
+  # LES TROIS CRITERES DU J21. Sans eux, on voit l'ordre des salles changer
+  # sans voir POURQUOI : le banc montrerait un resultat sans sa cause.
+  if ($crit.parking_min)    { $resumeCrit += "park>=$($crit.parking_min)" }
+  if ($crit.parking_flou)   { $resumeCrit += "park-bzaf" }
+  if ($crit.prix_bas)       { $resumeCrit += "pas-cher" }
   $txtCrit = if ($resumeCrit.Count) { $resumeCrit -join " " } else { "(aucun)" }
-  if ($txtCrit.Length -gt 28) { $txtCrit = $txtCrit.Substring(0, 25) + "..." }
+  if ($txtCrit.Length -gt 36) { $txtCrit = $txtCrit.Substring(0, 33) + "..." }
 
   $txtSalles = if ($citees.Count) { ($citees -join ", ") } else { "(aucune)" }
   if ($txtSalles.Length -gt 30) { $txtSalles = $txtSalles.Substring(0, 27) + "..." }
@@ -235,7 +241,7 @@ foreach ($n in $aJouer) {
   $marques += if ($c3) { " prix+" } else { " prix-" }
   $couleur = if ($c1 -and $c2 -and $c3) { "Green" } else { "Red" }
 
-  Write-Host ("  {0,-3} {1,-7} {2,-28} {3,-30} {4}" -f $n, $statut, $txtCrit, $txtSalles, $marques) -ForegroundColor $couleur
+  Write-Host ("  {0,-3} {1,-7} {2,-36} {3,-30} {4}" -f $n, $statut, $txtCrit, $txtSalles, $marques) -ForegroundColor $couleur
   if (-not $c1) { Write-Host ("       hors contexte : " + ($horsContexte -join ", ")) -ForegroundColor Red }
   if (-not $c2) { Write-Host ("       NON PUBLIEE   : " + ($fuites -join ", ")) -ForegroundColor Red }
   if (-not $c3) { Write-Host ("       prix inconnus : " + ($inventes -join ", ")) -ForegroundColor Red }
@@ -260,7 +266,7 @@ $n      = $joues.Count
 $ok     = @($joues | Where-Object { $_.c1 -and $_.c2 -and $_.c3 }).Count
 
 Write-Host ""
-Write-Host ("  " + ("=" * 116))
+Write-Host ("  " + ("=" * 124))
 Write-Host ("  Questions envoyees                    : {0}" -f $total)
 Write-Host ("  Dont refusees avant le modele         : {0}   (quota ou panne - rien n'a ete verifie)" -f $rates.Count)
 Write-Host ("  REELLEMENT JOUEES                     : {0}" -f $n)

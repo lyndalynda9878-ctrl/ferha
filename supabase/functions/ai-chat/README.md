@@ -37,8 +37,47 @@ modèle produire un fait, il s'est trompé au moins une fois :
 * il **recopiait la date de l'exemple** du prompt dans la phrase d'hypothèse —
   « je pars sur le 14 août » en chiffrant le 1er.
 
-Les deux vivent maintenant dans `avancerJusquAVenir()` et
-`phraseAnneeSupposee()`, où rien ne peut les déformer.
+* il choisissait le **1er août** pour « un samedi soir en août » — un dimanche —
+  et donnait donc le prix d'un dimanche, la majoration du week-end n'étant pas
+  la même ;
+* il **perdait l'option de 72 heures** en reformulant le parcours de
+  réservation : le délai au bout duquel la date se relâche.
+
+Les quatre vivent maintenant dans `avancerJusquAVenir()`,
+`prochaineDateAuJour()`, `phraseAnneeSupposee()` et `procedureComplete()`, où
+rien ne peut les déformer.
+
+### Une réponse de procédure se vérifie
+
+Le parcours de réservation est une attestation, pas une rédaction. Les quatre
+repères — **48 h** de réponse, **25 %** d'acompte, **72 h** d'option, les moyens
+de paiement — sont cherchés dans la réponse rendue, chiffres arabes-indiens
+compris. S'il en manque un, on rejoue ; s'il en manque encore un, c'est
+`PROCEDURE` (ou `PROCEDURE_AR`) qui part **mot pour mot**, dans la langue de la
+question. Moins fluide, et juste.
+
+---
+
+## Les critères que le modèle extrait
+
+Le §8.1 dit que la similarité ne sait pas compter. Chaque fois qu'un nombre est
+parti dans `soft_query`, le vecteur l'a perdu :
+
+| Demande | Champ | Effet |
+|---|---|---|
+| « un samedi soir en août » | `jour_semaine` | la date devient le premier samedi à venir **de ce mois-là** |
+| « un parking d'au moins 100 places » | `parking_min` | un **filtre** : en dessous, la salle ne convient pas |
+| « beaucoup de parking », « bzaf » | `parking_flou` | un **tri** : `p_ordre = 'parking'`, du plus grand au plus petit |
+| « la moins chère », « رخيصة » | `prix_bas` | `p_ordre = 'prix'`, et la liste tombe à **trois** salles |
+
+`parking_spaces` est une colonne, pas un équipement : elle a donc un filtre et un
+tri, comme toute colonne chiffrée. Le prix, lui, vient toujours d'`estimate_price()`
+et de nulle part ailleurs — on n'ajoute qu'un ordre, jamais une seconde formule.
+
+**Le vecteur reste le classement par défaut.** Quand `p_ordre` est donné, il ne
+disparaît pas : il passe en second et départage les ex æquo. Une demande chiffrée
+se tranche par le chiffre ; ce que le chiffre ne sépare pas, le sens le sépare
+encore.
 
 ---
 
@@ -58,21 +97,32 @@ Un second passage cherche dans la prose les noms du catalogue entier, brouillons
 compris. Il attrape ce que la déclaration ne dit pas : une salle nommée sans que
 son identifiant soit déclaré.
 
-**Il ne voit rien d'une réponse en arabe.** L'agent y translittère les noms —
-`قاعة ابن خلدون` pour Salle Ibn Khaldoun, `مجمع الشريعة` pour Complexe Chréa —
-et aucune comparaison de chaînes latines ne les y retrouvera. Environ un tiers
-des questions de référence sont concernées.
+**Il ne voyait rien d'une réponse en arabe**, tant que l'agent y translittérait
+les noms — `قاعة ابن خلدون` pour Salle Ibn Khaldoun — car aucune comparaison de
+chaînes latines ne les y retrouve. Environ un tiers des questions de référence
+sont en arabe.
 
-Ce n'est pas un oubli. Écrire un détecteur de noms translittérés demanderait de
-deviner comment un modèle rend « Chréa » en arabe : ce serait une seconde source
-de vérité, plus fragile que celle qu'elle prétend garder, et fausse le jour où
-le modèle change de translittération. On préfère une limite connue à une
-protection qui ment.
+Écrire un détecteur de noms translittérés était exclu : cela demanderait de
+deviner comment un modèle rend « Chréa » en arabe, une seconde source de vérité
+plus fragile que celle qu'elle prétend garder.
 
-**Conséquence pratique** : sur une réponse en arabe, la garantie repose
-entièrement sur la déclaration d'identifiants. Elle tient tant que le modèle
-déclare fidèlement ce qu'il cite — ce que le prompt lui présente comme le champ
-le plus important.
+**On a donc pris le problème par l'autre bout : le nom ne se translittère plus.**
+La règle 9 du prompt de rédaction impose d'écrire le nom propre d'une salle
+exactement comme le contexte le porte, en écriture latine, même au milieu d'une
+phrase en arabe — `قاعة Salle Ibn Khaldoun`. Elle a d'abord une raison d'usage :
+c'est le nom que la personne lira sur l'application, et une translittération
+l'empêche de l'y retrouver. Elle a pour effet second de rendre ce filet
+opérant dans les deux écritures.
+
+**Ce que cela ne garantit pas.** Une règle de prompt se néglige. Quand le modèle
+désobéit et translittère quand même, le filet ne voit rien — comme avant, et
+sans le dire. Il échoue ouvert. La garantie, sur une réponse en arabe comme
+ailleurs, reste la déclaration d'identifiants : c'est elle qui est vérifiée, et
+c'est pour cela que le prompt en fait le champ le plus important.
+
+La question 16 avait produit `قاعة ابن خaldoun` — un nom coupé au milieu entre
+les deux écritures, illisible dans l'une comme dans l'autre. C'est ce cas-là,
+autant que le filet, que la règle 9 ferme.
 
 ### Deux noms qui échappent au filet
 
@@ -88,16 +138,25 @@ ces salles-là aussi, seul le contrôle par identifiant s'applique.
 Trois règles vivent dans le prompt et **rien ne les vérifie mécaniquement** :
 
 1. **Ne renvoyer vers rien** quand la liste est vide — ni « les communes
-   voisines », ni « revenez plus tard ». Mesurée sur les 30 questions, elle
-   tient deux fois sur trois : la question 29 invite encore à « vérifier les
-   wilayas ou communes voisines ».
-2. **Répondre dans la langue de la question.** Tenue partout sauf sur la
-   question 20, répondue en français à une question en darja.
-3. **Au plus cinq salles.** Garantie autrement : le contexte lui-même est coupé
-   à cinq, et un contexte absent ne se cite pas.
+   voisines », ni « revenez plus tard ».
+2. **Répondre dans la langue de la question.** La question 15, en darja, a été
+   répondue en français au banc du J20.
+3. **N'affirmer d'une salle que ce que le contexte contient** (règle 10). La
+   question 18 présentait Salle El Bahia comme « proche de la mer » : la base ne
+   le dit nulle part, et le contexte envoyé au modèle ne contient aucune
+   description. Un fait inventé sur une salle vraie est aussi coûteux qu'une
+   salle inventée — la personne se déplace pour rien dans les deux cas — mais
+   **aucun contrôle mécanique ne peut le détecter** : vérifier une prose libre
+   contre un contexte demanderait un second modèle, qui se tromperait aussi.
+4. **Écrire les noms en écriture latine** (règle 9), traitée plus haut.
+5. **Au plus cinq salles.** Garantie autrement : le contexte lui-même est coupé
+   à cinq — trois quand la question porte sur le prix — et un contexte absent ne
+   se cite pas.
 
-Les deux premières demanderaient un contrôle automatique pour devenir des
-garanties. En l'état, ce sont des tendances — bonnes, pas certaines.
+Ce sont des tendances, pas des certitudes. La 3 est celle qui compte le plus et
+c'est aussi celle qu'on sait le moins vérifier : elle repose entièrement sur le
+fait que le contexte est **pauvre**. Le jour où l'on y ajoutera la description
+libre d'une salle, le modèle aura de la matière à reformuler — et à déborder.
 
 ---
 
@@ -115,6 +174,9 @@ garanties. En l'état, ce sont des tendances — bonnes, pas certaines.
 * **Le mode dégradé en recherche plein texte (§8.4).** Si le service d'empreintes
   ne répond pas, l'agent continue **sans vecteur** : le tri exact suffit, le
   classement fin est perdu. Le repli `tsvector` + `pg_trgm` reste à écrire.
-* **Le classement ne sait pas lire un nombre dans un document.** La question 14
-  — « une salle avec beaucoup de places de parking » — ne se filtre pas, et le
-  vecteur ne compare pas 150 à 35. Il faudrait en faire un critère exact.
+* **La description d'une salle n'est pas dans le contexte.** Le modèle reçoit le
+  nom, la commune, la capacité, les équipements, le prix et la note — rien qui
+  décrive le lieu. C'est ce qui rend la règle 10 tenable aujourd'hui, et ce qui
+  empêche l'agent de répondre finement à « une salle près de la mer » autrement
+  que par le classement vectoriel. Ajouter la description est un arbitrage à
+  faire, pas un oubli.

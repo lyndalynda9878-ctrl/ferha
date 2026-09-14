@@ -17,6 +17,12 @@
 // salle déjà réservée. On ne lui confie donc jamais un chiffre — seulement le
 // flou : « moderne », « avec un jardin », « près de la mer ».
 //
+// C'EST POURQUOI LES NOMBRES REMONTENT UN À UN DANS LE SQL. Le jour de la
+// semaine, le nombre de places de parking et « la moins chère » partaient
+// encore au vecteur au J20, et il les a tous perdus : un prix de dimanche pour
+// une question sur un samedi, les parkings de 75 et 55 places proposés quand la
+// base en a un de 150. Chacun a maintenant son champ, son filtre ou son tri.
+//
 // =============================================================================
 // LE MODÈLE : gemini-3.5-flash-lite
 //
@@ -85,6 +91,10 @@ const MODELE_PAR_DEFAUT = "gemini-3.5-flash-lite";
 /// consigne se néglige, un contexte absent ne se cite pas.
 const SALLES_MAX = 5;
 
+/// Et trois quand la question porte sur le prix. Voir l'appel à
+/// `salles_pour_agent` : une liste classée par prix n'a d'intérêt qu'en tête.
+const SALLES_PRIX_BAS = 3;
+
 /// Un rejeu, pas deux. Voir l'en-tête.
 const REJEUX_MAX = 1;
 
@@ -104,6 +114,22 @@ const TYPES_EVENEMENT = [
 
 const CRENEAUX = ["midi", "soir", "journee"];
 
+/// Les jours de la semaine, dans l'ordre de `Date.getUTCDay()` décalé : l'index
+/// 0 y est dimanche, et c'est `JOURS_ISO` qui garde cet ordre-là.
+const JOURS_SEMAINE = [
+  "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche",
+];
+
+/// Indexé comme `Date.getUTCDay()` : 0 = dimanche.
+const JOURS_ISO = [
+  "dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi",
+];
+
+const JOURS_AR: Record<string, string> = {
+  lundi: "الإثنين", mardi: "الثلاثاء", mercredi: "الأربعاء", jeudi: "الخميس",
+  vendredi: "الجمعة", samedi: "السبت", dimanche: "الأحد",
+};
+
 /// LE PARCOURS DE RÉSERVATION, EN DUR ET EN COURT.
 ///
 /// L'agent ne savait pas répondre à « comment je bloque une date ? » : personne
@@ -120,6 +146,33 @@ const PROCEDURE = `Comment réserver sur Ferha :
 4. Vous avez 72 heures pour le faire : c'est l'option, et elle tient la date pour vous.
 5. L'acompte se paie par carte CIB ou Edahabia, ou en espèces sur place.
 6. La réservation est confirmée une fois l'acompte encaissé.`;
+
+/// LE MÊME PARCOURS, EN ARABE, ET EN DUR LUI AUSSI.
+///
+/// Il ne sert pas à répondre d'habitude — le modèle traduit très bien — mais à
+/// GARANTIR. Quand la traduction perd un repère, c'est ce texte-ci qui part,
+/// et une personne qui écrit en arabe mérite le repli dans sa langue, pas un
+/// paragraphe français.
+const PROCEDURE_AR = `كيفاش تحجز في فرحة:
+1. تبعث طلب للقاعة: التاريخ، الفترة، وعدد المدعوين.
+2. صاحب القاعة يرد في ظرف 48 ساعة — يقبل ولا يرفض.
+3. إذا قبل، تدفع تسبيق 25 % من المبلغ المتفق عليه.
+4. عندك 72 ساعة باش تدفعه: هذا هو الخيار، وهو اللي يحجز لك التاريخ.
+5. التسبيق يتدفع ببطاقة CIB ولا الذهبية، ولا نقدا في عين المكان.
+6. الحجز يتأكد كي يوصل التسبيق.`;
+
+/// LES QUATRE REPÈRES D'UNE RÉPONSE DE PROCÉDURE.
+///
+/// Le modèle reformulait le parcours et laissait tomber l'option de 72 heures —
+/// c'est-à-dire le délai au bout duquel la date se libère. Un oubli qui coûte
+/// une salle.
+///
+/// On ne le lui demande donc plus seulement : on vérifie. Trois nombres et un
+/// moyen de paiement, et à défaut c'est le texte de référence qui part, mot
+/// pour mot. Le §8.5 dit que le modèle rédige et n'atteste pas ; un parcours de
+/// réservation est une attestation.
+const REPERES_PROCEDURE = ["48", "25", "72"];
+const MOYEN_DE_PAIEMENT = /cib|edahabia|dahabia|ذهبي|نقد|espece/;
 
 const WILAYAS =
   "01 Adrar, 02 Chlef, 03 Laghouat, 04 Oum El Bouaghi, 05 Batna, 06 Béjaïa, " +
@@ -161,10 +214,15 @@ const SCHEMA_CRITERES = {
     budget_max: { type: "integer" },
     type_evenement: { type: "string" },
     equipements: { type: "array", items: { type: "string" } },
+    jour_semaine: { type: "string", enum: ["", ...JOURS_SEMAINE] },
+    parking_min: { type: "integer" },
+    parking_flou: { type: "boolean" },
+    prix_bas: { type: "boolean" },
     soft_query: { type: "string" },
   },
   required: [
     "hors_sujet", "question_procedure", "langue", "date_origine",
+    "jour_semaine", "parking_min", "parking_flou", "prix_bas",
     "equipements", "soft_query",
   ],
 };
@@ -193,6 +251,16 @@ type Criteres = {
   budget_max: number;
   type_evenement: string;
   equipements: string[];
+  /// Le jour de la semaine nommé par la question. Vide s'il n'y en a pas.
+  jour_semaine: string;
+  /// Vrai quand c'est ce jour-là qui a fixé la date — la réponse le dit.
+  jour_impose: boolean;
+  /// Un nombre de places exigé ; 0 quand la question n'en donne aucun.
+  parking_min: number;
+  /// « beaucoup de parking », sans chiffre : un ordre de tri, pas un filtre.
+  parking_flou: boolean;
+  /// « la moins chère » : un ordre de tri, et une liste plus courte.
+  prix_bas: boolean;
   soft_query: string;
 };
 
@@ -290,6 +358,54 @@ function avancerJusquAVenir(date: string, aujourdHui: string): string {
     annee++;
   }
   return date;
+}
+
+/// La prochaine date À VENIR qui tombe un jour de semaine donné.
+///
+/// « UN SAMEDI SOIR EN AOÛT » EST UNE DEMANDE CHIFFRÉE, et le prix en dépend :
+/// le week-end porte une majoration que le dimanche ne porte pas. L'agent
+/// répondait avec le prix du 1er août 2027 — un dimanche — à qui demandait un
+/// samedi. Le modèle n'avait pas tort de rendre le 1er : personne ne lui avait
+/// dit que le jour de la semaine comptait, et il n'avait pas de calendrier.
+///
+/// LE MOIS SURVIT AU JOUR. Quand la question nomme un mois, on ne prend pas le
+/// samedi de la semaine prochaine : on cherche le premier samedi À VENIR qui
+/// tombe dans ce mois-là. Sans mois, c'est simplement le prochain.
+///
+/// La boucle couvre huit ans — assez pour un mois qui vient de passer, et pour
+/// le cas où l'on chercherait un 29 février tombant un mardi.
+function prochaineDateAuJour(
+  jour: string,
+  aujourdHui: string,
+  mois: number | null,
+): string {
+  const cible = JOURS_ISO.indexOf(jour);
+  if (cible < 0) return "";
+
+  const depart = new Date(aujourdHui + "T00:00:00Z").getTime();
+  for (let i = 0; i < 3000; i++) {
+    const jourCandidat = new Date(depart + i * 86_400_000);
+    if (jourCandidat.getUTCDay() !== cible) continue;
+    if (mois && jourCandidat.getUTCMonth() + 1 !== mois) continue;
+    return jourCandidat.toISOString().slice(0, 10);
+  }
+  return "";
+}
+
+/// Les chiffres arabes-indiens ramenés aux nôtres, pour pouvoir chercher « 72 »
+/// dans une phrase qui l'écrit « ٧٢ ».
+function chiffresLatins(texte: string): string {
+  return texte
+    .replace(/[\u0660-\u0669]/g, (c) => String(c.charCodeAt(0) - 0x0660))
+    .replace(/[\u06f0-\u06f9]/g, (c) => String(c.charCodeAt(0) - 0x06f0));
+}
+
+/// Les quatre repères sont-ils tous là ? Voir REPERES_PROCEDURE.
+function procedureComplete(texte: string): boolean {
+  if (!texte) return false;
+  const avecChiffres = chiffresLatins(texte);
+  return REPERES_PROCEDURE.every((r) => avecChiffres.includes(r)) &&
+    MOYEN_DE_PAIEMENT.test(aplatir(avecChiffres));
 }
 
 /// Echappe ce qui a un sens dans une expression reguliere.
@@ -409,6 +525,9 @@ CHAMPS :
 - date : "AAAA-MM-JJ" si la question donne une date, même relative ("demain", "hier",
   "le 14 août"). Si l'année manque, prends la PROCHAINE occurrence À VENIR — jamais
   une date déjà passée. Chaîne vide si aucune date.
+  Quand la question nomme un MOIS sans jour du mois ("un samedi soir en août"),
+  remplis quand même ce champ avec le 1er de ce mois : c'est le mois qui compte
+  ici, et jour_semaine dira le reste.
 - date_origine : d'où vient cette date.
   "aucune"        : la question ne donne aucune date.
   "explicite"     : la question donne le jour, le mois ET l'année.
@@ -423,11 +542,26 @@ CHAMPS :
 - type_evenement : un seul parmi ${TYPES_EVENEMENT.join(", ")}. Chaîne vide sinon.
   "عرس" et "3ors" = mariage. "عقيقة" et "aqiqa" = circoncision.
 - equipements : les codes demandés, uniquement parmi ${EQUIPEMENTS.join(", ")}.
-  Tableau vide si aucun. "parking" n'est PAS un équipement : c'est une capacité
-  chiffrée, mets-la dans soft_query.
-- soft_query : ce qui reste et qui ne se filtre pas — l'ambiance, la proximité de
-  la mer, un grand parking, le prix bas. Reformule-le en quelques mots dans la
-  langue de la question. Chaîne vide s'il n'y a rien de tel.
+  Tableau vide si aucun. "parking" n'est PAS un équipement : c'est une colonne
+  chiffrée, et elle a ses deux champs à elle, juste en dessous.
+- jour_semaine : le jour de la semaine que nomme la question, parmi
+  ${JOURS_SEMAINE.join(", ")}. Reconnais l'arabe (السبت = samedi, الجمعة = vendredi,
+  الأحد = dimanche) et le translittéré ("nhar essebt", "jem3a"). Chaîne vide si la
+  question ne nomme aucun jour. "un samedi soir en août" donne "samedi".
+  CE CHAMP COMPTE : le prix d'un samedi n'est pas celui d'un dimanche.
+- parking_min : le nombre minimal de places de parking quand la question donne un
+  chiffre ("un parking d'au moins 100 voitures"). 0 sinon.
+- parking_flou : true quand la question demande BEAUCOUP de parking sans donner de
+  chiffre — "un grand parking", "de la place pour les voitures", "بلاصة
+  للطوموبيلات بزاف". false sinon. "avec parking" tout court n'est ni l'un ni
+  l'autre : laisse les deux champs vides.
+- prix_bas : true quand la personne cherche ce qui coûte le moins — "la moins
+  chère", "pas cher", "rkhisa", "قاعة رخيصة", "un petit budget". false sinon. Un
+  budget CHIFFRÉ va dans budget_max ; les deux peuvent être remplis ensemble.
+- soft_query : ce qui reste et qui ne se filtre pas — l'ambiance, le style, la
+  proximité de la mer. Reformule-le en quelques mots dans la langue de la
+  question. Chaîne vide s'il n'y a rien de tel. Le parking et le prix bas n'y
+  vont plus : ils ont désormais leurs propres champs.
 
 N'invente aucun critère qui ne soit pas dans la question.`;
 }
@@ -461,6 +595,20 @@ RÈGLES ABSOLUES :
    avant la tienne, avec la bonne date. Commence directement par ta réponse.
 8. Quand on te donne un texte de PROCÉDURE, réponds uniquement avec lui, dans la
    langue de la question, et ne nomme AUCUNE salle — venue_ids reste vide.
+9. LE NOM D'UNE SALLE S'ÉCRIT COMME DANS LE CONTEXTE, en écriture latine, lettre
+   pour lettre — "Salle Ibn Khaldoun", "Complexe Chréa", "Résidence Les
+   Andalouses" — MÊME AU MILIEU D'UNE PHRASE EN ARABE. Jamais de translittération,
+   jamais un nom coupé entre les deux écritures. Tu peux le faire précéder du mot
+   قاعة, mais le nom propre lui-même reste tel quel. C'est le nom qu'elle porte
+   sur l'application : la personne doit pouvoir le retrouver.
+10. TU NE DIS D'UNE SALLE QUE CE QUE LE CONTEXTE CONTIENT — sa commune, sa
+   capacité, ses équipements, son prix, sa note. Tu peux les reformuler, jamais
+   les compléter. Si le contexte ne dit pas qu'elle est près de la mer, qu'elle
+   est moderne, qu'elle a une belle vue ou un parking fermé, tu ne le dis pas.
+   INVENTER UN FAIT SUR UNE SALLE EST LA MÊME FAUTE QU'INVENTER UNE SALLE : dans
+   les deux cas, la personne se déplace pour quelque chose qui n'existe pas.
+   N'explique pas non plus POURQUOI une salle répond à la demande si le contexte
+   ne le dit pas — contente-toi de la présenter.
 
 Sois concret : nomme la salle, sa commune, sa capacité et son prix. Pas de formule
 de politesse longue, pas de liste à puces, pas de titres.`;
@@ -569,7 +717,16 @@ function dateEnClair(iso: string): string {
 ///
 /// C'est une affirmation FACTUELLE, comme la comparaison de dates plus haut :
 /// elle se construit ici, où la date est connue, et rien ne peut la déformer.
-function phraseAnneeSupposee(date: string, langue: string): string {
+/// `jour` est vide quand seule l'année manquait, et porte le jour de la semaine
+/// quand c'est lui qui a fixé la date — on ne dit pas « une autre année » à
+/// quelqu'un qui avait demandé un samedi.
+function phraseAnneeSupposee(date: string, langue: string, jour: string): string {
+  if (jour) {
+    if (langue === "ar") {
+      return `أنطلق من ${JOURS_AR[jour] ?? ""} ${date} — أخبرني إن كنت تقصد تاريخاً آخر. `;
+    }
+    return `Je pars sur le ${jour} ${dateEnClair(date)} — dites-moi si vous pensiez à une autre date. `;
+  }
   if (langue === "ar") {
     return `أنطلق من تاريخ ${date} — أخبرني إن كنت تقصد سنة أخرى. `;
   }
@@ -684,6 +841,13 @@ Deno.serve(async (requete: Request): Promise<Response> => {
       type_evenement: TYPES_EVENEMENT.includes(String(brut.type_evenement))
         ? String(brut.type_evenement) : "",
       equipements,
+      jour_semaine: JOURS_SEMAINE.includes(String(brut.jour_semaine))
+        ? String(brut.jour_semaine) : "",
+      jour_impose: false,
+      parking_min: Number(brut.parking_min) > 0
+        ? Math.round(Number(brut.parking_min)) : 0,
+      parking_flou: brut.parking_flou === true,
+      prix_bas: brut.prix_bas === true,
       soft_query: String(brut.soft_query ?? "").trim(),
     };
     langue = criteres.langue;
@@ -704,17 +868,37 @@ Deno.serve(async (requete: Request): Promise<Response> => {
     // VIDE, et la validation du §8.5 garantit qu'il ne nommera personne —
     // toute salle citée serait hors contexte, et ferait rejouer.
     if (criteres.question_procedure) {
-      const sortie = await demanderAuModele(
-        cleGemini, modele, instructionRedaction(),
-        JSON.stringify({
-          question,
-          langue_attendue: langue,
-          texte_de_procedure: PROCEDURE,
-          salles_disponibles: [],
-        }),
-        SCHEMA_REPONSE,
-      );
-      const texteProc = String(sortie.reponse ?? "").trim() || PROCEDURE;
+      // LES QUATRE REPÈRES SE VÉRIFIENT, ILS NE SE DEMANDENT PAS.
+      //
+      // Le modèle reformulait le parcours et perdait l'option de 72 heures —
+      // le délai au bout duquel la date se relâche. On relit donc sa réponse,
+      // et si un repère manque on rejoue ; s'il manque encore, c'est le texte
+      // de référence qui part, mot pour mot, dans la langue de la question.
+      // Moins fluide, et juste.
+      const texteDeReference = langue === "ar" ? PROCEDURE_AR : PROCEDURE;
+      let texteProc = "";
+
+      for (let essai = 0; essai <= REJEUX_MAX; essai++) {
+        const sortie = await demanderAuModele(
+          cleGemini, modele, instructionRedaction(),
+          JSON.stringify({
+            question,
+            langue_attendue: langue,
+            texte_de_procedure: texteDeReference,
+            salles_disponibles: [],
+          }),
+          SCHEMA_REPONSE,
+        );
+        const candidat = String(sortie.reponse ?? "").trim();
+        if (procedureComplete(candidat)) {
+          texteProc = candidat;
+          break;
+        }
+        console.error(`Procédure incomplète (essai ${essai + 1}).`);
+        rejeux = essai + 1;
+      }
+
+      if (!texteProc) texteProc = texteDeReference;
       await journaliser("procedure", [], null);
       return reponseHttp({
         reponse: texteProc,
@@ -735,6 +919,32 @@ Deno.serve(async (requete: Request): Promise<Response> => {
       // « 2027 » : c'est nous qui l'avons décidé pour lui, et il doit pouvoir
       // nous reprendre.
       criteres.annee_supposee = true;
+    }
+
+    // LE JOUR DE LA SEMAINE FIXE LA DATE, et il la fixe APRÈS le report d'année.
+    //
+    // « un samedi soir en août » : le modèle a rendu le 1er août, l'année a été
+    // avancée si besoin, et c'est seulement maintenant qu'on cherche le premier
+    // samedi À VENIR de ce mois-là. Le mois vient de la question, le jour de la
+    // semaine aussi ; le quantième, lui, n'a jamais été demandé par personne.
+    //
+    // ON NE TOUCHE À RIEN quand la date est explicite ou relative : qui écrit
+    // « le 14 août 2027 » a tranché, et « hier » ne se déplace pas jusqu'au
+    // samedi précédent.
+    if (
+      criteres.jour_semaine &&
+      (criteres.date_origine === "annee_absente" ||
+        criteres.date_origine === "aucune")
+    ) {
+      const mois = criteres.date ? Number(criteres.date.slice(5, 7)) : null;
+      const trouvee = prochaineDateAuJour(criteres.jour_semaine, aujourdHui, mois);
+      if (trouvee) {
+        criteres.date = trouvee;
+        criteres.jour_impose = true;
+        // On a choisi une date que la personne n'a pas donnée : elle doit
+        // pouvoir nous reprendre, comme pour l'année.
+        criteres.annee_supposee = true;
+      }
     }
 
     // LA DATE PASSÉE SE TRANCHE ICI, pas par le modèle. C'est une comparaison
@@ -807,7 +1017,21 @@ Deno.serve(async (requete: Request): Promise<Response> => {
       p_max_budget: criteres.budget_max || null,
       p_event_type: criteres.type_evenement || null,
       p_amenities: criteres.equipements.length ? criteres.equipements : null,
-      p_limit: SALLES_MAX,
+      // UNE EXIGENCE CHIFFRÉE SE FILTRE ; UNE PRÉFÉRENCE CLASSE.
+      //
+      // « au moins 100 places » retire les salles trop petites ; « beaucoup de
+      // parking » ne retire rien et remonte les plus grandes. Le §8.1 le dit
+      // autrement : la similarité ne sait pas compter, alors on ne lui confie
+      // plus les nombres.
+      p_parking_min: criteres.parking_min || null,
+      // LE PRIX L'EMPORTE SUR LE PARKING quand les deux sont demandés : « la
+      // moins chère » est un superlatif, il désigne UNE salle, et un tri par
+      // parking la ferait disparaître au milieu de la liste.
+      p_ordre: criteres.prix_bas ? "prix" : (criteres.parking_flou ? "parking" : null),
+      // TROIS, ET NON CINQ, QUAND ON DEMANDE LE MOINS CHER. Citer cinq salles
+      // classées par prix, c'est répondre « voici la moins chère, et voici
+      // quatre plus chères » : la quatrième dessert la réponse.
+      p_limit: criteres.prix_bas ? SALLES_PRIX_BAS : SALLES_MAX,
     })) as Salle[];
 
     // -------------------------------------------------------------------------
@@ -864,7 +1088,11 @@ Deno.serve(async (requete: Request): Promise<Response> => {
     // L'hypothèse d'abord, la réponse ensuite — et seulement sur une réponse
     // rédigée : une liste brute n'a pas de première phrase où la glisser.
     if (criteres.annee_supposee && statut !== "liste_brute") {
-      texte = phraseAnneeSupposee(criteres.date, langue) + texte;
+      texte = phraseAnneeSupposee(
+        criteres.date,
+        langue,
+        criteres.jour_impose ? criteres.jour_semaine : "",
+      ) + texte;
     }
 
     await journaliser(statut, ids, salles.length);
