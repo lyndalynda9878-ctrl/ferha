@@ -4,6 +4,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'textes_traduits.dart';
+import 'package:ferha/core/l10n/generated/app_localizations.dart';
+import 'package:ferha/core/l10n/locale_controller.dart';
 import 'package:ferha/core/preferences/preferences_affichage.dart';
 import 'package:ferha/core/router/routes.dart';
 import 'package:ferha/core/theme/ferha_theme.dart';
@@ -137,7 +140,12 @@ void main() {
             (ref, demande) async => <DateTime, EtatJour>{},
           ),
         ],
-        child: MaterialApp(theme: theme ?? FerhaTheme.light(), home: ecran),
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: ferhaSupportedLocales,
+          theme: theme ?? FerhaTheme.light(),
+          home: ecran,
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -252,6 +260,8 @@ void main() {
           ficheProvider.overrideWith((ref, demande) async => salle()),
         ],
         child: MaterialApp.router(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: ferhaSupportedLocales,
           theme: FerhaTheme.light(),
           routerConfig: routeur,
         ),
@@ -343,26 +353,38 @@ void main() {
     // mot la même phrase.
     for (final code in <String>['FE001', 'FE002', 'FE003', 'FE004', 'FE005']) {
       test('$code est définitif : le bouton n’a plus rien à envoyer', () {
-        final refus = refusDemande(_refusDeLaBase(code));
+        final refus = refusDemande(textesFr, _refusDeLaBase(code));
         expect(refus.definitif, isTrue, reason: code);
         expect(refus.message, isNotEmpty, reason: code);
       });
     }
 
     test('FE006 laisse une seconde chance : se reconnecter suffit', () {
-      expect(refusDemande(_refusDeLaBase('FE006')).definitif, isFalse);
+      expect(
+        refusDemande(textesFr, _refusDeLaBase('FE006')).definitif,
+        isFalse,
+      );
     });
 
     test('une option disparue se décoche et se renvoie', () {
-      expect(refusDemande(_erreurSqlstate('23503')).definitif, isFalse);
+      expect(
+        refusDemande(textesFr, _erreurSqlstate('23503')).definitif,
+        isFalse,
+      );
     });
 
     test('un créneau non tarifé ne se rattrape pas d’ici', () {
-      expect(refusDemande(_erreurSqlstate('P0002')).definitif, isTrue);
+      expect(
+        refusDemande(textesFr, _erreurSqlstate('P0002')).definitif,
+        isTrue,
+      );
     });
 
     test('une panne de réseau n’éteint rien', () {
-      expect(refusDemande(Exception('SocketException')).definitif, isFalse);
+      expect(
+        refusDemande(textesFr, Exception('SocketException')).definitif,
+        isFalse,
+      );
     });
   });
 

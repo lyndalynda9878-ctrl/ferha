@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/l10n/generated/app_localizations.dart';
+import '../../../core/l10n/message_erreur.dart';
 import '../../../core/theme/ferha_colors.dart';
 import '../../../core/theme/ferha_radii.dart';
-import '../../auth/auth_messages.dart';
 
 /// Squelette d'une carte de salle, pendant le chargement.
 ///
@@ -168,16 +169,19 @@ class EtatErreur extends StatelessWidget {
   const EtatErreur({
     required this.erreur,
     required this.onReessayer,
-    this.titre = 'La recherche n’a pas abouti',
+    this.titre,
     super.key,
   });
 
   /// Ce qui n'a pas abouti.
   ///
-  /// La recherche par défaut, parce que c'est elle qui a inauguré ce widget.
-  /// Ailleurs, le dire juste évite d'annoncer une recherche à quelqu'un qui
-  /// consultait ses réservations.
-  final String titre;
+  /// `null` prend « La recherche n'a pas abouti », parce que c'est la recherche
+  /// qui a inauguré ce widget. Ailleurs, le dire juste évite d'annoncer une
+  /// recherche à quelqu'un qui consultait ses réservations.
+  ///
+  /// LE DÉFAUT N'EST PLUS UNE CONSTANTE : il dépend de la langue, donc du
+  /// contexte, et un paramètre par défaut se calcule à la compilation.
+  final String? titre;
 
   /// L'erreur remontée, telle quelle.
   final Object erreur;
@@ -190,6 +194,7 @@ class EtatErreur extends StatelessWidget {
     final colors = context.ferhaColors;
     final text = Theme.of(context).textTheme;
     final rouge = Theme.of(context).colorScheme.error;
+    final textes = AppLocalizations.of(context);
 
     return Center(
       child: SingleChildScrollView(
@@ -201,10 +206,14 @@ class EtatErreur extends StatelessWidget {
             children: <Widget>[
               Icon(Icons.cloud_off_outlined, size: 44, color: rouge),
               const SizedBox(height: 16),
-              Text(titre, textAlign: TextAlign.center, style: text.titleLarge),
+              Text(
+                titre ?? textes.erreurRechercheTitre,
+                textAlign: TextAlign.center,
+                style: text.titleLarge,
+              ),
               const SizedBox(height: 8),
               Text(
-                messageErreurAuth(erreur),
+                messageErreur(textes, erreur),
                 textAlign: TextAlign.center,
                 style: text.bodyMedium?.copyWith(color: colors.inkSecondary),
               ),
@@ -214,7 +223,7 @@ class EtatErreur extends StatelessWidget {
                 child: FilledButton.icon(
                   onPressed: onReessayer,
                   icon: const Icon(Icons.refresh, size: 18),
-                  label: const Text('Réessayer'),
+                  label: Text(textes.reessayer),
                 ),
               ),
               const SizedBox(height: 16),
@@ -228,7 +237,7 @@ class EtatErreur extends StatelessWidget {
                   tilePadding: EdgeInsets.zero,
                   childrenPadding: EdgeInsets.zero,
                   title: Text(
-                    'Détail technique',
+                    textes.detailTechnique,
                     style: text.bodySmall?.copyWith(color: colors.inkTertiary),
                   ),
                   children: <Widget>[

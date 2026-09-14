@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/l10n/formats_ferha.dart';
+import '../../core/l10n/generated/app_localizations.dart';
 import '../../core/router/routes.dart';
 import '../../core/theme/ferha_colors.dart';
 import '../../core/theme/ferha_radii.dart';
@@ -97,6 +99,7 @@ class _Contenu extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.ferhaColors;
     final text = Theme.of(context).textTheme;
+    final textes = AppLocalizations.of(context);
 
     return CustomScrollView(
       slivers: <Widget>[
@@ -139,7 +142,7 @@ class _Contenu extends StatelessWidget {
 
               if (salle.equipements.isNotEmpty) ...<Widget>[
                 const SizedBox(height: 24),
-                const _Intitule('Équipements'),
+                _Intitule(textes.ficheEquipements),
                 const SizedBox(height: 10),
                 Wrap(
                   spacing: 8,
@@ -152,7 +155,7 @@ class _Contenu extends StatelessWidget {
 
               if (salle.typesEvenement.isNotEmpty) ...<Widget>[
                 const SizedBox(height: 24),
-                const _Intitule('Événements accueillis'),
+                _Intitule(textes.ficheEvenementsAccueillis),
                 const SizedBox(height: 10),
                 Text(
                   salle.typesEvenement.map((t) => t.libelle).join(' · '),
@@ -161,7 +164,7 @@ class _Contenu extends StatelessWidget {
               ],
 
               const SizedBox(height: 24),
-              const _Intitule('Tarifs'),
+              _Intitule(textes.ficheTarifs),
               const SizedBox(height: 10),
               _GrilleTarifaire(salle: salle, creneauMisEnAvant: creneau),
             ]),
@@ -214,7 +217,11 @@ class _GalerieEnTete extends StatelessWidget {
             padding: const EdgeInsetsDirectional.only(end: 12),
             child: ActionChip(
               avatar: const Icon(Icons.photo_library_outlined, size: 16),
-              label: Text('${salle.photos.length} photos'),
+              label: Text(
+                AppLocalizations.of(
+                  context,
+                ).fichePhotos('${salle.photos.length}'),
+              ),
               onPressed: () => context.push(
                 FerhaRoutes.galerieDe(salle.id),
                 extra: salle.photos,
@@ -234,37 +241,41 @@ class _TroisChiffres extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textes = AppLocalizations.of(context);
+
     return Row(
       children: <Widget>[
         Expanded(
           child: _Chiffre(
-            intitule: 'Capacité',
+            intitule: textes.ficheCapacite,
             valeur: '${salle.capacite}',
-            unite: 'couverts',
+            unite: textes.uniteCouverts,
           ),
         ),
         const SizedBox(width: 10),
         Expanded(
           child: _Chiffre(
-            intitule: 'Superficie',
+            intitule: textes.ficheSuperficie,
             // Non renseignée : on l'écrit, on n'invente pas un zéro.
             valeur: salle.superficie == null ? '—' : '${salle.superficie}',
-            unite: salle.superficie == null ? 'non renseignée' : 'm²',
+            unite: salle.superficie == null
+                ? textes.superficieNonRenseignee
+                : textes.uniteMetresCarres,
           ),
         ),
         const SizedBox(width: 10),
         Expanded(
           child: _Chiffre(
-            intitule: 'Parking',
+            intitule: textes.ficheParking,
             // NULL et 0 ne se disent pas pareil : « non renseigné » n'est pas
             // « pas de parking ».
             valeur: salle.placesParking == null
                 ? '—'
                 : '${salle.placesParking}',
             unite: switch (salle.placesParking) {
-              null => 'non renseigné',
-              0 => 'aucune place',
-              _ => 'places',
+              null => textes.parkingNonRenseigne,
+              0 => textes.parkingAucunePlace,
+              _ => textes.unitePlaces,
             },
           ),
         ),
@@ -306,7 +317,8 @@ class _Chiffre extends StatelessWidget {
             intitule.toUpperCase(),
             style: text.labelSmall?.copyWith(
               color: colors.inkTertiary,
-              letterSpacing: 1,
+              // Zéro en arabe : ses lettres se lient, les écarter casse le mot.
+              letterSpacing: context.espacementDesCapitales(1),
             ),
           ),
           const SizedBox(height: 6),
@@ -343,10 +355,12 @@ class _GrilleTarifaire extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.ferhaColors;
     final text = Theme.of(context).textTheme;
+    final textes = AppLocalizations.of(context);
+    final formats = FormatsFerha(textes);
 
     if (salle.tarifs.isEmpty) {
       return Text(
-        'Le propriétaire n’a pas encore renseigné ses tarifs.',
+        textes.ficheTarifsAbsents,
         style: text.bodyMedium?.copyWith(color: colors.inkSecondary),
       );
     }
@@ -361,9 +375,12 @@ class _GrilleTarifaire extends StatelessWidget {
           ),
         const SizedBox(height: 10),
         Text(
-          'Prix calculés pour le ${dateEnFrancais(salle.dateEstimation)}'
-          '${salle.invites == null ? '' : ', ${salle.invites} couverts'}. '
-          'Majorations comprises — ce n’est pas un « à partir de ».',
+          salle.invites == null
+              ? textes.ficheTarifsNote(formats.date(salle.dateEstimation))
+              : textes.ficheTarifsNoteInvites(
+                  formats.date(salle.dateEstimation),
+                  '${salle.invites}',
+                ),
           style: text.bodySmall?.copyWith(color: colors.inkTertiary),
         ),
       ],
@@ -386,12 +403,14 @@ class _LigneTarifaire extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.ferhaColors;
     final text = Theme.of(context).textTheme;
+    final textes = AppLocalizations.of(context);
+    final formats = FormatsFerha(textes);
 
     // « Soirée · samedi, haute saison » — d'où vient la majoration, plutôt
     // qu'un montant sans explication.
     final contexte = <String>[
-      if (tarif.jourMajore) 'jour majoré',
-      if (tarif.saisonMajoree) 'haute saison',
+      if (tarif.jourMajore) textes.majorationJour,
+      if (tarif.saisonMajoree) textes.majorationSaison,
     ];
 
     return Container(
@@ -413,14 +432,14 @@ class _LigneTarifaire extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Text(
-                      _nomCreneau(tarif.creneau),
+                      _nomCreneau(textes, tarif.creneau),
                       style: text.titleSmall?.copyWith(
                         fontWeight: FontWeight.w700,
                       ),
                     ),
                     if (contexte.isNotEmpty)
                       Text(
-                        contexte.join(', '),
+                        contexte.join(textes.separateurListe),
                         style: text.bodySmall?.copyWith(
                           color: colors.inkTertiary,
                         ),
@@ -429,7 +448,7 @@ class _LigneTarifaire extends StatelessWidget {
                 ),
               ),
               Text(
-                '${montantEnDinars(tarif.total)} DA',
+                formats.montant(tarif.total),
                 style: text.titleMedium?.copyWith(
                   fontWeight: FontWeight.w700,
                   color: colors.primaryDeep,
@@ -442,10 +461,7 @@ class _LigneTarifaire extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            '${tarif.couvertsInclus} couverts compris · '
-            'au-delà, ${montantEnDinars(tarif.prixCouvertSup)} DA le couvert'
-            '${tarif.couvertsSup > 0 ? ' (${tarif.couvertsSup} en supplément, '
-                      '${montantEnDinars(tarif.montantCouvertsSup)} DA)' : ''}',
+            _detailDesCouverts(textes, formats, tarif),
             style: text.bodySmall?.copyWith(color: colors.inkSecondary),
           ),
         ],
@@ -454,11 +470,33 @@ class _LigneTarifaire extends StatelessWidget {
   }
 }
 
-String _nomCreneau(String code) => switch (code) {
-  'midi' => 'Midi',
-  'journee' => 'Journée entière',
-  _ => 'Soirée',
+String _nomCreneau(AppLocalizations textes, String code) => switch (code) {
+  'midi' => textes.creneauMidiPhrase,
+  'journee' => textes.creneauJourneePhrase,
+  _ => textes.creneauSoirPhrase,
 };
+
+/// « 300 couverts compris · au-delà, 1 200 DA le couvert (50 en supplément… ) ».
+///
+/// En deux clés plutôt qu'une phrase à trous : la partie entre parenthèses
+/// n'apparaît que si des couverts dépassent le forfait, et une langue peut
+/// vouloir la placer ailleurs dans la phrase.
+String _detailDesCouverts(
+  AppLocalizations textes,
+  FormatsFerha formats,
+  LigneTarif tarif,
+) {
+  final base = textes.tarifCouvertsCompris(
+    '${tarif.couvertsInclus}',
+    formats.montant(tarif.prixCouvertSup),
+  );
+  if (tarif.couvertsSup <= 0) return base;
+  return textes.tarifCouvertsSupplement(
+    base,
+    '${tarif.couvertsSup}',
+    formats.montant(tarif.montantCouvertsSup),
+  );
+}
 
 // -----------------------------------------------------------------------------
 // La barre d'action
@@ -506,6 +544,8 @@ class _BarreAction extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = context.ferhaColors;
     final text = Theme.of(context).textTheme;
+    final textes = AppLocalizations.of(context);
+    final formats = FormatsFerha(textes);
     final tarif = salle.tarifPour(creneau.code);
     final maSalle = ref.watch(estMaSalleProvider(salle.id));
 
@@ -526,11 +566,13 @@ class _BarreAction extends ConsumerWidget {
                 children: <Widget>[
                   Text(
                     invites == null
-                        ? 'Estimation ${creneau.libelle.toLowerCase()}'
-                        : 'Estimation $invites invités',
+                        ? textes.ficheEstimationCreneau(
+                            creneau.auMilieuDUnePhrase(textes),
+                          )
+                        : textes.ficheEstimationInvites('$invites'),
                     style: text.labelSmall?.copyWith(
                       color: colors.inkTertiary,
-                      letterSpacing: 1,
+                      letterSpacing: context.espacementDesCapitales(1),
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -538,8 +580,8 @@ class _BarreAction extends ConsumerWidget {
                     // Une salle qui ne vend pas ce créneau le dit, plutôt que
                     // d'afficher un prix qui n'existe pas.
                     tarif == null
-                        ? 'Créneau non proposé'
-                        : '${montantEnDinars(tarif.total)} DA',
+                        ? textes.creneauNonPropose
+                        : formats.montant(tarif.total),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: text.titleLarge?.copyWith(
@@ -571,7 +613,7 @@ class _BarreAction extends ConsumerWidget {
                   ).toString(),
                 ),
                 style: _styleBouton,
-                child: const Text('Disponibilité'),
+                child: Text(textes.ficheDisponibilite),
               ),
           ],
         ),
@@ -602,6 +644,7 @@ class _Note extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.ferhaColors;
     final text = Theme.of(context).textTheme;
+    final textes = AppLocalizations.of(context);
     final note = salle.note!.toDouble();
 
     return InkWell(
@@ -619,8 +662,7 @@ class _Note extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             Text(
-              '${salle.nombreAvis} avis vérifié'
-              '${salle.nombreAvis > 1 ? 's' : ''}',
+              textes.ficheAvisVerifies(salle.nombreAvis),
               style: text.bodySmall?.copyWith(color: colors.inkTertiary),
             ),
             Icon(Icons.chevron_right, size: 18, color: colors.inkTertiary),
@@ -671,7 +713,7 @@ class _Intitule extends StatelessWidget {
       texte.toUpperCase(),
       style: Theme.of(context).textTheme.labelSmall?.copyWith(
         color: colors.inkTertiary,
-        letterSpacing: 1.2,
+        letterSpacing: context.espacementDesCapitales(),
         fontWeight: FontWeight.w600,
       ),
     );

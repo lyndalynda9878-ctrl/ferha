@@ -25,6 +25,8 @@
 ///   * les espaces sont tolérés à la saisie ; la base ne garde que les chiffres.
 library;
 
+import '../l10n/generated/app_localizations.dart';
+
 /// Le numéro de téléphone algérien : sa forme, et ce qu'on en garde.
 abstract final class TelephoneAlgerien {
   /// Ce que la base gardera : le numéro sans ses espaces.
@@ -51,12 +53,14 @@ abstract final class TelephoneAlgerien {
   /// situations : un champ vide n'est pas une faute, un numéro à moitié tapé
   /// en est presque une. On ne gronde pas le premier, et on donne un exemple
   /// au second plutôt qu'une règle à déchiffrer.
-  static String? ceQuiManque(String saisie) {
-    if (normalise(saisie).isEmpty) return 'Indiquez un numéro de téléphone.';
-    if (!estValide(saisie)) {
-      return 'Ce numéro n’a pas la bonne forme. Exemples : 0770 11 22 33, '
-          'ou 041 23 45 67 pour un fixe.';
-    }
+  ///
+  /// ELLE PREND LES TEXTES, parce qu'elle rend une PHRASE et non un verdict.
+  /// [estValide] et [normalise], qui ne rendent que des faits, n'en ont pas
+  /// besoin — et c'est la ligne de partage : ce qui se lit se traduit, ce qui
+  /// se décide ne se traduit pas.
+  static String? ceQuiManque(AppLocalizations textes, String saisie) {
+    if (normalise(saisie).isEmpty) return textes.telephoneManquant;
+    if (!estValide(saisie)) return textes.telephoneMalForme;
     return null;
   }
 

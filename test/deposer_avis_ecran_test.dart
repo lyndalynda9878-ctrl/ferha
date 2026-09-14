@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'package:ferha/core/l10n/generated/app_localizations.dart';
+import 'package:ferha/core/l10n/locale_controller.dart';
 import 'package:ferha/core/theme/ferha_theme.dart';
 import 'package:ferha/features/reviews/avis.dart';
 import 'package:ferha/features/reviews/avis_repository.dart';
@@ -47,6 +49,8 @@ void main() {
       ProviderScope(
         overrides: [avisRepositoryProvider.overrideWithValue(depot)],
         child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: ferhaSupportedLocales,
           theme: theme ?? FerhaTheme.light(),
           home: DeposerAvisScreen(bookingId: avis.bookingId),
         ),

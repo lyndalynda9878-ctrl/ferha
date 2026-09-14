@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/l10n/formats_ferha.dart';
+import '../../core/l10n/generated/app_localizations.dart';
 import '../../core/router/routes.dart';
 import '../../core/theme/ferha_colors.dart';
 import 'search_filters.dart';
@@ -38,6 +40,7 @@ class ResultatsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final textes = AppLocalizations.of(context);
     final resultat = ref.watch(resultatsProvider(filtres));
     final wilayas = ref.watch(wilayasProvider).value;
     // Une puce montre un libellé, jamais un code : « Mariage », pas « mariage ».
@@ -60,9 +63,9 @@ class ResultatsScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text(
           resultat.when(
-            loading: () => 'Recherche…',
-            error: (_, _) => 'Résultats',
-            data: (d) => _titre(d.total, nomWilaya),
+            loading: () => textes.resultatsRecherche,
+            error: (_, _) => textes.resultatsTitre,
+            data: (d) => _titre(textes, d.total, nomWilaya),
           ),
         ),
       ),
@@ -117,9 +120,9 @@ class ResultatsScreen extends ConsumerWidget {
   }
 }
 
-String _titre(int total, String? wilaya) {
-  final salles = total <= 1 ? '$total salle' : '$total salles';
-  return wilaya == null ? salles : '$salles à $wilaya';
+String _titre(AppLocalizations textes, int total, String? wilaya) {
+  final salles = textes.resultatsSalles(total);
+  return wilaya == null ? salles : textes.resultatsSallesA(salles, wilaya);
 }
 
 /// Les filtres actifs, en tête et toujours visibles.
@@ -143,19 +146,22 @@ class _FiltresActifs extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.ferhaColors;
+    final textes = AppLocalizations.of(context);
+    final formats = FormatsFerha(textes);
 
     final puces = <Widget>[
       if (filtres.date != null)
         _Puce(
-          libelle:
-              '${dateCourteEnFrancais(filtres.date!)} · '
-              '${filtres.creneau.libelle.toLowerCase()}',
+          libelle: textes.puceDateCreneau(
+            formats.dateCourte(filtres.date!),
+            filtres.creneau.auMilieuDUnePhrase(textes),
+          ),
           onRetirer: () =>
               onChanger(filtres.copyWith(effacer: const <String>{'date'})),
         ),
       if (filtres.invites != null)
         _Puce(
-          libelle: '${filtres.invites}+ couverts',
+          libelle: textes.puceInvites('${filtres.invites}'),
           onRetirer: () =>
               onChanger(filtres.copyWith(effacer: const <String>{'invites'})),
         ),
@@ -167,7 +173,7 @@ class _FiltresActifs extends StatelessWidget {
         ),
       if (filtres.budgetMax != null)
         _Puce(
-          libelle: '≤ ${montantEnDinars(filtres.budgetMax!)} DA',
+          libelle: textes.puceBudget(formats.montant(filtres.budgetMax!)),
           onRetirer: () =>
               onChanger(filtres.copyWith(effacer: const <String>{'budget'})),
         ),
@@ -179,7 +185,7 @@ class _FiltresActifs extends StatelessWidget {
         ),
       if (filtres.texte != null)
         _Puce(
-          libelle: '« ${filtres.texte} »',
+          libelle: textes.puceTexte(filtres.texte!),
           onRetirer: () =>
               onChanger(filtres.copyWith(effacer: const <String>{'texte'})),
         ),
@@ -223,7 +229,7 @@ class _Puce extends StatelessWidget {
       label: Text(libelle),
       onDeleted: onRetirer,
       deleteIcon: const Icon(Icons.close, size: 16),
-      deleteButtonTooltipMessage: 'Retirer ce filtre',
+      deleteButtonTooltipMessage: AppLocalizations.of(context).retirerFiltre,
       backgroundColor: colors.primarySoft,
       side: BorderSide.none,
       labelStyle: Theme.of(
@@ -251,88 +257,83 @@ class _Vide extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textes = AppLocalizations.of(context);
+    final formats = FormatsFerha(textes);
+
     final pistes = <Widget>[
       if (filtres.date != null)
         OutlinedButton.icon(
           onPressed: () =>
               onChanger(filtres.copyWith(effacer: const <String>{'date'})),
           icon: const Icon(Icons.event_busy_outlined, size: 18),
-          label: const Text('Chercher sans date'),
+          label: Text(textes.pisteSansDate),
         ),
       if (filtres.invites != null)
         OutlinedButton.icon(
           onPressed: () =>
               onChanger(filtres.copyWith(effacer: const <String>{'invites'})),
           icon: const Icon(Icons.group_off_outlined, size: 18),
-          label: Text('Sans le seuil de ${filtres.invites} couverts'),
+          label: Text(textes.pisteSansSeuil('${filtres.invites}')),
         ),
       if (filtres.budgetMax != null)
         OutlinedButton.icon(
           onPressed: () =>
               onChanger(filtres.copyWith(effacer: const <String>{'budget'})),
           icon: const Icon(Icons.payments_outlined, size: 18),
-          label: const Text('Sans limite de budget'),
+          label: Text(textes.pisteSansBudget),
         ),
       if (filtres.wilayaCode != null)
         OutlinedButton.icon(
           onPressed: () =>
               onChanger(filtres.copyWith(effacer: const <String>{'wilaya'})),
           icon: const Icon(Icons.public, size: 18),
-          label: const Text('Toutes les wilayas'),
+          label: Text(textes.pisteToutesWilayas),
         ),
       if (filtres.equipements.isNotEmpty)
         OutlinedButton.icon(
           onPressed: () =>
               onChanger(filtres.copyWith(equipements: const <String>[])),
           icon: const Icon(Icons.filter_alt_off_outlined, size: 18),
-          label: const Text('Sans les équipements'),
+          label: Text(textes.pisteSansEquipements),
         ),
       if (filtres.texte != null)
         OutlinedButton.icon(
           onPressed: () =>
               onChanger(filtres.copyWith(effacer: const <String>{'texte'})),
           icon: const Icon(Icons.search_off, size: 18),
-          label: const Text('Sans le texte cherché'),
+          label: Text(textes.pisteSansTexte),
         ),
     ];
 
     return EtatVide(
-      titre: 'Aucune salle ne réunit tous ces critères',
-      explication: _explication(),
+      titre: textes.resultatsVideTitre,
+      explication: _explication(textes, formats),
       pistes: pistes.isEmpty
           ? <Widget>[
               OutlinedButton.icon(
                 onPressed: () => onChanger(const SearchFilters()),
                 icon: const Icon(Icons.refresh, size: 18),
-                label: const Text('Repartir de zéro'),
+                label: Text(textes.pisteRepartirDeZero),
               ),
             ]
           : pistes,
     );
   }
 
-  String _explication() {
+  String _explication(AppLocalizations textes, FormatsFerha formats) {
     // On nomme le critère le plus souvent responsable, du plus restrictif au
     // moins : une date prise élimine tout, un budget bas presque tout.
     if (filtres.date != null) {
-      return 'Le ${dateEnFrancais(filtres.date!)} au '
-          '${filtres.creneau.libelle.toLowerCase()}, les salles restantes sont '
-          'peut-être déjà réservées. Essayez une autre date, ou retirez-la '
-          'pour voir tout le catalogue.';
+      return textes.resultatsVideDate(
+        formats.date(filtres.date!),
+        filtres.creneau.auMilieuDUnePhrase(textes),
+      );
     }
-    if (filtres.budgetMax != null) {
-      return 'Le budget est comparé au prix réel de la date, majorations '
-          'comprises — il monte vite un vendredi d’été. Essayez sans limite '
-          'pour voir les montants.';
-    }
+    if (filtres.budgetMax != null) return textes.resultatsVideBudget;
     if (filtres.invites != null) {
-      return 'Aucune salle n’atteint ${filtres.invites} couverts avec ces '
-          'critères. Un chiffre plus bas ouvrira le catalogue.';
+      return textes.resultatsVideInvites('${filtres.invites}');
     }
-    if (nomWilaya != null) {
-      return 'Rien ne correspond à $nomWilaya. Le catalogue ne couvre pas '
-          'encore toutes les wilayas.';
-    }
-    return 'Retirez un critère pour élargir la recherche.';
+    if (nomWilaya != null) return textes.resultatsVideWilaya(nomWilaya!);
+    return textes.resultatsVideDefaut;
   }
 }

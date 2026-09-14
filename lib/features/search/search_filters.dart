@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 
+import '../../core/l10n/generated/app_localizations.dart';
+
 /// Les créneaux vendables (§5.1).
 enum Creneau {
   /// 11 h – 17 h.
@@ -24,6 +26,42 @@ enum Creneau {
     (c) => c.code == code,
     orElse: () => Creneau.soir,
   );
+}
+
+/// Le créneau, dit dans la langue de l'application.
+///
+/// [Creneau.libelle] reste le libellé FRANÇAIS, et il reste utile : les écrans
+/// du propriétaire, l'assistant et les avis ne sont pas traduits au J22, et un
+/// champ vide ne leur rendrait pas service. Les six écrans du parcours client,
+/// eux, passent par cette extension — et par elle seule.
+///
+/// TROIS REGISTRES, ET NON UN QU'ON METTRAIT EN MINUSCULES. Le français écrit
+/// « Soir » sur une puce, « Soirée » en tête de phrase et « soirée » au milieu
+/// d'une phrase ; l'arabe écrit السهرة dans les trois cas. Appeler
+/// `toLowerCase()` sur un libellé traduit marcherait par accident en arabe —
+/// la casse n'y existe pas — et cacherait que c'est une question de langue,
+/// pas de typographie. Trois clés le disent.
+extension CreneauTraduit on Creneau {
+  /// Sur une puce ou un bouton segmenté : « Soir ».
+  String surUnePuce(AppLocalizations textes) => switch (this) {
+    Creneau.midi => textes.creneauMidi,
+    Creneau.soir => textes.creneauSoir,
+    Creneau.journee => textes.creneauJournee,
+  };
+
+  /// En tête de phrase, ou seul dans un intitulé : « Soirée ».
+  String dansUnePhrase(AppLocalizations textes) => switch (this) {
+    Creneau.midi => textes.creneauMidiPhrase,
+    Creneau.soir => textes.creneauSoirPhrase,
+    Creneau.journee => textes.creneauJourneePhrase,
+  };
+
+  /// Au milieu d'une phrase française : « le 14 août au soir ».
+  String auMilieuDUnePhrase(AppLocalizations textes) => switch (this) {
+    Creneau.midi => textes.creneauMidiMinuscule,
+    Creneau.soir => textes.creneauSoirMinuscule,
+    Creneau.journee => textes.creneauJourneeMinuscule,
+  };
 }
 
 /// Les critères d'une recherche.

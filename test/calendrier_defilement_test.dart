@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:ferha/core/l10n/generated/app_localizations.dart';
+import 'package:ferha/core/l10n/locale_controller.dart';
 import 'package:ferha/core/theme/ferha_theme.dart';
 import 'package:ferha/features/search/search_filters.dart';
 import 'package:ferha/features/venue/calendrier_screen.dart';
@@ -46,6 +48,8 @@ void main() {
           ),
         ],
         child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: ferhaSupportedLocales,
           theme: FerhaTheme.light(),
           home: const CalendrierScreen(venueId: venueId, creneau: Creneau.midi),
         ),

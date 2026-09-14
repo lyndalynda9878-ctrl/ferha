@@ -18,6 +18,7 @@ library;
 
 import 'package:flutter/material.dart';
 
+import '../l10n/formats_ferha.dart';
 import '../theme/ferha_colors.dart';
 
 /// Un mois entier : son titre, la ligne des initiales, et la grille.
@@ -48,27 +49,11 @@ class MoisCalendrier extends StatelessWidget {
   /// fois la même chose.
   final bool avecTitre;
 
-  /// Dimanche d'abord.
-  ///
-  /// C'est la charte qui tranche, et deux fois plutôt qu'une : les maquettes
-  /// de l'écran 4 affichent « D L M M J V S », et le paragraphe sur le miroir
-  /// RTL précise que « le calendrier commence toujours par dimanche mais se lit
-  /// de droite à gauche ». Le miroir est donc affaire de direction du texte,
-  /// pas d'ordre des colonnes : cette liste ne change pas en arabe.
-  static const List<String> _initiales = <String>[
-    'D',
-    'L',
-    'M',
-    'M',
-    'J',
-    'V',
-    'S',
-  ];
-
   @override
   Widget build(BuildContext context) {
     final colors = context.ferhaColors;
     final text = Theme.of(context).textTheme;
+    final formats = FormatsFerha.de(context);
 
     final nombreDeJours = DateTime(mois.year, mois.month + 1, 0).day;
     final decalage = colonneDuJour(DateTime(mois.year, mois.month));
@@ -78,14 +63,23 @@ class MoisCalendrier extends StatelessWidget {
       children: <Widget>[
         if (avecTitre) ...<Widget>[
           Text(
-            '${nomMois(mois.month)} ${mois.year}',
+            formats.moisEtAnnee(mois),
             style: text.titleMedium?.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 12),
         ],
+        // DIMANCHE EN TÊTE, ET IL Y RESTE EN ARABE.
+        //
+        // C'est la charte qui tranche, et deux fois plutôt qu'une : les
+        // maquettes de l'écran 4 affichent « D L M M J V S », et le paragraphe
+        // sur le miroir RTL précise que « le calendrier commence toujours par
+        // dimanche mais se lit de droite à gauche ». Le miroir est donc affaire
+        // de DIRECTION — ce `Row` suit la `Directionality` et pose sa première
+        // colonne à droite en arabe — et non d'ordre : inverser cette liste
+        // mettrait samedi en tête et décalerait toutes les dates d'un cran.
         Row(
           children: <Widget>[
-            for (final j in _initiales)
+            for (final j in formats.initialesDesJours)
               Expanded(
                 child: Center(
                   child: Text(
@@ -177,20 +171,12 @@ int colonneDuJour(DateTime jour) => jour.weekday % 7;
 bool memeJour(DateTime a, DateTime b) =>
     a.year == b.year && a.month == b.month && a.day == b.day;
 
-/// Le nom français d'un mois, de 1 à 12.
-String nomMois(int mois) => _moisFr[mois - 1];
-
-const List<String> _moisFr = <String>[
-  'Janvier',
-  'Février',
-  'Mars',
-  'Avril',
-  'Mai',
-  'Juin',
-  'Juillet',
-  'Août',
-  'Septembre',
-  'Octobre',
-  'Novembre',
-  'Décembre',
-];
+// LE NOM FRANÇAIS D'UN MOIS N'EST PLUS ICI.
+//
+// Cette grille est partagée par le calendrier client, traduit au J22, et par
+// l'agenda du propriétaire, qui ne l'est pas. Son titre passe désormais par
+// `FormatsFerha.moisEtAnnee()` et suit donc la langue de l'application.
+//
+// `nomMois` a suivi son dernier lecteur, dans `agenda_screen.dart` : un fichier
+// partagé qui garderait douze mots français serait le premier endroit où l'on
+// oublierait de traduire.

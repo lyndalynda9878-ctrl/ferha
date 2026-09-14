@@ -1,3 +1,5 @@
+import 'package:ferha/core/l10n/generated/app_localizations.dart';
+import 'package:ferha/core/l10n/locale_controller.dart';
 import 'package:ferha/core/theme/display_font.dart';
 import 'package:ferha/core/theme/ferha_colors.dart';
 import 'package:ferha/core/theme/ferha_theme.dart';
@@ -93,6 +95,8 @@ void main() {
       for (final theme in <ThemeData>[FerhaTheme.light(), FerhaTheme.dark()]) {
         await tester.pumpWidget(
           MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: ferhaSupportedLocales,
             theme: theme,
             home: Scaffold(
               appBar: AppBar(title: const Text('Ferha')),

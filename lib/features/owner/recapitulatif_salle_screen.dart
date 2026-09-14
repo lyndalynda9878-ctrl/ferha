@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/l10n/generated/app_localizations.dart';
 import '../../core/router/routes.dart';
 import '../../core/theme/ferha_colors.dart';
 import '../../core/theme/ferha_radii.dart';
@@ -155,7 +156,10 @@ class _RecapitulatifSalleScreenState
         AsyncData() => _Contenu(
           salle: salle!,
           telephone: _telephone,
-          manqueTelephone: TelephoneAlgerien.ceQuiManque(_telephone.text),
+          manqueTelephone: TelephoneAlgerien.ceQuiManque(
+            AppLocalizations.of(context),
+            _telephone.text,
+          ),
           onTelephoneChange: () => setState(() {
             _telephonePose = true;
             // Le refus précédent ne survit pas à une correction : on vient de

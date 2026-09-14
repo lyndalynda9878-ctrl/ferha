@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:ferha/core/l10n/generated/app_localizations.dart';
+import 'package:ferha/core/l10n/locale_controller.dart';
 import 'package:ferha/core/router/routes.dart';
 import 'package:ferha/core/theme/ferha_theme.dart';
 import 'package:ferha/features/auth/auth_providers.dart';
@@ -107,6 +109,8 @@ void main() {
           ),
         ],
         child: MaterialApp.router(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: ferhaSupportedLocales,
           theme: theme ?? FerhaTheme.light(),
           routerConfig: routeur,
         ),
@@ -132,6 +136,8 @@ void main() {
           ),
         ],
         child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: ferhaSupportedLocales,
           theme: FerhaTheme.light(),
           home: Scaffold(
             appBar: AppBar(actions: const <Widget>[ClocheNotifications()]),

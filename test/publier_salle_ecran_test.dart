@@ -4,6 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'package:ferha/core/l10n/generated/app_localizations.dart';
+import 'package:ferha/core/l10n/locale_controller.dart';
 import 'package:ferha/core/preferences/preferences_affichage.dart';
 import 'package:ferha/core/router/routes.dart';
 import 'package:ferha/core/theme/ferha_theme.dart';
@@ -135,6 +137,8 @@ void main() {
           typesEvenementProvider.overrideWith((ref) async => types),
         ],
         child: MaterialApp.router(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: ferhaSupportedLocales,
           theme: theme ?? FerhaTheme.light(),
           routerConfig: routeur,
         ),

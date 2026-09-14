@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/l10n/formats_ferha.dart';
+import '../../core/l10n/generated/app_localizations.dart';
 import '../../core/router/routes.dart';
 import '../../core/theme/ferha_colors.dart';
 import '../../core/theme/ferha_radii.dart';
 import '../search/search_filters.dart';
 import 'booking_providers.dart';
-import 'demande_screen.dart' show libelleCreneau;
 
 /// L'écran qui suit l'envoi d'une demande.
 ///
@@ -45,10 +46,11 @@ class DemandeEnvoyeeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.ferhaColors;
     final text = Theme.of(context).textTheme;
+    final textes = AppLocalizations.of(context);
     final d = demande;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Demande envoyée')),
+      appBar: AppBar(title: Text(textes.envoyeeTitre)),
       body: ListView(
         padding: const EdgeInsetsDirectional.fromSTEB(20, 24, 20, 32),
         children: <Widget>[
@@ -65,15 +67,15 @@ class DemandeEnvoyeeScreen extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            'Votre demande est partie',
+            textes.envoyeePartie,
             textAlign: TextAlign.center,
             style: text.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 8),
           Text(
             d == null
-                ? 'Le propriétaire l’a reçue et vous répond sous 48 h.'
-                : '${d.salle} a reçu votre demande et vous répond sous 48 h.',
+                ? textes.envoyeeRecue
+                : textes.envoyeeRecueParSalle(d.salle),
             textAlign: TextAlign.center,
             style: text.bodyMedium?.copyWith(color: colors.inkSecondary),
           ),
@@ -89,7 +91,7 @@ class DemandeEnvoyeeScreen extends StatelessWidget {
           const SizedBox(height: 20),
           Center(
             child: Text(
-              'Référence : ${d?.reference ?? _abrege(reference)}',
+              textes.envoyeeReference(d?.reference ?? _abrege(reference)),
               style: text.bodySmall?.copyWith(color: colors.inkTertiary),
             ),
           ),
@@ -106,7 +108,7 @@ class DemandeEnvoyeeScreen extends StatelessWidget {
               style: FilledButton.styleFrom(
                 padding: const EdgeInsetsDirectional.symmetric(vertical: 16),
               ),
-              child: const Text('Revenir à l’accueil'),
+              child: Text(textes.envoyeeRetourAccueil),
             ),
           ),
         ],
@@ -133,6 +135,8 @@ class _Recapitulatif extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.ferhaColors;
     final text = Theme.of(context).textTheme;
+    final textes = AppLocalizations.of(context);
+    final formats = FormatsFerha(textes);
 
     return Container(
       padding: const EdgeInsetsDirectional.all(16),
@@ -155,18 +159,27 @@ class _Recapitulatif extends StatelessWidget {
           const SizedBox(height: 12),
 
           _Ligne(
-            libelle: 'Date',
-            valeur:
-                '${dateEnFrancais(demande.date)} · '
-                '${libelleCreneau(demande.creneau).toLowerCase()}',
+            libelle: textes.envoyeeLigneDate,
+            valeur: textes.calendrierResumeJour(
+              formats.date(demande.date),
+              demande.creneau.auMilieuDUnePhrase(textes),
+            ),
           ),
-          _Ligne(libelle: 'Invités', valeur: '${demande.invites}'),
+          _Ligne(
+            libelle: textes.envoyeeLigneInvites,
+            valeur: '${demande.invites}',
+          ),
           if (demande.typeEvenement != null)
-            _Ligne(libelle: 'Événement', valeur: demande.typeEvenement!),
+            _Ligne(
+              libelle: textes.envoyeeLigneEvenement,
+              valeur: demande.typeEvenement!,
+            ),
           if (demande.options.isNotEmpty)
             _Ligne(
-              libelle: 'Options',
-              valeur: demande.options.map((o) => o.libelle).join(', '),
+              libelle: textes.envoyeeLigneOptions,
+              valeur: demande.options
+                  .map((o) => o.libelle)
+                  .join(textes.separateurListe),
             ),
 
           Padding(
@@ -178,7 +191,7 @@ class _Recapitulatif extends StatelessWidget {
             children: <Widget>[
               Expanded(
                 child: Text(
-                  'Estimation',
+                  textes.envoyeeEstimation,
                   style: text.titleSmall?.copyWith(fontWeight: FontWeight.w700),
                 ),
               ),
@@ -186,7 +199,7 @@ class _Recapitulatif extends StatelessWidget {
                 // Le montant écrit en base par estimate_price(), et non le
                 // dernier total affiché par le formulaire : c'est celui-là qui
                 // engage, et il arrive de la réponse même de request_booking().
-                '${montantEnDinars(demande.montant)} DA',
+                formats.montant(demande.montant),
                 style: text.titleSmall?.copyWith(
                   fontWeight: FontWeight.w700,
                   color: colors.primaryDeep,
@@ -199,8 +212,7 @@ class _Recapitulatif extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'Le propriétaire peut proposer un montant différent en acceptant '
-            'la demande.',
+            textes.envoyeeMontantPeutChanger,
             style: text.bodySmall?.copyWith(color: colors.inkTertiary),
           ),
         ],
@@ -252,25 +264,23 @@ class _Suite extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.ferhaColors;
     final text = Theme.of(context).textTheme;
+    final textes = AppLocalizations.of(context);
 
-    const etapes = <(IconData, String, String)>[
+    final etapes = <(IconData, String, String)>[
       (
         Icons.mark_email_read_outlined,
-        'Le propriétaire répond sous 48 h',
-        'Il accepte, refuse, ou vous propose un autre montant. Tant qu’il n’a '
-            'pas répondu, la date reste ouverte à d’autres demandes.',
+        textes.envoyeeSuite1Titre,
+        textes.envoyeeSuite1Detail,
       ),
       (
         Icons.lock_clock_outlined,
-        'S’il accepte, la date vous est gardée 72 h',
-        'C’est le délai pour verser l’acompte. Passé ce délai sans paiement, '
-            'la date repart à la vente.',
+        textes.envoyeeSuite2Titre,
+        textes.envoyeeSuite2Detail,
       ),
       (
         Icons.event_available_outlined,
-        'L’acompte versé, la date est à vous',
-        'Par carte CIB ou Edahabia, ou en main propre si le propriétaire '
-            'l’accepte. Le solde se règle le jour J.',
+        textes.envoyeeSuite3Titre,
+        textes.envoyeeSuite3Detail,
       ),
     ];
 
@@ -285,7 +295,7 @@ class _Suite extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Text(
-            'Ce qui se passe ensuite',
+            textes.envoyeeSuiteTitre,
             style: text.titleSmall?.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 12),

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:ferha/core/l10n/generated/app_localizations.dart';
+import 'package:ferha/core/l10n/locale_controller.dart';
 import 'package:ferha/features/booking/widgets/compte_a_rebours.dart';
 
 /// Le compte à rebours des 72 h, testé là où il vit.
@@ -22,6 +24,8 @@ void main() {
   Future<void> pose(WidgetTester tester, DateTime echeance) {
     return tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: ferhaSupportedLocales,
         home: Scaffold(
           body: CompteARebours(
             echeance: echeance,

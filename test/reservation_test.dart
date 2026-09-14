@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
+import 'textes_traduits.dart';
 import 'package:ferha/features/booking/reservation.dart';
 import 'package:ferha/features/booking/widgets/compte_a_rebours.dart';
 import 'package:ferha/features/search/search_filters.dart';
@@ -129,7 +130,7 @@ void main() {
       // jusqu’à demain soir ; « 71 h » se compare directement aux 72 h
       // annoncées. C’est le choix de la maquette.
       expect(
-        resteEnFrancais(const Duration(hours: 71, minutes: 12)),
+        resteEnMots(textesFr, const Duration(hours: 71, minutes: 12)),
         '71 h 12 min',
       );
     });
@@ -137,18 +138,18 @@ void main() {
     test('les minutes gardent deux chiffres derrière des heures', () {
       // Sinon la ligne danse d’une seconde à l’autre.
       expect(
-        resteEnFrancais(const Duration(hours: 71, minutes: 7)),
+        resteEnMots(textesFr, const Duration(hours: 71, minutes: 7)),
         '71 h 07 min',
       );
     });
 
     test('sous une heure, les heures disparaissent', () {
-      expect(resteEnFrancais(const Duration(minutes: 12)), '12 min');
+      expect(resteEnMots(textesFr, const Duration(minutes: 12)), '12 min');
     });
 
     test('sous une minute, on le dit avec des mots', () {
       expect(
-        resteEnFrancais(const Duration(seconds: 40)),
+        resteEnMots(textesFr, const Duration(seconds: 40)),
         'moins d’une minute',
       );
     });
@@ -156,8 +157,11 @@ void main() {
     test('passé l’échéance, jamais de compteur négatif', () {
       // expire_options() tourne à l’heure (§7.2) : entre l’échéance et son
       // passage, l’écran doit dire « délai écoulé » plutôt que « -0 h 03 min ».
-      expect(resteEnFrancais(const Duration(minutes: -3)), 'délai écoulé');
-      expect(resteEnFrancais(Duration.zero), 'délai écoulé');
+      expect(
+        resteEnMots(textesFr, const Duration(minutes: -3)),
+        'délai écoulé',
+      );
+      expect(resteEnMots(textesFr, Duration.zero), 'délai écoulé');
     });
   });
 

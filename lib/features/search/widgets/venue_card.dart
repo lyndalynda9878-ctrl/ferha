@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/l10n/formats_ferha.dart';
+import '../../../core/l10n/generated/app_localizations.dart';
 import '../../../core/widgets/photo_salle.dart';
 import '../../../core/theme/ferha_colors.dart';
 import '../../../core/theme/ferha_radii.dart';
-import '../search_filters.dart';
 import '../search_providers.dart';
 import '../venue_summary.dart';
 
@@ -35,6 +36,7 @@ class VenueCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = context.ferhaColors;
     final text = Theme.of(context).textTheme;
+    final textes = AppLocalizations.of(context);
 
     // Le libellé d'un équipement dépend de la langue, son code non : les
     // libellés viennent donc du référentiel, jamais de la carte.
@@ -68,7 +70,10 @@ class VenueCard extends ConsumerWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '${salle.commune} · ${salle.capacite} couverts',
+                    textes.carteCommuneEtCapacite(
+                      salle.commune,
+                      '${salle.capacite}',
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: text.bodySmall?.copyWith(color: colors.inkSecondary),
@@ -115,11 +120,12 @@ class _Equipements extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final places = salle.placesParking;
+    final textes = AppLocalizations.of(context);
 
     final etiquettes = <String>[
       // NULL veut dire « non renseigné », 0 veut dire « pas de parking » : on
       // n'annonce un parking que s'il y en a vraiment un.
-      if (places != null && places > 0) 'Parking $places',
+      if (places != null && places > 0) textes.cartePuceParking('$places'),
       // Les codes inconnus du référentiel sont tus plutôt que montrés bruts.
       ...salle.equipements.map((code) => libelles[code]).whereType<String>(),
     ];
@@ -177,18 +183,24 @@ class _Prix extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.ferhaColors;
     final text = Theme.of(context).textTheme;
+    final textes = AppLocalizations.of(context);
+    final formats = FormatsFerha(textes);
 
     // « DA / soirée » sur l'accueil, où aucune date n'est encore choisie ;
     // « DA » seul dans les résultats, où le prix vaut pour LA date demandée.
+    //
+    // LE NOMBRE ET LA DEVISE SONT DEUX MORCEAUX PARCE QU'ILS N'ONT PAS LE MÊME
+    // STYLE : le montant est gras et coloré, « DA / soirée » discret. C'est la
+    // seule raison pour laquelle `devise` existe à côté de `montantEnDinars`.
     final suffixe = dense
-        ? ' DA / ${_creneauEnMots(salle.creneauPrix)}'
-        : ' DA';
+        ? ' ${textes.devise} / ${_creneauEnMots(textes, salle.creneauPrix)}'
+        : ' ${textes.devise}';
 
     return Text.rich(
       TextSpan(
         children: <InlineSpan>[
           TextSpan(
-            text: montantEnDinars(salle.prix),
+            text: formats.nombre(salle.prix),
             style: text.titleMedium?.copyWith(
               fontWeight: FontWeight.w700,
               color: colors.primaryDeep,
@@ -207,10 +219,10 @@ class _Prix extends StatelessWidget {
   }
 }
 
-String _creneauEnMots(String code) => switch (code) {
-  'midi' => 'midi',
-  'journee' => 'journée',
-  _ => 'soirée',
+String _creneauEnMots(AppLocalizations textes, String code) => switch (code) {
+  'midi' => textes.creneauMidiMinuscule,
+  'journee' => textes.creneauJourneeMinuscule,
+  _ => textes.creneauSoirMinuscule,
 };
 
 /// La note, affichée seulement quand la salle en a une.
@@ -224,7 +236,10 @@ class _Note extends StatelessWidget {
     final colors = context.ferhaColors;
     final text = Theme.of(context).textTheme;
 
-    // Virgule décimale : on écrit 4,6 en français, pas 4.6.
+    // VIRGULE DÉCIMALE, ET DANS LES DEUX LANGUES. On écrit 4,6 en français,
+    // et l'Algérie écrit 4,6 en arabe aussi — la virgule décimale y est celle
+    // de l'école et des factures. Ce n'est donc pas une valeur à traduire : les
+    // chiffres restent latins (§10), et leur séparateur avec eux.
     final note = salle.note!.toStringAsFixed(1).replaceAll('.', ',');
 
     return Padding(

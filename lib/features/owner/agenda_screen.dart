@@ -12,6 +12,29 @@ import 'feuille_creneau.dart';
 import 'owner_providers.dart';
 import 'salle_du_proprietaire.dart';
 
+/// Le nom FRANÇAIS d'un mois, de 1 à 12.
+///
+/// Il vivait dans `grille_calendrier.dart`, partagé avec le calendrier client ;
+/// il est descendu ici au J22, quand ce calendrier-là est passé à l'arabe. Cet
+/// écran n'est pas traduit — il le sera avec le reste de l'espace propriétaire —
+/// et d'ici là ses mois s'écrivent en toutes lettres, en français.
+String nomMois(int mois) => _moisFr[mois - 1];
+
+const List<String> _moisFr = <String>[
+  'Janvier',
+  'Février',
+  'Mars',
+  'Avril',
+  'Mai',
+  'Juin',
+  'Juillet',
+  'Août',
+  'Septembre',
+  'Octobre',
+  'Novembre',
+  'Décembre',
+];
+
 /// L'agenda du propriétaire — écran 9, onglet « Agenda » (§4.3, OWN-06).
 ///
 /// LA MÊME GRILLE QUE L'ÉCRAN 4, ET C'EST DÉLIBÉRÉ. Elle vient de

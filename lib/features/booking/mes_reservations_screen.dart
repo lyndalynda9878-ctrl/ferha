@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../core/l10n/generated/app_localizations.dart';
 import '../../core/router/routes.dart';
 import '../../core/theme/ferha_colors.dart';
 import '../../core/theme/ferha_radii.dart';
@@ -11,7 +12,6 @@ import '../../core/widgets/photo_salle.dart';
 import '../search/search_filters.dart';
 import '../search/widgets/etats.dart';
 import 'booking_messages.dart';
-import 'demande_screen.dart' show libelleCreneau;
 import 'mes_reservations_providers.dart';
 import 'reservation.dart';
 import 'widgets/compte_a_rebours.dart';
@@ -358,15 +358,17 @@ class _CarteReservation extends ConsumerWidget {
 
     if (confirme != true || !context.mounted) return;
 
+    // Les textes avant l'await : le contexte peut avoir disparu ensuite.
+    final textes = AppLocalizations.of(context);
     try {
       await ref.read(annulationServiceProvider).annuler(reservation.bookingId);
       // Rien à recharger : la mise à jour de bookings revient par Realtime,
       // par le même chemin que si le propriétaire avait annulé de son côté.
     } on Object catch (erreur) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(messageErreurDemande(erreur))));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(messageErreurDemande(textes, erreur))),
+      );
     }
   }
 }
@@ -458,7 +460,7 @@ class _EnTete extends StatelessWidget {
               const SizedBox(height: 6),
               Text(
                 '${dateEnFrancais(r.date)} · '
-                '${libelleCreneau(r.creneau).toLowerCase()}',
+                '${r.creneau.auMilieuDUnePhrase(AppLocalizations.of(context))}',
                 style: text.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
               ),
               Text(

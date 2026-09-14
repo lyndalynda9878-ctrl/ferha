@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import '../../core/l10n/generated/app_localizations.dart';
 import '../search/search_filters.dart';
 
 /// Les moyens de paiement de l'écran 6.
@@ -50,6 +51,28 @@ enum MoyenDePaiement {
   /// une caisse et quittent l'application, les espèces posent une intention et
   /// restent sur place.
   bool get passeParChargily => this != especes;
+}
+
+/// Le moyen de paiement, dit dans la langue de l'application.
+///
+/// [MoyenDePaiement.libelle] et [MoyenDePaiement.explication] restent en
+/// français dans l'énumération : ils servent aux journaux et aux tests, où une
+/// langue qui change rendrait une trace illisible d'un jour à l'autre. Ce qui
+/// va à l'écran passe par ici.
+extension MoyenDePaiementTraduit on MoyenDePaiement {
+  /// Le nom du moyen, tel qu'il s'affiche.
+  String nomTraduit(AppLocalizations textes) => switch (this) {
+    MoyenDePaiement.cib => textes.moyenCib,
+    MoyenDePaiement.edahabia => textes.moyenEdahabia,
+    MoyenDePaiement.especes => textes.moyenEspeces,
+  };
+
+  /// Ce que cela veut dire concrètement, en une ligne.
+  String explicationTraduite(AppLocalizations textes) => switch (this) {
+    MoyenDePaiement.cib => textes.moyenCibExplication,
+    MoyenDePaiement.edahabia => textes.moyenEdahabiaExplication,
+    MoyenDePaiement.especes => textes.moyenEspecesExplication,
+  };
 }
 
 /// L'acompte à verser, tel que le rend `acompte_a_verser()` (024).

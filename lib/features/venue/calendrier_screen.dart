@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/l10n/formats_ferha.dart';
+import '../../core/l10n/generated/app_localizations.dart';
 import '../../core/router/routes.dart';
 import '../../core/theme/ferha_colors.dart';
 import '../../core/theme/ferha_radii.dart';
@@ -103,7 +105,9 @@ class _CalendrierScreenState extends ConsumerState<CalendrierScreen> {
     );
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Disponibilité')),
+      appBar: AppBar(
+        title: Text(AppLocalizations.of(context).ficheDisponibilite),
+      ),
       body: Column(
         children: <Widget>[
           _ChoixCreneau(
@@ -171,6 +175,8 @@ class _ChoixCreneau extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textes = AppLocalizations.of(context);
+
     return Padding(
       padding: const EdgeInsetsDirectional.fromSTEB(20, 8, 20, 12),
       child: SegmentedButton<Creneau>(
@@ -178,8 +184,12 @@ class _ChoixCreneau extends StatelessWidget {
             .map(
               (c) => ButtonSegment<Creneau>(
                 value: c,
+                // « Journée entière » plutôt que « Journée » : il y a la place
+                // ici, et l'ambiguïté coûterait plus cher qu'un mot de plus.
                 label: Text(
-                  c == Creneau.journee ? 'Journée entière' : c.libelle,
+                  c == Creneau.journee
+                      ? textes.creneauJourneePhrase
+                      : c.surUnePuce(textes),
                 ),
               ),
             )
@@ -199,18 +209,25 @@ class _Legende extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.ferhaColors;
+    final textes = AppLocalizations.of(context);
 
     return Padding(
       padding: const EdgeInsetsDirectional.fromSTEB(20, 12, 20, 12),
       child: Row(
         children: <Widget>[
-          _Pastille(couleur: colors.slotFreeSoft, libelle: 'Libre'),
+          _Pastille(
+            couleur: colors.slotFreeSoft,
+            libelle: textes.calendrierLibre,
+          ),
           const SizedBox(width: 16),
-          _Pastille(couleur: colors.slotBookedSoft, libelle: 'Réservé'),
+          _Pastille(
+            couleur: colors.slotBookedSoft,
+            libelle: textes.calendrierReserve,
+          ),
           const SizedBox(width: 16),
           _Pastille(
             couleur: colors.slotUnavailableSoft,
-            libelle: 'Indisponible',
+            libelle: textes.calendrierIndisponible,
           ),
         ],
       ),
@@ -401,6 +418,8 @@ class _Jour extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.ferhaColors;
     final text = Theme.of(context).textTheme;
+    final textes = AppLocalizations.of(context);
+    final formats = FormatsFerha(textes);
 
     final numero = Text(
       '${jour.day}',
@@ -413,7 +432,10 @@ class _Jour extends StatelessWidget {
     // Le passé : pas de cercle, pas de geste, très effacé.
     if (passe) {
       return Semantics(
-        label: '${jour.day} ${nomMois(jour.month)}, date passée',
+        label: textes.calendrierJourPasse(
+          '${jour.day}',
+          formats.mois(jour.month),
+        ),
         child: Opacity(opacity: 0.4, child: Center(child: numero)),
       );
     }
@@ -431,10 +453,16 @@ class _Jour extends StatelessWidget {
             ),
           };
 
+    final etatDuJour = textes.calendrierJourEtat(
+      '${jour.day}',
+      formats.mois(jour.month),
+      _libelle(textes, etat),
+    );
+
     return Semantics(
-      label:
-          '${jour.day} ${nomMois(jour.month)}, ${_libelle(etat)}'
-          '${selectionne ? ', sélectionné' : ''}',
+      label: selectionne
+          ? textes.calendrierJourSelectionne(etatDuJour)
+          : etatDuJour,
       button: etat == EtatJour.libre,
       selected: selectionne,
       child: Material(
@@ -469,10 +497,10 @@ class _Jour extends StatelessWidget {
   }
 }
 
-String _libelle(EtatJour etat) => switch (etat) {
-  EtatJour.libre => 'libre',
-  EtatJour.reserve => 'réservé',
-  EtatJour.indisponible => 'indisponible',
+String _libelle(AppLocalizations textes, EtatJour etat) => switch (etat) {
+  EtatJour.libre => textes.calendrierLibreMinuscule,
+  EtatJour.reserve => textes.calendrierReserveMinuscule,
+  EtatJour.indisponible => textes.calendrierIndisponibleMinuscule,
 };
 
 /// Le bandeau du bas quand un jour libre est choisi.
@@ -508,11 +536,13 @@ class _Resume extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = context.ferhaColors;
     final text = Theme.of(context).textTheme;
+    final textes = AppLocalizations.of(context);
+    final formats = FormatsFerha(textes);
     final maSalle = ref.watch(estMaSalleProvider(venueId));
 
     final majorations = <String>[
-      if (tarif?.jourMajore ?? false) 'jour majoré',
-      if (tarif?.saisonMajoree ?? false) 'haute saison',
+      if (tarif?.jourMajore ?? false) textes.majorationJour,
+      if (tarif?.saisonMajoree ?? false) textes.majorationSaison,
     ];
 
     return SafeArea(
@@ -531,18 +561,17 @@ class _Resume extends ConsumerWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
                   Text(
-                    '${dateEnFrancais(jour)} · '
-                    '${creneau == Creneau.journee ? 'journée entière' : creneau.libelle.toLowerCase()}',
+                    textes.calendrierResumeJour(
+                      formats.date(jour),
+                      creneau.auMilieuDUnePhrase(textes),
+                    ),
                     style: text.titleSmall?.copyWith(
                       fontWeight: FontWeight.w700,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    tarif == null
-                        ? 'Créneau non proposé par cette salle'
-                        : '${montantEnDinars(tarif!.total)} DA'
-                              '${majorations.isEmpty ? '' : ' · ${majorations.join(', ')}'}',
+                    _prixDuJour(textes, formats, tarif, majorations),
                     maxLines: 2,
                     style: text.bodySmall?.copyWith(color: colors.inkSecondary),
                   ),
@@ -578,7 +607,7 @@ class _Resume extends ConsumerWidget {
                         ).toString(),
                       ),
                 style: _styleContinuer,
-                child: const Text('Continuer'),
+                child: Text(textes.continuer),
               ),
           ],
         ),
@@ -628,4 +657,24 @@ class _CalendrierEnAttente extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Le prix du jour choisi, et ce qui l'a majoré.
+///
+/// En une fonction plutôt qu'en ligne : la phrase a trois formes — pas de
+/// tarif, un tarif, un tarif majoré — et un opérateur ternaire imbriqué au
+/// milieu d'un widget les rendrait toutes les trois illisibles.
+String _prixDuJour(
+  AppLocalizations textes,
+  FormatsFerha formats,
+  LigneTarif? tarif,
+  List<String> majorations,
+) {
+  if (tarif == null) return textes.calendrierCreneauNonPropose;
+  final montant = formats.montant(tarif.total);
+  if (majorations.isEmpty) return montant;
+  return textes.calendrierPrixEtMajorations(
+    montant,
+    majorations.join(textes.separateurListe),
+  );
 }

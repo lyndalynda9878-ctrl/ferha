@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../core/l10n/formats_ferha.dart';
+import '../../core/l10n/generated/app_localizations.dart';
 import '../../core/router/routes.dart';
 import '../../core/theme/ferha_colors.dart';
 import '../../core/theme/ferha_radii.dart';
@@ -11,7 +13,6 @@ import '../search/widgets/etats.dart';
 import 'acompte.dart';
 import 'acompte_messages.dart';
 import 'acompte_providers.dart';
-import 'demande_screen.dart' show libelleCreneau;
 import 'widgets/compte_a_rebours.dart';
 
 /// Écran 6 — « Verser l'acompte » (§3 étape 5, §4.2 CLI-06).
@@ -62,7 +63,7 @@ class _AcompteScreenState extends ConsumerState<AcompteScreen> {
     final acompte = ref.watch(acompteProvider(widget.bookingId));
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Verser l’acompte')),
+      appBar: AppBar(title: Text(AppLocalizations.of(context).acompteTitre)),
       body: switch (acompte) {
         AsyncError(:final error) => _impossible(erreur: error),
         AsyncData(:final value) => _Contenu(
@@ -101,6 +102,9 @@ class _AcompteScreenState extends ConsumerState<AcompteScreen> {
   /// base.
   Future<void> _annoncerEspeces() async {
     if (_enRoute) return;
+    // Les textes avant le premier `await` : après, le contexte peut ne plus
+    // être là, et c'est dans le `catch` qu'on en a besoin.
+    final textes = AppLocalizations.of(context);
     setState(() {
       _enRoute = true;
       _refus = null;
@@ -116,7 +120,7 @@ class _AcompteScreenState extends ConsumerState<AcompteScreen> {
       if (!mounted) return;
       setState(() {
         _enRoute = false;
-        _refus = refusAcompte(erreur);
+        _refus = refusAcompte(textes, erreur);
       });
     }
   }
@@ -129,6 +133,7 @@ class _AcompteScreenState extends ConsumerState<AcompteScreen> {
   /// par réservation », pas ce booléen. Il n'évite qu'un double appel inutile.
   Future<void> _payer() async {
     if (_enRoute) return;
+    final textes = AppLocalizations.of(context);
     setState(() {
       _enRoute = true;
       _refus = null;
@@ -146,13 +151,7 @@ class _AcompteScreenState extends ConsumerState<AcompteScreen> {
       if (page.dejaPaye || page.url == null) {
         setState(() {
           _enRoute = false;
-          _refus = (
-            message:
-                'Ce paiement a déjà été soumis. Il est en cours de '
-                'vérification ; votre réservation sera confirmée dès que la '
-                'banque aura répondu.',
-            definitif: true,
-          );
+          _refus = (message: textes.acompteDejaSoumis, definitif: true);
         });
         return;
       }
@@ -170,19 +169,14 @@ class _AcompteScreenState extends ConsumerState<AcompteScreen> {
       setState(() {
         _enRoute = false;
         if (!ouvert) {
-          _refus = (
-            message:
-                'La page de paiement n’a pas pu s’ouvrir. Vérifiez que votre '
-                'navigateur n’a pas bloqué la redirection.',
-            definitif: false,
-          );
+          _refus = (message: textes.acomptePageNonOuverte, definitif: false);
         }
       });
     } on Object catch (erreur) {
       if (!mounted) return;
       setState(() {
         _enRoute = false;
-        _refus = refusAcompte(erreur);
+        _refus = refusAcompte(textes, erreur);
       });
     }
   }
@@ -195,27 +189,28 @@ class _AcompteScreenState extends ConsumerState<AcompteScreen> {
   /// et la confiance. On propose le seul geste qui reste — revenir à ses
   /// réservations, d'où une nouvelle demande peut partir.
   Widget _impossible({required Object erreur}) {
-    final refus = refusAcompte(erreur);
+    final textes = AppLocalizations.of(context);
+    final refus = refusAcompte(textes, erreur);
 
     return EtatVide(
       icone: refus.definitif
           ? Icons.event_busy_outlined
           : Icons.cloud_off_outlined,
       titre: refus.definitif
-          ? 'Il n’y a pas d’acompte à verser ici'
-          : 'L’acompte n’a pas pu être lu',
+          ? textes.acompteRienAVerser
+          : textes.acompteLectureImpossible,
       explication: refus.message,
       pistes: <Widget>[
         if (!refus.definitif)
           FilledButton.icon(
             onPressed: () => ref.invalidate(acompteProvider(widget.bookingId)),
             icon: const Icon(Icons.refresh, size: 18),
-            label: const Text('Réessayer'),
+            label: Text(textes.reessayer),
           ),
         OutlinedButton.icon(
           onPressed: () => context.go(FerhaRoutes.mesReservations),
           icon: const Icon(Icons.event_note_outlined, size: 18),
-          label: const Text('Mes réservations'),
+          label: Text(textes.mesReservations),
         ),
       ],
     );
@@ -249,19 +244,19 @@ class _Contenu extends StatelessWidget {
   /// l'argent part maintenant. Il ne part pas : le client annonce, et portera
   /// les billets. Le libellé doit dire le geste qu'on fait, pas celui qu'on
   /// fera.
-  String get _libelleDuBouton {
-    if (moyen.passeParChargily) {
-      return 'Payer ${montantEnDinars(acompte.acompte)} DA';
-    }
-    if (acompte.especesEnAttente) return 'Versement déjà annoncé';
-    return 'Annoncer un versement de '
-        '${montantEnDinars(acompte.acompte)} DA';
+  String _libelleDuBouton(AppLocalizations textes, FormatsFerha formats) {
+    final montant = formats.montant(acompte.acompte);
+    if (moyen.passeParChargily) return textes.acomptePayer(montant);
+    if (acompte.especesEnAttente) return textes.acompteVersementDejaAnnonce;
+    return textes.acompteAnnoncerVersement(montant);
   }
 
   @override
   Widget build(BuildContext context) {
     final colors = context.ferhaColors;
     final text = Theme.of(context).textTheme;
+    final textes = AppLocalizations.of(context);
+    final formats = FormatsFerha(textes);
 
     return ListView(
       padding: const EdgeInsetsDirectional.fromSTEB(16, 16, 16, 32),
@@ -279,38 +274,41 @@ class _Contenu extends StatelessWidget {
         ],
 
         const SizedBox(height: 18),
-        _Titre(texte: 'Récapitulatif'),
+        _Titre(texte: textes.acompteRecapitulatif),
 
         const SizedBox(height: 8),
         _Ligne(libelle: acompte.salle, valeur: acompte.localisation),
         _Ligne(
-          libelle:
-              '${jourEnFrancais(acompte.date)} '
-              '${dateEnFrancais(acompte.date)} · '
-              '${libelleCreneau(acompte.creneau).toLowerCase()}',
-          valeur: '${acompte.invites} inv.',
+          libelle: textes.calendrierResumeJour(
+            formats.jourEtDate(acompte.date),
+            acompte.creneau.auMilieuDUnePhrase(textes),
+          ),
+          valeur: textes.acompteInvitesAbrege('${acompte.invites}'),
         ),
         if (acompte.typeEvenement != null)
-          _Ligne(libelle: 'Événement', valeur: acompte.typeEvenement!),
+          _Ligne(
+            libelle: textes.acompteEvenement,
+            valeur: acompte.typeEvenement!,
+          ),
 
         const SizedBox(height: 6),
         Divider(height: 1, color: colors.ruleSoft),
         const SizedBox(height: 6),
 
         _Ligne(
-          libelle: 'Montant convenu',
-          valeur: '${montantEnDinars(acompte.montantConvenu)} DA',
+          libelle: textes.acompteMontantConvenu,
+          valeur: formats.montant(acompte.montantConvenu),
         ),
         _Ligne(
           libelle: acompte.partEnPourcent == null
-              ? 'Acompte'
-              : 'Acompte (${acompte.partEnPourcent} %)',
-          valeur: '${montantEnDinars(acompte.acompte)} DA',
+              ? textes.acompteLigne
+              : textes.acompteLignePart('${acompte.partEnPourcent}'),
+          valeur: formats.montant(acompte.acompte),
           enAvant: true,
         ),
 
         const SizedBox(height: 18),
-        _Titre(texte: 'Moyen de paiement'),
+        _Titre(texte: textes.acompteMoyenDePaiement),
 
         const SizedBox(height: 8),
         for (final choix in MoyenDePaiement.values) ...<Widget>[
@@ -347,7 +345,7 @@ class _Contenu extends StatelessWidget {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : Text(
-                    _libelleDuBouton,
+                    _libelleDuBouton(textes, formats),
                     textAlign: TextAlign.center,
                     style: text.titleMedium?.copyWith(
                       fontWeight: FontWeight.w700,
@@ -359,8 +357,7 @@ class _Contenu extends StatelessWidget {
 
         const SizedBox(height: 10),
         Text(
-          'Solde de ${montantEnDinars(acompte.solde)} DA réglé sur place le '
-          'jour J.',
+          textes.acompteSoldeJourJ(formats.montant(acompte.solde)),
           textAlign: TextAlign.center,
           style: text.bodySmall?.copyWith(color: colors.inkTertiary),
         ),
@@ -372,7 +369,7 @@ class _Contenu extends StatelessWidget {
           Text(
             // Dit au client plutôt que caché (v2.0, CLI-06). Il vaut mieux
             // qu'il l'apprenne ici que devant un relevé bancaire vide.
-            'Paiement en mode test : aucune somme n’est réellement débitée.',
+            textes.acompteModeTest,
             textAlign: TextAlign.center,
             style: text.bodySmall?.copyWith(color: colors.inkTertiary),
           ),
@@ -392,6 +389,8 @@ class _Accepte extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.ferhaColors;
     final text = Theme.of(context).textTheme;
+    final textes = AppLocalizations.of(context);
+    final formats = FormatsFerha(textes);
     final proprietaire = acompte.proprietaire;
 
     return Container(
@@ -413,7 +412,7 @@ class _Accepte extends StatelessWidget {
               ),
               const SizedBox(width: 6),
               Text(
-                'Demande acceptée',
+                textes.acompteDemandeAcceptee,
                 style: text.titleSmall?.copyWith(
                   color: colors.slotFree,
                   fontWeight: FontWeight.w700,
@@ -423,15 +422,16 @@ class _Accepte extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            <String>[
-              if (proprietaire != null && proprietaire.trim().isNotEmpty)
-                '$proprietaire a confirmé'
-              else
-                'Le propriétaire a confirmé',
-              'le ${jourEnFrancais(acompte.date)} '
-                  '${dateEnFrancais(acompte.date)}',
-              'en ${libelleCreneau(acompte.creneau).toLowerCase()}.',
-            ].join(' '),
+            proprietaire != null && proprietaire.trim().isNotEmpty
+                ? textes.acompteConfirmePar(
+                    proprietaire,
+                    formats.jourEtDate(acompte.date),
+                    acompte.creneau.auMilieuDUnePhrase(textes),
+                  )
+                : textes.acompteConfirmeParProprietaire(
+                    formats.jourEtDate(acompte.date),
+                    acompte.creneau.auMilieuDUnePhrase(textes),
+                  ),
             style: text.bodyMedium?.copyWith(color: colors.inkSecondary),
           ),
           const SizedBox(height: 8),
@@ -448,7 +448,7 @@ class _Accepte extends StatelessWidget {
               ),
               const SizedBox(width: 6),
               Text(
-                'La date vous est réservée pendant ',
+                textes.acompteDateReserveePendant,
                 style: text.bodyMedium?.copyWith(color: colors.inkSecondary),
               ),
               CompteARebours(
@@ -488,6 +488,8 @@ class _EspecesAnnoncees extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.ferhaColors;
     final text = Theme.of(context).textTheme;
+    final textes = AppLocalizations.of(context);
+    final formats = FormatsFerha(textes);
 
     return Container(
       width: double.infinity,
@@ -506,7 +508,7 @@ class _EspecesAnnoncees extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Text(
-                  'Versement en espèces annoncé',
+                  textes.acompteEspecesTitre,
                   style: text.titleSmall?.copyWith(
                     color: colors.primaryDeep,
                     fontWeight: FontWeight.w700,
@@ -514,10 +516,7 @@ class _EspecesAnnoncees extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Le propriétaire vous attend avec '
-                  '${montantEnDinars(montant)} DA. La date sera confirmée '
-                  'quand il aura reçu l’acompte — et l’option court toujours '
-                  'd’ici là.',
+                  textes.acompteEspecesTexte(formats.montant(montant)),
                   style: text.bodySmall?.copyWith(color: colors.inkSecondary),
                 ),
               ],
@@ -559,8 +558,7 @@ class _EnVerification extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              'Un paiement est en cours de vérification. Votre réservation sera '
-              'confirmée dès que la banque aura répondu.',
+              AppLocalizations.of(context).acompteEnVerification,
               style: text.bodySmall?.copyWith(color: colors.inkSecondary),
             ),
           ),
@@ -586,6 +584,7 @@ class _Carte extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.ferhaColors;
     final text = Theme.of(context).textTheme;
+    final textes = AppLocalizations.of(context);
 
     return Semantics(
       inMutuallyExclusiveGroup: true,
@@ -619,14 +618,14 @@ class _Carte extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Text(
-                      moyen.libelle,
+                      moyen.nomTraduit(textes),
                       style: text.bodyLarge?.copyWith(
                         fontWeight: FontWeight.w700,
                         color: choisi ? colors.primaryDeep : colors.ink,
                       ),
                     ),
                     Text(
-                      moyen.explication,
+                      moyen.explicationTraduite(textes),
                       style: text.bodySmall?.copyWith(
                         color: colors.inkSecondary,
                       ),

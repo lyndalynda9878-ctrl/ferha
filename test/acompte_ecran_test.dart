@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'textes_traduits.dart';
+import 'package:ferha/core/l10n/generated/app_localizations.dart';
+import 'package:ferha/core/l10n/locale_controller.dart';
 import 'package:ferha/core/router/routes.dart';
 import 'package:ferha/core/theme/ferha_theme.dart';
 import 'package:ferha/features/booking/acompte.dart';
@@ -75,6 +78,8 @@ void main() {
           ),
         ],
         child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: ferhaSupportedLocales,
           theme: theme ?? FerhaTheme.light(),
           home: Directionality(
             textDirection: direction,
@@ -361,8 +366,9 @@ void main() {
       // La fonction recopie dans son JSON le hint que la base lui a donné : les
       // deux chemins doivent aboutir à la MÊME phrase, sinon le même refus se
       // dirait de deux façons selon l'endroit où il a été attrapé.
-      final parLaBase = refusAcompte(refus('FE053'));
+      final parLaBase = refusAcompte(textesFr, refus('FE053'));
       final parLaFonction = refusAcompte(
+        textesFr,
         const FunctionsHttpException(
           status: 409,
           details: <String, dynamic>{'hint': 'FE053', 'message': 'peu importe'},
@@ -377,6 +383,7 @@ void main() {
       // Un 401 de la passerelle Supabase, avant même que la fonction tourne :
       // `details` est alors du texte, et il ne faut pas planter dessus.
       final refus = refusAcompte(
+        textesFr,
         const FunctionsHttpException(status: 401, details: 'Unauthorized'),
       );
 
@@ -387,10 +394,10 @@ void main() {
     test(
       'FE058 est définitif : une clé absente ne se répare pas en tapant',
       () {
-        expect(refusAcompte(refus('FE058')).definitif, isTrue);
+        expect(refusAcompte(textesFr, refus('FE058')).definitif, isTrue);
         // Et la phrase ne nomme aucun secret.
         expect(
-          refusAcompte(refus('FE058')).message.toUpperCase(),
+          refusAcompte(textesFr, refus('FE058')).message.toUpperCase(),
           isNot(contains('CHARGILY')),
         );
       },

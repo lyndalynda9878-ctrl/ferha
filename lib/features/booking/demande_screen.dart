@@ -5,6 +5,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/l10n/formats_ferha.dart';
+import '../../core/l10n/generated/app_localizations.dart';
 import '../../core/router/exiger_connexion.dart';
 import '../../core/router/routes.dart';
 import '../../core/theme/ferha_colors.dart';
@@ -195,6 +197,11 @@ class _DemandeScreenState extends ConsumerState<DemandeScreen> {
   }
 
   Future<void> _envoyer(VenueDetail salle, DevisReservation devis) async {
+    // LES TEXTES SE PRENNENT AVANT LE PREMIER `await`. Après, le `context` peut
+    // avoir disparu — et c'est justement dans le `catch`, tout à la fin, qu'on
+    // a besoin de traduire le refus.
+    final textes = AppLocalizations.of(context);
+
     // LA CONNEXION, ICI. Si le visiteur renonce, on ne fait rien de plus : ses
     // choix restent à l'écran, l'écran de connexion s'étant simplement refermé
     // par-dessus.
@@ -238,7 +245,7 @@ class _DemandeScreenState extends ConsumerState<DemandeScreen> {
       );
     } on Object catch (erreur) {
       if (!mounted) return;
-      setState(() => _refus = refusDemande(erreur));
+      setState(() => _refus = refusDemande(textes, erreur));
     } finally {
       if (mounted) setState(() => _envoiEnCours = false);
     }
@@ -257,7 +264,7 @@ class _DemandeScreenState extends ConsumerState<DemandeScreen> {
     );
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Votre demande')),
+      appBar: AppBar(title: Text(AppLocalizations.of(context).demandeTitre)),
       body: switch (fiche) {
         AsyncError(:final error) => EtatErreur(
           erreur: error,
@@ -301,7 +308,11 @@ class _DemandeScreenState extends ConsumerState<DemandeScreen> {
     final recu = devis.value;
     if (recu != null) _dernierDevis = recu;
 
-    final manqueTelephone = TelephoneAlgerien.ceQuiManque(_telephoneCtrl.text);
+    final textes = AppLocalizations.of(context);
+    final manqueTelephone = TelephoneAlgerien.ceQuiManque(
+      textes,
+      _telephoneCtrl.text,
+    );
 
     return ListView(
       padding: const EdgeInsetsDirectional.fromSTEB(20, 16, 20, 32),
@@ -310,7 +321,7 @@ class _DemandeScreenState extends ConsumerState<DemandeScreen> {
         const SizedBox(height: 24),
 
         if (salle.typesEvenement.isNotEmpty) ...<Widget>[
-          const _Intitule('Événement'),
+          _Intitule(textes.demandeEvenement),
           const SizedBox(height: 10),
           _ChoixType(
             types: salle.typesEvenement,
@@ -320,7 +331,7 @@ class _DemandeScreenState extends ConsumerState<DemandeScreen> {
           const SizedBox(height: 20),
         ],
 
-        const _Intitule('Nombre d’invités'),
+        _Intitule(textes.demandeNombreInvites),
         const SizedBox(height: 10),
         _ChoixInvites(
           valeur: _invites!,
@@ -332,7 +343,7 @@ class _DemandeScreenState extends ConsumerState<DemandeScreen> {
 
         if (salle.options.isNotEmpty) ...<Widget>[
           const SizedBox(height: 20),
-          const _Intitule('Options'),
+          _Intitule(textes.demandeOptions),
           const SizedBox(height: 10),
           for (final option in salle.options)
             _LigneOption(
@@ -356,12 +367,12 @@ class _DemandeScreenState extends ConsumerState<DemandeScreen> {
         // qu'on donne avant d'envoyer, et la seule qui ne parle pas d'argent :
         // elle a sa place là, pas au milieu des options.
         const SizedBox(height: 24),
-        const _Intitule('Téléphone pour que la salle vous rappelle'),
+        _Intitule(textes.demandeTelephoneIntitule),
         const SizedBox(height: 10),
         TextField(
           controller: _telephoneCtrl,
           keyboardType: TextInputType.phone,
-          decoration: const InputDecoration(hintText: '0770 11 22 33'),
+          decoration: InputDecoration(hintText: textes.demandeTelephoneExemple),
           onChanged: (_) => setState(() {
             _telephonePose = true;
             // Un refus précédent ne survit pas à une correction.
@@ -374,7 +385,7 @@ class _DemandeScreenState extends ConsumerState<DemandeScreen> {
           // c'est le numéro : personne ne l'a tant que la salle n'a pas
           // accepté. Sans cette phrase, le champ ressemble à un formulaire de
           // plus qui collecte des coordonnées.
-          'Le propriétaire ne le voit qu’après avoir accepté votre demande.',
+          textes.demandeTelephoneQuiLeVoit,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
             color: context.ferhaColors.inkTertiary,
           ),
@@ -433,7 +444,7 @@ class _DemandeScreenState extends ConsumerState<DemandeScreen> {
             ),
             child: _envoiEnCours
                 ? const _Patiente()
-                : const Text('Envoyer la demande'),
+                : Text(textes.demandeEnvoyer),
           ),
         ),
         const SizedBox(height: 12),
@@ -441,7 +452,7 @@ class _DemandeScreenState extends ConsumerState<DemandeScreen> {
         // La phrase de la maquette, mot pour mot : « La mention "aucun paiement
         // à cette étape" lève le principal frein à l'envoi. »
         Text(
-          'Aucun paiement à cette étape. Le propriétaire répond sous 48 h.',
+          textes.demandeAucunPaiement,
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
             color: context.ferhaColors.inkTertiary,
@@ -468,13 +479,12 @@ class _MaPropreSalle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textes = AppLocalizations.of(context);
+
     return EtatVide(
       icone: Icons.storefront_outlined,
-      titre: '${salle.nom} est votre salle',
-      explication:
-          'On ne réserve pas chez soi : une demande sur sa propre salle serait '
-          'refusée. Les demandes de vos clients, elles, vous attendent dans '
-          'votre tableau de bord.',
+      titre: textes.demandeMaSalleTitre(salle.nom),
+      explication: textes.demandeMaSalleTexte,
       pistes: <Widget>[BoutonGererMaSalle(venueId: salle.id)],
     );
   }
@@ -501,6 +511,8 @@ class _EnTete extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.ferhaColors;
     final text = Theme.of(context).textTheme;
+    final textes = AppLocalizations.of(context);
+    final formats = FormatsFerha(textes);
 
     return Container(
       width: double.infinity,
@@ -529,7 +541,10 @@ class _EnTete extends StatelessWidget {
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
-                  '${dateEnFrancais(date)} · ${libelleCreneau(creneau)}',
+                  textes.calendrierResumeJour(
+                    formats.date(date),
+                    creneau.dansUnePhrase(textes),
+                  ),
                   style: text.bodyMedium?.copyWith(color: colors.ink),
                 ),
               ),
@@ -639,6 +654,7 @@ class _ChoixInvitesState extends State<_ChoixInvites> {
   Widget build(BuildContext context) {
     final colors = context.ferhaColors;
     final text = Theme.of(context).textTheme;
+    final textes = AppLocalizations.of(context);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -663,11 +679,11 @@ class _ChoixInvitesState extends State<_ChoixInvites> {
                   style: text.titleMedium?.copyWith(
                     fontWeight: FontWeight.w700,
                   ),
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     border: InputBorder.none,
                     isDense: true,
                     contentPadding: EdgeInsetsDirectional.zero,
-                    suffixText: 'invités',
+                    suffixText: textes.demandeSuffixeInvites,
                   ),
                   onChanged: (saisie) {
                     final n = int.tryParse(saisie);
@@ -685,21 +701,21 @@ class _ChoixInvitesState extends State<_ChoixInvites> {
                     ? () => _pose(widget.valeur - widget.pas)
                     : null,
                 icon: const Icon(Icons.remove),
-                tooltip: '${widget.pas} invités de moins',
+                tooltip: textes.demandeMoinsInvites('${widget.pas}'),
               ),
               IconButton(
                 onPressed: widget.valeur < widget.capacite
                     ? () => _pose(widget.valeur + widget.pas)
                     : null,
                 icon: const Icon(Icons.add),
-                tooltip: '${widget.pas} invités de plus',
+                tooltip: textes.demandePlusInvites('${widget.pas}'),
               ),
             ],
           ),
         ),
         const SizedBox(height: 6),
         Text(
-          'Capacité de la salle : ${widget.capacite} couverts.',
+          textes.demandeCapaciteSalle('${widget.capacite}'),
           style: text.bodySmall?.copyWith(color: colors.inkTertiary),
         ),
       ],
@@ -723,6 +739,8 @@ class _LigneOption extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.ferhaColors;
     final text = Theme.of(context).textTheme;
+    final textes = AppLocalizations.of(context);
+    final formats = FormatsFerha(textes);
 
     return InkWell(
       onTap: onChange,
@@ -737,7 +755,9 @@ class _LigneOption extends StatelessWidget {
             Text(
               // Un forfait à zéro dinar n'est pas « 0 DA » : c'est une option
               // que la salle comprend dans son prix, et elle le dit ainsi.
-              option.incluse ? 'Incluse' : '${montantEnDinars(option.prix)} DA',
+              option.incluse
+                  ? textes.demandeOptionIncluse
+                  : formats.montant(option.prix),
               style: text.bodyMedium?.copyWith(
                 fontWeight: FontWeight.w700,
                 color: option.incluse ? colors.slotFree : colors.ink,
@@ -775,6 +795,7 @@ class _Recapitulatif extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.ferhaColors;
+    final textes = AppLocalizations.of(context);
 
     // L'erreur passe devant les montants gardés : afficher l'ancien total sous
     // des options qui ont changé annoncerait un prix que personne ne pratique.
@@ -801,13 +822,17 @@ class _Recapitulatif extends StatelessWidget {
           children: <Widget>[
             // Le prix du créneau, avec ce qui l'a majoré — « Soirée samedi
             // (haute saison) » dans la maquette.
-            _Ligne(libelle: _libelleCreneauMajore(d), montant: d.prixCreneau),
+            _Ligne(
+              libelle: _libelleCreneauMajore(textes, d),
+              montant: d.prixCreneau,
+            ),
 
             if (d.couvertsSup > 0)
               _Ligne(
-                libelle:
-                    '${d.couvertsSup} couvert${d.couvertsSup > 1 ? 's' : ''} '
-                    'au-delà de ${d.couvertsInclus}',
+                libelle: textes.demandeCouvertsAuDela(
+                  d.couvertsSup,
+                  '${d.couvertsInclus}',
+                ),
                 montant: d.montantCouvertsSup,
               ),
 
@@ -821,13 +846,13 @@ class _Recapitulatif extends StatelessWidget {
             ),
 
             _Ligne(
-              libelle: 'Estimation totale',
+              libelle: textes.demandeEstimationTotale,
               montant: d.total,
               enAvant: true,
             ),
             const SizedBox(height: 6),
             _Ligne(
-              libelle: 'Acompte à verser (${d.pourcentageAcompte} %)',
+              libelle: textes.demandeAcompteAVerser(d.pourcentageAcompte),
               montant: d.montantAcompte,
             ),
           ],
@@ -842,13 +867,18 @@ class _Recapitulatif extends StatelessWidget {
   /// 343 200 DA là où la fiche annonçait 220 000 doit lire pourquoi sur la même
   /// ligne. Ce sont les coefficients renvoyés par la base qui décident — pas
   /// une règle de calendrier réécrite ici.
-  String _libelleCreneauMajore(DevisReservation d) {
+  String _libelleCreneauMajore(AppLocalizations textes, DevisReservation d) {
     final raisons = <String>[
-      if (d.jourMajore) jourEnFrancais(date),
-      if (d.saisonMajoree) 'haute saison',
+      if (d.jourMajore) FormatsFerha(textes).jour(date),
+      if (d.saisonMajoree) textes.majorationSaison,
     ];
-    final base = libelleCreneau(creneau);
-    return raisons.isEmpty ? base : '$base (${raisons.join(', ')})';
+    final base = creneau.dansUnePhrase(textes);
+    return raisons.isEmpty
+        ? base
+        : textes.demandeCreneauMajore(
+            base,
+            raisons.join(textes.separateurListe),
+          );
   }
 }
 
@@ -870,6 +900,7 @@ class _Ligne extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.ferhaColors;
     final text = Theme.of(context).textTheme;
+    final formats = FormatsFerha.de(context);
 
     final style = enAvant
         ? text.titleMedium?.copyWith(fontWeight: FontWeight.w700)
@@ -883,7 +914,7 @@ class _Ligne extends StatelessWidget {
           Expanded(child: Text(libelle, style: style)),
           const SizedBox(width: 12),
           Text(
-            '${montantEnDinars(montant)} DA',
+            formats.montant(montant),
             style: (enAvant ? style : text.bodyMedium)?.copyWith(
               fontWeight: FontWeight.w700,
               color: enAvant ? colors.primaryDeep : colors.ink,
@@ -951,6 +982,7 @@ class _DevisImpossible extends StatelessWidget {
     final colors = context.ferhaColors;
     final text = Theme.of(context).textTheme;
     final rouge = Theme.of(context).colorScheme.error;
+    final textes = AppLocalizations.of(context);
 
     return Container(
       padding: const EdgeInsetsDirectional.all(14),
@@ -963,19 +995,19 @@ class _DevisImpossible extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Text(
-            'Le devis n’a pas pu être calculé',
+            textes.demandeDevisImpossible,
             style: text.titleSmall?.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 4),
           Text(
-            messageErreurDemande(erreur),
+            messageErreurDemande(textes, erreur),
             style: text.bodySmall?.copyWith(color: colors.inkSecondary),
           ),
           const SizedBox(height: 10),
           TextButton.icon(
             onPressed: onReessayer,
             icon: const Icon(Icons.refresh, size: 18),
-            label: const Text('Réessayer'),
+            label: Text(textes.reessayer),
           ),
         ],
       ),
@@ -1055,12 +1087,8 @@ class _Patiente extends StatelessWidget {
   }
 }
 
-/// « Soirée », « Midi », « Journée entière ».
-///
-/// Le libellé du créneau tel qu'il se lit dans une phrase, là où
-/// [Creneau.libelle] donne celui des puces.
-String libelleCreneau(Creneau creneau) => switch (creneau) {
-  Creneau.midi => 'Midi',
-  Creneau.soir => 'Soirée',
-  Creneau.journee => 'Journée entière',
-};
+// « Soirée », « Midi », « Journée entière » vivaient ici, en français et en
+// dur. Elles sont maintenant dans `CreneauTraduit` — voir search_filters.dart —
+// où elles ont trois registres au lieu d'un : la puce, la phrase, et le milieu
+// de phrase. Les deux écrans qui importaient `libelleCreneau` de ce fichier
+// prennent l'extension.

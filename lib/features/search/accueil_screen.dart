@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/l10n/formats_ferha.dart';
+import '../../core/l10n/generated/app_localizations.dart';
 import '../../core/router/routes.dart';
 import '../../core/theme/ferha_colors.dart';
 import '../../core/theme/ferha_radii.dart';
@@ -51,6 +53,7 @@ class _AccueilScreenState extends ConsumerState<AccueilScreen> {
   }
 
   Future<void> _choisirDate() async {
+    final textes = AppLocalizations.of(context);
     final maintenant = DateTime.now();
     final choix = await showDatePicker(
       context: context,
@@ -63,9 +66,9 @@ class _AccueilScreenState extends ConsumerState<AccueilScreen> {
         maintenant.month + 18,
         maintenant.day,
       ),
-      helpText: 'Date de l’événement',
-      cancelText: 'Annuler',
-      confirmText: 'Choisir',
+      helpText: textes.accueilDateDeLEvenement,
+      cancelText: textes.annuler,
+      confirmText: textes.choisir,
     );
     if (choix != null) {
       setState(() => _filtres = _filtres.copyWith(date: choix));
@@ -73,32 +76,33 @@ class _AccueilScreenState extends ConsumerState<AccueilScreen> {
   }
 
   Future<void> _choisirInvites() async {
+    final textes = AppLocalizations.of(context);
     final controleur = TextEditingController(
       text: _filtres.invites?.toString() ?? '',
     );
     final valeur = await showDialog<int?>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Nombre d’invités'),
+        title: Text(textes.accueilNombreInvites),
         content: TextField(
           controller: controleur,
           autofocus: true,
           keyboardType: TextInputType.number,
-          decoration: const InputDecoration(
-            labelText: 'Couverts',
-            helperText: 'Sert aussi au calcul du prix.',
+          decoration: InputDecoration(
+            labelText: textes.accueilCouverts,
+            helperText: textes.accueilCouvertsAide,
           ),
           onSubmitted: (v) => Navigator.of(context).pop(int.tryParse(v.trim())),
         ),
         actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.of(context).pop(-1),
-            child: const Text('Effacer'),
+            child: Text(textes.effacer),
           ),
           FilledButton(
             onPressed: () =>
                 Navigator.of(context).pop(int.tryParse(controleur.text.trim())),
-            child: const Text('Valider'),
+            child: Text(textes.valider),
           ),
         ],
       ),
@@ -116,11 +120,13 @@ class _AccueilScreenState extends ConsumerState<AccueilScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = context.ferhaColors;
+    final textes = AppLocalizations.of(context);
+    final formats = FormatsFerha(textes);
     final wilayas = ref.watch(wilayasProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Trouvez votre salle'),
+        title: Text(textes.accueilTitre),
         titleTextStyle: Theme.of(context).textTheme.titleLarge?.copyWith(
           fontWeight: FontWeight.w700,
           color: colors.ink,
@@ -138,9 +144,9 @@ class _AccueilScreenState extends ConsumerState<AccueilScreen> {
             controller: _texte,
             textInputAction: TextInputAction.search,
             onSubmitted: (_) => _rechercher(),
-            decoration: const InputDecoration(
-              hintText: 'Wilaya, commune ou nom de salle',
-              prefixIcon: Icon(Icons.search),
+            decoration: InputDecoration(
+              hintText: textes.accueilRechercheIndice,
+              prefixIcon: const Icon(Icons.search),
             ),
           ),
           const SizedBox(height: 16),
@@ -178,8 +184,8 @@ class _AccueilScreenState extends ConsumerState<AccueilScreen> {
                 child: _Critere(
                   icone: Icons.calendar_today_outlined,
                   valeur: _filtres.date == null
-                      ? 'Date'
-                      : dateEnFrancais(_filtres.date!),
+                      ? textes.critereDate
+                      : formats.date(_filtres.date!),
                   rempli: _filtres.date != null,
                   onTap: _choisirDate,
                 ),
@@ -189,8 +195,8 @@ class _AccueilScreenState extends ConsumerState<AccueilScreen> {
                 child: _Critere(
                   icone: Icons.group_outlined,
                   valeur: _filtres.invites == null
-                      ? 'Invités'
-                      : '${_filtres.invites} invités',
+                      ? textes.critereInvites
+                      : textes.critereInvitesRempli('${_filtres.invites}'),
                   rempli: _filtres.invites != null,
                   onTap: _choisirInvites,
                 ),
@@ -203,8 +209,10 @@ class _AccueilScreenState extends ConsumerState<AccueilScreen> {
           SegmentedButton<Creneau>(
             segments: Creneau.values
                 .map(
-                  (c) =>
-                      ButtonSegment<Creneau>(value: c, label: Text(c.libelle)),
+                  (c) => ButtonSegment<Creneau>(
+                    value: c,
+                    label: Text(c.surUnePuce(textes)),
+                  ),
                 )
                 .toList(growable: false),
             selected: <Creneau>{_filtres.creneau},
@@ -215,7 +223,7 @@ class _AccueilScreenState extends ConsumerState<AccueilScreen> {
           ),
           const SizedBox(height: 20),
 
-          const _Intitule('Type d’événement'),
+          _Intitule(textes.typeDEvenement),
           const SizedBox(height: 8),
           // Les puces viennent du référentiel event_types : le filtre envoie
           // le code, l'écran affiche le libellé. Depuis 010, il filtre pour de
@@ -254,7 +262,7 @@ class _AccueilScreenState extends ConsumerState<AccueilScreen> {
               style: FilledButton.styleFrom(
                 padding: const EdgeInsetsDirectional.symmetric(vertical: 16),
               ),
-              child: const Text('Rechercher'),
+              child: Text(textes.rechercher),
             ),
           ),
           const SizedBox(height: 32),
@@ -277,6 +285,8 @@ class _MieuxNotees extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final textes = AppLocalizations.of(context);
+
     // Seule la wilaya est reprise : cette liste est une vitrine, pas le
     // résultat de la recherche en cours.
     final vitrine = SearchFilters(
@@ -296,7 +306,7 @@ class _MieuxNotees extends ConsumerWidget {
       loading: () => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          const _Intitule('Sélection'),
+          _Intitule(textes.accueilSelection),
           const SizedBox(height: 12),
           const CarteSquelette(),
         ],
@@ -311,24 +321,28 @@ class _MieuxNotees extends ConsumerWidget {
         if (donnees.salles.isEmpty) {
           return _Encart(
             child: EtatVide(
-              titre: 'Aucune salle publiée ici',
+              titre: textes.accueilVideTitre,
               explication: nomWilaya == null
-                  ? 'Le catalogue est encore vide. Lancez les données de '
-                        'démonstration, ou publiez une première salle.'
-                  : 'Aucune salle n’est publiée à $nomWilaya pour l’instant. '
-                        'Essayez une autre wilaya.',
+                  ? textes.accueilVideCatalogue
+                  : textes.accueilVideWilaya(nomWilaya),
             ),
           );
         }
 
         // Une salle notée dans le lot suffit à justifier le titre.
         final ilYADesNotes = donnees.salles.any((s) => s.estNotee);
-        final titre = ilYADesNotes ? 'Les mieux notées' : 'Salles à découvrir';
+        final titre = ilYADesNotes
+            ? textes.accueilMieuxNotees
+            : textes.accueilADecouvrir;
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            _Intitule(nomWilaya == null ? titre : '$titre à $nomWilaya'),
+            _Intitule(
+              nomWilaya == null
+                  ? titre
+                  : textes.accueilIntituleAvecWilaya(titre, nomWilaya),
+            ),
             const SizedBox(height: 12),
             for (final salle in donnees.salles.take(3)) ...<Widget>[
               VenueCard(
@@ -363,7 +377,8 @@ class _Intitule extends StatelessWidget {
       texte.toUpperCase(),
       style: Theme.of(context).textTheme.labelSmall?.copyWith(
         color: colors.inkTertiary,
-        letterSpacing: 1.2,
+        // Zéro en arabe : espacer des lettres qui se lient casse le mot.
+        letterSpacing: context.espacementDesCapitales(),
         fontWeight: FontWeight.w600,
       ),
     );

@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
+import 'textes_traduits.dart';
 import 'package:ferha/core/validation/telephone.dart';
 
 /// La règle du numéro de téléphone, côté Flutter.
@@ -33,7 +34,7 @@ void main() {
     for (final numero in bons) {
       test('« $numero » est accepté', () {
         expect(TelephoneAlgerien.estValide(numero), isTrue);
-        expect(TelephoneAlgerien.ceQuiManque(numero), isNull);
+        expect(TelephoneAlgerien.ceQuiManque(textesFr, numero), isNull);
       });
     }
   });
@@ -62,7 +63,7 @@ void main() {
     for (final numero in mauvais) {
       test('« $numero » est refusé', () {
         expect(TelephoneAlgerien.estValide(numero), isFalse);
-        expect(TelephoneAlgerien.ceQuiManque(numero), isNotNull);
+        expect(TelephoneAlgerien.ceQuiManque(textesFr, numero), isNotNull);
       });
     }
 
@@ -91,14 +92,14 @@ void main() {
       // Il n'y a pas de faute à ne pas avoir encore rempli un champ : la phrase
       // demande, elle ne reproche pas.
       expect(
-        TelephoneAlgerien.ceQuiManque(''),
+        TelephoneAlgerien.ceQuiManque(textesFr, ''),
         'Indiquez un numéro de téléphone.',
       );
     });
 
     test('un numéro à moitié tapé reçoit un exemple, pas une règle', () {
       // « Format : 0[567]\\d{8} » ne se lit pas. Un exemple se recopie.
-      final phrase = TelephoneAlgerien.ceQuiManque('0770 11')!;
+      final phrase = TelephoneAlgerien.ceQuiManque(textesFr, '0770 11')!;
       expect(phrase, contains('0770 11 22 33'));
       expect(phrase, contains('041 23 45 67'));
     });

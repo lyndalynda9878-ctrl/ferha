@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:ferha/core/l10n/generated/app_localizations.dart';
+import 'package:ferha/core/l10n/locale_controller.dart';
 import 'package:ferha/core/theme/ferha_colors.dart';
 import 'package:ferha/core/theme/ferha_theme.dart';
 
@@ -20,6 +22,8 @@ import 'package:ferha/core/theme/ferha_theme.dart';
 /// savoir si cela change.
 void main() {
   Widget sous(ThemeData theme, Widget parent) => MaterialApp(
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: ferhaSupportedLocales,
     theme: theme,
     home: Scaffold(body: parent),
   );
@@ -99,6 +103,8 @@ void _eteintNeSePeintPasEnAmbre() {
 
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: ferhaSupportedLocales,
           theme: theme.value,
           home: const Scaffold(
             body: Column(
