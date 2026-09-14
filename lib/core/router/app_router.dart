@@ -8,7 +8,6 @@ import '../../features/auth/connexion_screen.dart';
 import '../../features/auth/inscription_screen.dart';
 import '../../features/auth/profil_screen.dart';
 import '../../features/booking/acompte_screen.dart';
-import '../../features/booking/booking_providers.dart';
 import '../../features/booking/demande_envoyee_screen.dart';
 import '../../features/booking/demande_screen.dart';
 import '../../features/booking/mes_reservations_screen.dart';
@@ -180,17 +179,26 @@ final routerProvider = Provider<GoRouter>((ref) {
             AvisScreen(venueId: state.pathParameters['id']!),
       ),
 
-      // La confirmation. `extra` porte le récapitulatif ; sur un rechargement
-      // de page il est perdu, et l'écran se replie sur la seule référence que
-      // l'adresse ait conservée — plutôt que d'inventer un détail qu'il n'a
-      // plus.
+      // LA CONFIRMATION NE REÇOIT QUE LA RÉFÉRENCE, ET ELLE VA CHERCHER LE
+      // RESTE — même règle que la galerie, un peu plus haut.
+      //
+      // Elle recevait le récapitulatif entier par `extra`. Il ne franchissait
+      // pas l'historique du navigateur, et il ne le franchissait pas
+      // SILENCIEUSEMENT : `DemandeEnvoyee` n'a pas de `toJson()`, go_router
+      // attrape le `JsonUnsupportedObjectError` que dart:convert en fait, écrit
+      // `null` à la place et n'avertit que le journal. Le transtypage réussissait
+      // donc, et l'écran s'affichait amputé — « votre demande est partie » sans
+      // dire LAQUELLE.
+      //
+      // Une page vidée en silence est pire qu'une page qui tombe : personne ne
+      // la signale. L'écran relit maintenant sa réservation par la référence que
+      // l'adresse porte, et `client_bookings()` la lui rend entière depuis la
+      // migration 033 — options comprises.
       GoRoute(
         path: FerhaRoutes.demandeEnvoyee,
         parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) => DemandeEnvoyeeScreen(
-          demande: state.extra as DemandeEnvoyee?,
-          reference: state.uri.queryParameters['ref'],
-        ),
+        builder: (context, state) =>
+            DemandeEnvoyeeScreen(reference: state.uri.queryParameters['ref']),
       ),
 
       // LE VERSEMENT DE L'ACOMPTE EST DÉCLARÉ AVANT « Mes réservations », par

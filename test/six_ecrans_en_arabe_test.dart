@@ -16,6 +16,8 @@ import 'package:ferha/features/booking/booking_providers.dart';
 import 'package:ferha/features/booking/demande_envoyee_screen.dart';
 import 'package:ferha/features/booking/demande_screen.dart';
 import 'package:ferha/features/booking/devis_reservation.dart';
+import 'package:ferha/features/booking/mes_reservations_providers.dart';
+import 'package:ferha/features/booking/reservation.dart';
 import 'package:ferha/features/owner/owner_repository.dart';
 import 'package:ferha/features/search/accueil_screen.dart';
 import 'package:ferha/features/search/resultats_screen.dart';
@@ -61,6 +63,7 @@ import 'textes_traduits.dart';
 void main() {
   const venueId = '5a11e000-0000-4000-a000-000000000001';
   const bookingId = 'bkg-022';
+  const refDemande = '7f3a91c2-0000-4000-a000-000000000001';
   final date = DateTime(2027, 8, 14);
 
   /// Le téléphone des maquettes.
@@ -155,16 +158,25 @@ void main() {
     especesEnAttente: false,
   );
 
-  DemandeEnvoyee envoyee() => DemandeEnvoyee(
-    groupId: '7f3a91c2-0000-4000-a000-000000000001',
+  /// La demande que la confirmation relit par sa référence.
+  ///
+  /// Elle ne lui est plus TENDUE : l'écran la retrouve dans
+  /// `client_bookings()`. Voir `demande_envoyee_rechargement_test.dart`.
+  Reservation reservationEnvoyee() => Reservation(
+    groupId: refDemande,
+    bookingId: 'bkg-022',
+    venueId: venueId,
     salle: 'Salle El Bahia',
-    localisation: 'Oran',
+    commune: 'Oran',
+    wilayaNom: 'Oran',
     date: date,
     creneau: Creneau.soir,
     invites: 350,
     typeEvenement: 'زفاف',
-    options: const <OptionSalle>[],
+    etat: EtatReservation.enAttente,
     montant: 388200,
+    creeLe: DateTime(2026, 9, 14),
+    options: const <String>['تكييف'],
   );
 
   /// Un conteneur chargé de tout ce que les six écrans lisent.
@@ -228,6 +240,9 @@ void main() {
             },
           ),
           acompteProvider.overrideWith((ref, id) async => acompte()),
+          mesReservationsProvider.overrideWith(
+            () => _MesReservationsDeTest(<Reservation>[reservationEnvoyee()]),
+          ),
         ],
       );
 
@@ -306,7 +321,9 @@ void main() {
       creneau: Creneau.soir,
       invites: 350,
     ),
-    'écran 5 bis — demande envoyée': DemandeEnvoyeeScreen(demande: envoyee()),
+    'écran 5 bis — demande envoyée': const DemandeEnvoyeeScreen(
+      reference: refDemande,
+    ),
     'écran 6 — acompte': const AcompteScreen(bookingId: bookingId),
   };
 
@@ -537,4 +554,14 @@ void main() {
       );
     });
   });
+}
+
+/// Le fournisseur de « Mes réservations », remplacé par une liste fixe.
+class _MesReservationsDeTest extends MesReservations {
+  _MesReservationsDeTest(this._reservations);
+
+  final List<Reservation> _reservations;
+
+  @override
+  Future<List<Reservation>> build() async => _reservations;
 }

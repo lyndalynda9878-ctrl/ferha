@@ -236,12 +236,16 @@ class _DemandeScreenState extends ConsumerState<DemandeScreen> {
       // pushReplacement : la confirmation prend la place du formulaire. Le
       // bouton retour ramène au calendrier, et non sur une demande déjà
       // envoyée qu'on renverrait d'un doigt distrait.
+      //
+      // RIEN N'EST TENDU À LA CONFIRMATION. La référence voyage dans l'adresse,
+      // et l'écran relit la réservation lui-même : c'est ce qui lui permet de
+      // survivre à un rechargement de page. On perd un aller-retour évité, on
+      // gagne une page qui dit encore quelque chose après un F5.
       context.pushReplacement(
         Uri(
           path: FerhaRoutes.demandeEnvoyee,
           queryParameters: <String, String>{'ref': envoyee.groupId},
         ).toString(),
-        extra: envoyee,
       );
     } on Object catch (erreur) {
       if (!mounted) return;

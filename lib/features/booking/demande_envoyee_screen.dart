@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/l10n/formats_ferha.dart';
@@ -7,7 +8,8 @@ import '../../core/router/routes.dart';
 import '../../core/theme/ferha_colors.dart';
 import '../../core/theme/ferha_radii.dart';
 import '../search/search_filters.dart';
-import 'booking_providers.dart';
+import 'mes_reservations_providers.dart';
+import 'reservation.dart';
 
 /// L'écran qui suit l'envoi d'une demande.
 ///
@@ -24,30 +26,59 @@ import 'booking_providers.dart';
 ///
 /// On y arrive par `pushReplacement` : le bouton retour ramène au calendrier,
 /// et non sur un formulaire déjà envoyé.
-class DemandeEnvoyeeScreen extends StatelessWidget {
+///
+/// =============================================================================
+/// IL NE REÇOIT QUE LA RÉFÉRENCE, ET IL RELIT LE RESTE
+///
+/// Le récapitulatif lui était tendu par l'écran précédent, qui l'avait déjà —
+/// une requête d'économisée. Elle coûtait la page : `extra` de go_router ne
+/// franchit pas l'historique du navigateur, et il ne le dit pas. Après un
+/// rechargement ou un retour, l'écran s'affichait amputé et personne ne le
+/// signalait, puisqu'il ne plantait pas.
+///
+/// Il lit donc `mesReservationsProvider` et y cherche son groupe. Trois états,
+/// et aucun ne ment :
+///
+///   * la réservation est là — le récapitulatif entier ;
+///   * elle se charge — la page sans son récapitulatif, qui arrive ensuite ;
+///   * elle est introuvable ou la lecture a échoué — la page se replie sur ce
+///     qu'elle sait avec certitude, sans rien inventer.
+class DemandeEnvoyeeScreen extends ConsumerWidget {
   /// Crée l'écran de confirmation.
-  const DemandeEnvoyeeScreen({
-    required this.demande,
-    this.reference,
-    super.key,
-  });
+  const DemandeEnvoyeeScreen({required this.reference, super.key});
 
-  /// Le récapitulatif de ce qui vient d'être envoyé.
+  /// La référence de la demande, portée par l'adresse.
   ///
-  /// `null` quand on entre par un lien profond — un rechargement de page sur le
-  /// web, par exemple. Le détail ne se réinvente pas : l'écran se replie alors
-  /// sur ce qu'il sait avec certitude.
-  final DemandeEnvoyee? demande;
-
-  /// La référence lue dans l'adresse, seul survivant d'un rechargement.
+  /// C'est `bookings.group_id` en entier ; l'écran n'en affiche que les huit
+  /// premiers caractères. `null` quand on arrive sur `/demande-envoyee` sans
+  /// rien — une adresse tapée à la main, par exemple.
   final String? reference;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colors = context.ferhaColors;
     final text = Theme.of(context).textTheme;
     final textes = AppLocalizations.of(context);
-    final d = demande;
+
+    // LA RÉSERVATION, RELUE PAR SA RÉFÉRENCE.
+    //
+    // `client_bookings()` rend la liste du client ; on y prend le groupe dont
+    // l'adresse porte l'identifiant. Une référence absente, une liste encore en
+    // vol, une lecture qui a échoué, un groupe qui n'est pas le sien : les
+    // quatre donnent `null`, et `null` mène au même repli. L'écran n'a pas à
+    // distinguer une demande introuvable d'une session expirée — dans les deux
+    // cas il ne sait pas, et il le dit de la même façon.
+    final demandes = ref.watch(mesReservationsProvider);
+    final d = reference == null
+        ? null
+        : demandes.value
+              ?.where((r) => r.groupId == reference)
+              .cast<Reservation?>()
+              .firstWhere((r) => true, orElse: () => null);
+
+    // Vrai tant qu'on ne sait pas encore : on ne montre pas un repli définitif
+    // à quelqu'un dont la réservation est en train d'arriver.
+    final enAttente = d == null && reference != null && demandes.isLoading;
 
     return Scaffold(
       appBar: AppBar(title: Text(textes.envoyeeTitre)),
@@ -82,7 +113,10 @@ class DemandeEnvoyeeScreen extends StatelessWidget {
 
           if (d != null) ...<Widget>[
             const SizedBox(height: 24),
-            _Recapitulatif(demande: d),
+            _Recapitulatif(reservation: d),
+          ] else if (enAttente) ...<Widget>[
+            const SizedBox(height: 24),
+            const _RecapEnAttente(),
           ],
 
           const SizedBox(height: 24),
@@ -91,7 +125,7 @@ class DemandeEnvoyeeScreen extends StatelessWidget {
           const SizedBox(height: 20),
           Center(
             child: Text(
-              textes.envoyeeReference(d?.reference ?? _abrege(reference)),
+              textes.envoyeeReference(_abrege(reference)),
               style: text.bodySmall?.copyWith(color: colors.inkTertiary),
             ),
           ),
@@ -127,9 +161,9 @@ class DemandeEnvoyeeScreen extends StatelessWidget {
 
 /// Ce qui a été demandé.
 class _Recapitulatif extends StatelessWidget {
-  const _Recapitulatif({required this.demande});
+  const _Recapitulatif({required this.reservation});
 
-  final DemandeEnvoyee demande;
+  final Reservation reservation;
 
   @override
   Widget build(BuildContext context) {
@@ -149,11 +183,11 @@ class _Recapitulatif extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Text(
-            demande.salle,
+            reservation.salle,
             style: text.titleMedium?.copyWith(fontWeight: FontWeight.w700),
           ),
           Text(
-            demande.localisation,
+            reservation.localisation,
             style: text.bodySmall?.copyWith(color: colors.inkSecondary),
           ),
           const SizedBox(height: 12),
@@ -161,25 +195,25 @@ class _Recapitulatif extends StatelessWidget {
           _Ligne(
             libelle: textes.envoyeeLigneDate,
             valeur: textes.calendrierResumeJour(
-              formats.date(demande.date),
-              demande.creneau.auMilieuDUnePhrase(textes),
+              formats.date(reservation.date),
+              reservation.creneau.auMilieuDUnePhrase(textes),
             ),
           ),
           _Ligne(
             libelle: textes.envoyeeLigneInvites,
-            valeur: '${demande.invites}',
+            valeur: '${reservation.invites}',
           ),
-          if (demande.typeEvenement != null)
+          if (reservation.typeEvenement != null)
             _Ligne(
               libelle: textes.envoyeeLigneEvenement,
-              valeur: demande.typeEvenement!,
+              valeur: reservation.typeEvenement!,
             ),
-          if (demande.options.isNotEmpty)
+          if (reservation.options.isNotEmpty)
             _Ligne(
               libelle: textes.envoyeeLigneOptions,
-              valeur: demande.options
-                  .map((o) => o.libelle)
-                  .join(textes.separateurListe),
+              // DES LIBELLÉS, ET AUCUN PRIX — voir la migration 033. Le montant,
+              // options comprises, est celui de la ligne « Estimation ».
+              valeur: reservation.options.join(textes.separateurListe),
             ),
 
           Padding(
@@ -198,8 +232,8 @@ class _Recapitulatif extends StatelessWidget {
               Text(
                 // Le montant écrit en base par estimate_price(), et non le
                 // dernier total affiché par le formulaire : c'est celui-là qui
-                // engage, et il arrive de la réponse même de request_booking().
-                formats.montant(demande.montant),
+                // engage, et il vient de `client_bookings()`.
+                formats.montant(reservation.montant),
                 style: text.titleSmall?.copyWith(
                   fontWeight: FontWeight.w700,
                   color: colors.primaryDeep,
@@ -329,6 +363,54 @@ class _Suite extends StatelessWidget {
                   ),
                 ],
               ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Le récapitulatif tant que la réservation n'est pas revenue.
+///
+/// TROIS BARRES PLUTÔT QU'UNE ROUE, comme partout ailleurs : l'écran ne saute
+/// pas quand les données se posent, et l'attente paraît plus courte parce qu'on
+/// voit déjà où regarder. Elle ne dure d'ailleurs qu'un aller-retour — celui
+/// qu'on a échangé contre une page qui survit à un rechargement.
+class _RecapEnAttente extends StatelessWidget {
+  const _RecapEnAttente();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.ferhaColors;
+
+    return Container(
+      padding: const EdgeInsetsDirectional.all(16),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: FerhaRadii.cardBorder,
+        border: Border.all(color: colors.rule),
+      ),
+      child: Column(
+        spacing: 12,
+        children: <Widget>[
+          for (final largeur in <double>[0.6, 0.45, 0.75])
+            Row(
+              children: <Widget>[
+                Expanded(
+                  flex: (largeur * 100).round(),
+                  child: Container(
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: colors.surfaceSecondary,
+                      borderRadius: FerhaRadii.chipBorder,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  flex: 100 - (largeur * 100).round(),
+                  child: const SizedBox(),
+                ),
+              ],
             ),
         ],
       ),
