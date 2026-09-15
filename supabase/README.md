@@ -196,10 +196,42 @@ select * from public.etat_du_decor;   -- ce qui est sale en ce moment
 ```
 
 `demandes_en_attente` est la ligne qui compte : le tableau de bord n'a plus rien
-à montrer quand elle tombe à zéro. Deux trous connus et documentés dans
-l'en-tête de la migration — une vraie réservation sur une salle de démonstration
-serait effacée, et une salle publiée par un visiteur échappe à
-`seed/002_reset_demo.sql`. Banc d'essai : `tests/018_le_decor_se_remet_en_place.sql`.
+à montrer quand elle tombe à zéro. Banc d'essai :
+`tests/018_le_decor_se_remet_en_place.sql`.
+
+**Un trou connu, documenté dans l'en-tête de la migration :** une vraie
+réservation prise sur une salle de démonstration serait effacée, son identifiant
+étant aléatoire comme celui d'un visiteur. Toutes les salles du catalogue sont
+aujourd'hui de démonstration, donc le risque est maximal — mais ce dépôt est une
+pièce de portfolio et il n'y a pas de vraies réservations. À revoir le jour où il
+y en aurait.
+
+**Le second trou a été bouché le 16 septembre 2026**, et la première version de
+cette section le décrivait de travers : elle disait qu'une salle publiée par un
+visiteur ferait « échouer » `seed/002_reset_demo.sql`. C'est l'inverse.
+`venues.owner_id` référence `profiles` en **CASCADE** : 002 n'échouait pas, il
+emportait ces salles **sans les nommer**, et son bloc de preuve n'en disait rien
+puisqu'il ne comptait que les salles en `5a11e000-`. Une cascade muette, pas un
+échec bruyant — donc précisément ce que la règle RESTRICT du projet cherche à
+empêcher. `002` reconnaît désormais une salle à son **propriétaire** autant qu'à
+son identifiant, et son bloc de preuve les compte.
+
+**Les fichiers du bucket ne suivent pas.** Rien ne relie `storage.objects` à
+`venues` : le SQL efface la ligne d'index d'une photo, jamais le fichier. Le bloc
+de preuve de `002` compte désormais `fichiers_orphelins` — le seul de ses
+compteurs qui a le droit de ne pas être nul. Les retirer se fait par l'API
+Storage, **avant** de supprimer la salle : après, la politique
+`venue_photos_storage_delete` (021) exige `owns_venue()` et plus personne n'y a
+droit.
+
+**Le chantier suivant, à faire avant le J26 : `profiles` dans l'empreinte (036).**
+L'empreinte tient les réservations, les avis et les dates bloquées — pas les
+personnes. Le 16 septembre, Amina portait `is_owner = true` alors que son seed la
+déclare cliente : « Entrer comme Amina (cliente) » ne tenait plus sa promesse, et
+le ménage horaire ne l'aurait jamais vu. Le périmètre exact de 036 est écrit dans
+l'en-tête de la migration 035 ; le point dur y est nommé : un profil se restaure
+par `UPDATE`, jamais par delete-insert, parce que `bookings.client_id` est en
+RESTRICT et `venues.owner_id` en CASCADE.
 
 ### Le gardien des empreintes (034), et comment voir qu'il est mort
 

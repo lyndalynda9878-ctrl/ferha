@@ -82,9 +82,72 @@
 --    décor, et ce qui s'y passe ne nous regarde pas.
 --
 -- 2. UNE SALLE PUBLIÉE PAR UN VISITEUR ENTRÉ COMME KARIM porte un identifiant
---    aléatoire : seed/002_reset_demo.sql ne la voit pas et échouera à supprimer
---    le profil de Karim. C'est le même trou, un cran plus loin. Il y en a trois
---    sur la base au 16 septembre 2026. Ce fichier n'y touche pas.
+--    aléatoire, donc pas le préfixe 5a11e000-. Ce fichier n'y touche pas : il
+--    remet le décor en place, il n'empêche personne de publier.
+--
+--    CORRECTION DU 16 SEPTEMBRE 2026, LE JOUR MÊME. Cette note disait que
+--    seed/002_reset_demo.sql « échouerait à supprimer le profil de Karim ».
+--    C'était faux, et l'erreur allait dans le mauvais sens. venues.owner_id
+--    référence profiles en CASCADE : 002 n'échouait pas, il emportait ces
+--    salles SANS LES NOMMER, et son bloc de preuve n'en disait rien puisqu'il
+--    ne comptait que les salles en 5a11e000-. Une cascade muette, et non un
+--    échec bruyant — donc exactement ce que la règle RESTRICT du projet cherche
+--    à empêcher. Le seul RESTRICT en travers d'une suppression de salle est
+--    bookings.venue_id, et il ne se serait manifesté que le jour où l'une de
+--    ces salles aurait porté une réservation.
+--
+--    Corrigé le même jour : 002 reconnaît désormais une salle à son
+--    PROPRIÉTAIRE autant qu'à son identifiant, et son bloc de preuve les
+--    compte. Les trois salles qui existaient — « salle », « salle reve » et
+--    « lyb », publiées les 10 et 11 septembre pendant le développement du J12,
+--    quatre jours avant la mise en ligne — ont été effacées, et les cinq
+--    fichiers de « lyb » retirés du bucket PAR L'API STORAGE, qui est le seul
+--    chemin : le SQL efface la ligne d'index d'une photo, jamais le fichier.
+--    Les fichiers d'abord, la salle ensuite — après, la politique
+--    venue_photos_storage_delete (021) exige owns_venue() et plus personne n'y
+--    a droit.
+--
+-- -----------------------------------------------------------------------------
+-- LE CHANTIER SUIVANT : PROFILES DANS L'EMPREINTE (036), AVANT LE J26
+--
+-- CE FICHIER NE COUVRE PAS `profiles`, et c'est son manque le plus visible.
+-- L'empreinte tient les réservations, les avis et les dates bloquées. Elle ne
+-- tient pas les personnes.
+--
+-- Constaté le 16 septembre 2026 : Amina portait is_owner = true, alors que
+-- seed/003_demo_accounts.sql la déclare « cliente, aucune salle ». « Entrer
+-- comme Amina (cliente) » ne tenait donc plus sa promesse — elle arrivait dans
+-- l'espace propriétaire — et c'est aussi ce qui lui avait ouvert le parcours de
+-- publication, d'où « salle reve ». Remis à false le même jour, à la main. Le
+-- ménage horaire, lui, ne l'aurait jamais vu.
+--
+-- CE QUE 036 DEVRAIT COUVRIR, exactement :
+--
+--   * une table `decor_profiles`, sur le même modèle que les trois autres, qui
+--     garde pour chaque compte en d0000000- : full_name, email, phone,
+--     is_owner, locale — c'est-à-dire tout ce que seed/003 et seed/004 posent
+--     et que l'application laisse modifier. Pas les colonnes techniques ;
+--   * la capture au même endroit et au même instant que les autres, à la fin de
+--     seed/004, par capturer_le_decor() élargi ;
+--   * la restauration par un simple UPDATE, et non par un delete-insert :
+--     profiles.id est référencé par bookings.client_id en RESTRICT, par
+--     venues.owner_id et notifications.user_id en CASCADE. Effacer un profil
+--     pour le réécrire emporterait des salles et des notifications, et
+--     échouerait sur la moindre réservation. C'EST LA DIFFÉRENCE MAJEURE AVEC
+--     LA RESTAURATION DES RÉSERVATIONS, et elle est structurelle ;
+--   * le même délai de grâce, et la même comparaison à l'empreinte pour savoir
+--     si le profil a bougé ;
+--   * `is_owner` MÉRITE SA PROPRE LIGNE dans la vue etat_du_decor : c'est le
+--     seul champ dont la dérive change ce qu'un visiteur VOIT en entrant ;
+--   * un test dans le banc d'essai : Amina passée propriétaire redevient
+--     cliente, et un compte hors décor n'est pas touché.
+--
+-- CE QUE 036 NE DOIT PAS FAIRE : toucher à auth.users. Le mot de passe, l'e-mail
+-- de connexion et les identités GoTrue relèvent de seed/003, pas d'un ménage
+-- horaire. Et ne pas passer une seule clé en CASCADE pour faciliter quoi que ce
+-- soit — le RESTRICT sur bookings.client_id est le filet qui garantit qu'on
+-- écrira une anonymisation plutôt qu'une suppression.
+-- -----------------------------------------------------------------------------
 --
 -- Et un chantier à part, noté ici pour ne pas l'oublier : EMPÊCHER LES COMPTES
 -- DE DÉMONSTRATION DE RÉSERVER HORS DU DÉCOR. Ce serait l'autre moitié du
