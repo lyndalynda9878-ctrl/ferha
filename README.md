@@ -1,11 +1,148 @@
 # Ferha
 
-Réservation de salles des fêtes en Algérie. Application Flutter, français et
-arabe.
+Application de réservation de salles des fêtes en Algérie, pour les familles qui
+cherchent et les propriétaires qui louent. Flutter, français et arabe, sur une
+base PostgreSQL.
 
-Ce dépôt contient pour l'instant **le socle** : thème, navigation,
-internationalisation, schéma de base de données, branchement sur Supabase,
-comptes utilisateurs et **la recherche de salles**.
+**Voir l'application en ligne : <https://ferha.pages.dev>**
+
+## Essayer en trois minutes
+
+Deux boutons sur l'écran de connexion évitent toute inscription. Le parcours
+ci-dessous fait le tour complet, des deux côtés.
+
+1. Ouvrir <https://ferha.pages.dev> et toucher **« Entrer comme Amina
+   (cliente) »**.
+2. Sur l'accueil, chercher **Oran**, puis ouvrir **Salle El Bahia** — 450
+   places, la salle la mieux garnie du catalogue.
+3. Dans le calendrier, choisir le **samedi 18 septembre 2027**, créneau
+   **soir**. La date est libre, et elle est en haute saison : le devis affiche
+   la majoration.
+4. Envoyer la demande. Elle part chez Karim, qui est le propriétaire de cette
+   salle-là — c'est pour cela qu'on la choisit.
+5. Se déconnecter, puis **« Entrer comme Karim (propriétaire) »**. La demande
+   est en tête de sa file. L'ouvrir, **accepter**. Une option de 72 h se pose
+   sur la date.
+6. Revenir comme Amina. La réservation attend son acompte : choisir
+   **l'acompte en espèces**, pas la carte.
+7. Repasser chez Karim, ouvrir la demande, **confirmer l'encaissement**. La
+   réservation passe en confirmée, des deux côtés.
+
+**Prenez la carte seulement si vous voulez voir la page Chargily.** Le paiement
+est en mode test et aucune somme n'est débitée — l'écran le dit —, mais la page
+de Chargily n'est pas joignable depuis toutes les connexions. Le parcours
+espèces, lui, ne quitte jamais l'application et marche partout.
+
+**L'astuce qui vaut le détour : ouvrez deux fenêtres côte à côte.** Amina dans
+la fenêtre normale, Karim dans une fenêtre de navigation privée — les deux
+sessions ne se marchent pas dessus. Envoyez la demande chez Amina sans quitter
+la fenêtre de Karim des yeux : **sa cloche s'allume pendant que vous regardez**,
+sans rechargement. C'est la meilleure démonstration du projet, et personne ne la
+trouve seul.
+
+**Vous ne pouvez rien casser.** Tout ce qu'un visiteur fait sur les salles de
+démonstration s'efface tout seul au bout de deux heures, et le décor — les
+demandes en attente, les avis, les dates bloquées, jusqu'au rôle et à la langue
+des deux comptes — se remet en place à chaque heure. Essayez tout, y compris
+refuser, annuler et bloquer des dates. Voir [Le décor de
+démonstration](#le-décor-de-démonstration).
+
+## Captures
+
+![L'accueil, qui est l'écran de recherche — français, thème clair](docs/captures/01-accueil-fr-clair.png)
+
+![Les résultats, avec les filtres actifs retirables](docs/captures/02-resultats-filtres.png)
+
+![La fiche d'une salle et son calendrier à trois états](docs/captures/03-fiche-salle-calendrier.png)
+
+![Le même accueil en arabe, thème sombre : toute la mise en page se retourne](docs/captures/04-accueil-ar-sombre.png)
+
+![L'espace propriétaire : la file des demandes et les chiffres du mois](docs/captures/05-espace-proprietaire.png)
+
+![L'assistant, qui répond sur le catalogue et refuse le reste](docs/captures/06-assistant.png)
+
+## Ce que ce dépôt montre
+
+| | |
+|---|---|
+| Flutter en web et sur téléphone, thème clair et sombre livrés ensemble | [Identité visuelle](#identité-visuelle) |
+| PostgreSQL : RLS sur chaque table, prix calculés en base et jamais en Dart, transitions d'état par fonctions sécurisées | [supabase/README.md](supabase/README.md) |
+| Deux langues et deux sens de lecture, 205 tests pour le tenir | [L'arabe et le sens de lecture](#larabe-et-le-sens-de-lecture) |
+| Recherche sémantique par vecteurs, par-dessus les filtres SQL | [La recherche sémantique](#la-recherche-sémantique) |
+| Un assistant qui s'appuie sur le catalogue et refuse ce qu'il ne sait pas | [L'assistant](#lassistant) |
+| Paiement d'acompte par carte algérienne, et en espèces | [Le paiement de l'acompte](#le-paiement-de-lacompte) |
+| Mise en ligne automatique à chaque poussée sur `master` | [La mise en ligne](#la-mise-en-ligne) |
+| Trois gardiens, et deux requêtes qui prouvent qu'ils ont servi | [Les gardiens](#les-gardiens) |
+
+## Ce que ça ne fait pas, et pourquoi
+
+Un projet qui ne dit pas ses trous demande qu'on les cherche. Voici les miens.
+
+**Le paiement est en mode test.** Chargily tourne avec ses clés de bac à sable :
+aucune somme n'est débitée, et l'écran de l'acompte le dit au client au lieu de
+le laisser croire qu'il paie. Passer en production demande un compte marchand
+vérifié, pas une ligne de code.
+
+**La validation d'une salle n'existe pas encore, et c'est plus sévère que ça en
+a l'air.** Le cahier des charges (ADM-01) veut qu'aucune salle ne soit visible
+avant contrôle humain. La moitié protectrice est en place : une salle inscrite
+depuis l'application naît en `draft`, passe en `pending` quand son propriétaire
+l'envoie, et **rien ne la passe jamais en `published`** — ni fonction, ni écran,
+ni déclencheur. Toutes les recherches filtrent sur `published`. Une salle
+inscrite dans la démonstration n'apparaît donc nulle part, jamais. Le filet
+existe ; c'est la console qui manque. En attendant, une surveillance horaire
+compte ces salles — `salles_publiees_par_un_visiteur` dans la vue
+`etat_du_decor` — et je les retire à la main.
+
+**Le propriétaire ne peut pas saisir sa grille tarifaire** (OWN-03). Les quatre
+éléments demandés existent en base et servent au calcul : prix de base par
+créneau, majoration week-end, majoration de haute saison — juin à septembre — et
+prix par couvert au-delà d'un seuil. Mais l'écran qui les saisit n'est pas
+écrit. Or `search_venues()` joint `venue_pricing` par une jointure interne : une
+salle sans tarif ne sort d'aucune recherche. L'application le dit en toutes
+lettres à la fin du parcours d'inscription, plutôt que de laisser un
+propriétaire attendre des demandes qui ne viendraient jamais.
+
+**Les libellés venus de la base restent en français dans une page arabe.** La
+nuance est ailleurs que là où on l'attend : les référentiels **sont** bilingues.
+`wilayas` porte `name_fr` et `name_ar`, `event_types`, `amenities` et
+`venue_options` portent `label_fr` et `label_ar` — toutes ces colonnes sont
+`not null` et renseignées pour les 58 wilayas et tous les codes. C'est le client
+Flutter qui ne les demande jamais : `search_providers.dart` écrit `name_fr` et
+`label_fr` en dur, quelle que soit la langue active. Le réparer, c'est choisir
+la colonne selon la langue — un après-midi. Ce qui n'a, lui, aucune traduction,
+c'est le contenu saisi par les propriétaires : `venues.name`, `venues.commune`,
+`venues.description`, les motifs de dates bloquées et le texte des avis. Celui-là
+demanderait un vrai circuit de traduction, pas une colonne.
+
+**Il n'y a aucun numéro de téléphone dans la démonstration.** Un numéro algérien
+valide appartient à quelqu'un, et le site est en ligne : les comptes de
+démonstration portent donc `phone = null`. Le mécanisme du §9 — le contact de
+l'autre partie révélé seulement après acceptation, par `booking_contact()` — est
+en place et couvert par `supabase/tests/007_adresse_et_telephone.sql`. Il n'y a
+simplement rien à révéler ici, et l'espace propriétaire affiche « ce client n'a
+pas renseigné de numéro » au lieu d'un faux numéro.
+
+**Pas de SMS : la connexion se fait par adresse électronique et mot de passe.**
+Et la messagerie intégrée de Supabase, en offre gratuite, n'envoie que quelques
+messages par heure : une inscription normale peut donc ne jamais recevoir sa
+confirmation. C'est la raison d'être des deux boutons de démonstration — ils ne
+sont pas un raccourci de confort, ils sont le seul chemin fiable pour un
+visiteur.
+
+**Pas de notification sur téléphone** (FCM), et **pas de rappels J-7 ni J-1**.
+Les deux types existent dans la contrainte de `notifications.type`, et rien ne
+les écrit : la place est réservée, le déclencheur n'est pas posé. Les
+notifications dans l'application, elles, fonctionnent et arrivent en temps réel.
+
+**Le service d'empreintes dort.** Il tourne sur une offre gratuite qui endort
+l'instance ; le premier appel après deux heures de silence coûtait 62 secondes.
+Un gardien le réveille toutes les cinq minutes, et l'assistant abandonne le
+service au bout de 2 secondes pour répondre sans vecteur plutôt que de faire
+attendre. Voir [Les gardiens](#les-gardiens).
+
+**Pas d'APK.** Sur un dépôt privé, un fichier attaché à une *Release* n'est pas
+téléchargeable sans compte autorisé : le lien serait mort pour qui le reçoit.
 
 ## Configuration
 
@@ -72,12 +209,20 @@ lib/
     owner/         espace propriétaire : tableau de bord, agenda, publication
     search/        accueil (= recherche) et résultats
     venue/         fiche salle, galerie, calendrier
+    reviews/       avis : dépôt, lecture, droit de réponse
+    assistant/     l'assistant et son fil de conversation
   main.dart
 supabase/
-  functions/    les Edge Functions (Deno) — create-checkout aujourd'hui
-  migrations/   le schéma : tables, RLS, prix
-  seed/         15 salles de démonstration
-  tests/        le test de double réservation
+  functions/    cinq Edge Functions (Deno) : create-checkout, chargily-webhook,
+                embed-venue, summarize-reviews, ai-chat
+  migrations/   36 fichiers : schéma, RLS, prix, recherche, avis, agent, gardiens
+  seed/         15 salles, 8 comptes et 24 réservations de démonstration
+  tests/        18 bancs d'essai SQL, de la double réservation au décor
+  outils/       scripts de mise au point
+services/
+  embeddings/   le service Python qui transforme le texte en vecteurs (Render)
+docs/
+  captures/     les six images du README
 ```
 
 La base de données a son propre document : [supabase/README.md](supabase/README.md).
@@ -366,6 +511,201 @@ Il n'y a pas encore d'écran d'administration pour les paiements à rembourser :
 la vue `paiements_a_examiner` existe, et se lit pour l'instant dans l'éditeur
 SQL.
 
+## Les avis
+
+Un avis exige une réservation **honorée**, et la règle est portée par le schéma
+plutôt que par un écran : `reviews.booking_id` est `unique not null` vers
+`bookings`. Pas de réservation, pas d'avis ; et jamais deux avis sur la même.
+
+La fenêtre est étroite et elle n'est écrite qu'une fois, dans `fenetre_avis()` :
+**J+1 à J+30** après l'événement. Avant, la soirée n'a pas eu lieu. Après, on ne
+se souvient plus de la salle, on se souvient de son humeur. La politique RLS,
+`client_bookings()`, `avis_a_deposer()` et `deposer_avis()` lisent toutes ces
+deux bornes du même endroit.
+
+Une journée entière occupe deux lignes de `bookings`, donc deux `booking_id`,
+donc deux avis possibles si l'on s'arrêtait là. `reviews.booking_group_id`,
+unique lui aussi, ferme la brèche : **un événement, un avis**. Il est renseigné
+par un déclencheur, jamais par l'appelant.
+
+Le propriétaire a un droit de réponse, une seule fois (OWN-06). Une fois qu'il a
+répondu, l'avis est figé : laisser l'auteur réécrire sa note après coup rendrait
+la réponse incompréhensible.
+
+**Une salle sans avis n'a pas d'étoiles — et surtout pas zéro.** La note est
+`null`, le champ `estNotee` est faux, et l'écran affiche un tiret. Zéro virgule
+zéro serait un mensonge : ce n'est pas une mauvaise note, c'est une absence de
+note. Quand il y a des avis, la note affichée est une **moyenne bayésienne**
+(m = 5, C = 4,0) et non une moyenne simple : une salle avec un seul 5/5 ne doit
+pas dépasser une salle qui tient 4,6 sur quarante avis.
+
+## La recherche sémantique
+
+Les filtres SQL répondent à « Oran, 300 personnes, avec parking ». Ils ne
+répondent pas à « une salle lumineuse pas trop loin de la mer pour un mariage
+d'été » : aucune colonne ne porte « lumineuse ». La recherche sémantique
+travaille sur le sens plutôt que sur les colonnes, et vient **par-dessus** le
+filtre — elle ne le remplace pas, elle reclasse ce qu'il a laissé passer.
+
+Chaque salle est résumée en un document bilingue — nom, commune, wilaya en
+français **et en arabe**, types d'événement, équipements — puis transformée en
+vecteur. Le modèle est **`intfloat/multilingual-e5-small`**, en **384
+dimensions**, servi par un petit service Python sur Render. Bilingue à dessein :
+la moitié des questions arrivent en arabe, et il faut qu'elles tombent sur les
+mêmes salles.
+
+**Quand le service dort, la recherche continue sans lui.** L'instance gratuite
+s'endort, et le premier appel coûtait 62 secondes. L'assistant abandonne
+désormais au bout de 2 secondes et répond avec les filtres seuls : le classement
+est moins fin, la réponse arrive. Abandonner ne coûte pas le réveil — Render
+démarre l'instance dès que la requête atteint son routeur et poursuit même si le
+client s'en va — donc le premier visiteur paie 2 secondes au lieu de 62, et le
+suivant trouve un service chaud.
+
+## L'assistant
+
+Il répond sur le catalogue et sur le parcours de réservation. **Il refuse le
+reste, et c'est le travail, pas une limite subie.** Entre une réponse inventée
+et « je ne sais pas », le second garde la confiance ; le premier la perd une
+fois pour toutes. « Quel temps fait-il ? » n'obtient pas de réponse. « Comment
+réserver ? » en obtient une.
+
+Les procédures qu'il récite — le parcours en six étapes, l'acompte de 25 %,
+l'option de 72 h — sont des **textes écrits à la main**, en français et en
+arabe, constants dans `supabase/functions/ai-chat/index.ts`. Le modèle ne les
+compose pas : il les rend. C'est moins souple qu'une base de connaissances, et
+cela a un avantage qu'aucune base de connaissances n'a — ces textes ne peuvent
+pas se tromper. La version arabe existe séparément non pour traduire, mais pour
+garantir : quelqu'un qui écrit en arabe mérite le repli dans sa langue.
+
+Ce qu'il sait faire, ce qui l'a fait échouer pendant la mise au point, et le
+banc des trente questions qui le tient sont écrits dans
+[`supabase/functions/ai-chat/README.md`](supabase/functions/ai-chat/README.md).
+
+## L'arabe et le sens de lecture
+
+L'arabe n'est pas une traduction posée sur une interface française : c'est un
+second sens de lecture, et il retourne la mise en page entière. Le projet s'y
+tient par **205 tests** — 146 dans les quatre fichiers nommés pour l'arabe, 46
+qui interdisent qu'un texte français soit écrit en dur hors des fichiers ARB, et
+13 sur les formats.
+
+Quatre décisions ne se devinent pas, et ce sont elles que les tests protègent :
+
+- **les chiffres restent latins.** Prix, capacités, dates : les chiffres
+  indo-arabes orientaux ne sont pas ceux qu'on lit en Algérie ;
+- **les icônes directionnelles se retournent, les autres non.** La flèche de
+  retour change de côté, la loupe reste une loupe ;
+- **le calendrier commence toujours par dimanche**, dans les deux langues ;
+- **les mois portent leurs noms algériens** et non les noms du Machrek.
+
+Le détail — quelle clé pour quel écran, ce qui se traduit et ce qui ne se
+traduit pas, comment ajouter une chaîne — vit dans
+[`lib/core/l10n/README.md`](lib/core/l10n/README.md).
+
+## La mise en ligne
+
+Le site part sur **Cloudflare Pages**, en mode *Direct Upload* : GitHub Actions
+compile `flutter build web` puis **envoie** le résultat. Cloudflare ne lit pas
+le dépôt.
+
+**Pourquoi pas GitHub Pages :** il exige un dépôt public, et le code reste
+fermé. Cette seule ligne écarte l'hébergeur le plus évident. Cloudflare Pages
+lit les dépôts privés, ne demande pas de carte bancaire, et n'endort pas le site
+— contrairement à Render, qui héberge le service des empreintes.
+
+**Le piège, et il est silencieux :** `wrangler pages deploy --branch=…` publie en
+PRODUCTION si la branche correspond à la branche de production déclarée dans le
+projet, et en APERÇU sinon. Un aperçu s'ouvre à une adresse qui change à chaque
+envoi, pendant que l'adresse publique reste figée sur le premier envoi manuel —
+**sans qu'aucune erreur ne soit levée**. Symptôme : le site ne bouge plus alors
+que le workflow est vert. Ce dépôt est sur `master`, pas sur `main` : c'est
+`master` qui doit être déclarée branche de production.
+
+Le reste — les cinq secrets, les adresses de retour de l'authentification,
+`APP_ORIGIN` pour le paiement, la vérification que le site est vivant — est dans
+[`docs/deploiement.md`](docs/deploiement.md), écran par écran.
+
+## Les gardiens
+
+Trois choses s'éteignent toutes seules dans ce projet, chacune pour une raison
+différente. Trois gardiens les tiennent éveillées.
+
+| Gardien | Rythme | Ce qu'il garde |
+|---|---|---|
+| `maintien-supabase.yml` (GitHub Actions) | toutes les 48 h | le projet Supabase, qu'une semaine sans activité met en pause |
+| `ferha-reveil-empreintes` (pg_cron) | toutes les 5 min | le service d'empreintes sur Render, qui s'endort |
+| `ferha-menage-du-decor` (pg_cron) | toutes les heures | le décor de démonstration, qu'un visiteur défait |
+
+Le premier ne peut pas être un `pg_cron` : **un `pg_cron` ne tourne pas dans un
+projet en pause**, il ne peut donc pas l'en sortir. Le réveil doit venir de
+dehors. À l'inverse, les 5 minutes du second coûteraient plus de 8 000 minutes
+d'Actions par mois — largement au-dessus des 2 000 d'un dépôt privé — alors
+qu'un `pg_cron` ne se paie nulle part.
+
+**Un voyant vert au-dessus d'un service mort est le défaut qu'on a rencontré
+deux fois ici.** Une tâche qui dépose une requête vers une adresse morte est
+enregistrée « succeeded ». Un ping HTTP réussit contre une page de maintenance.
+Les deux requêtes ci-dessous ne disent pas que les gardiens se sont *exécutés* :
+elles disent ce que les services ont *répondu*.
+
+```sql
+select * from public.etat_du_gardien;   -- le code HTTP et le corps rendus par le service
+select * from public.etat_du_decor;     -- ce qui est sale dans la démonstration, maintenant
+```
+
+`etat_du_gardien` garde la vraie réponse — code et corps — parce que
+`cron.job_run_details` ne dit que si la tâche a tourné. Le corps rendu contient
+le nom du modèle et sa dimension : c'est la preuve que le service qui a répondu
+est bien celui qu'on croit.
+
+Le chiffre qui résume le travail : **le pire cas d'attente est passé de 62
+secondes à 2 secondes**. 62 s, c'était le premier appel après deux heures de
+silence, mesuré. 2 s, c'est la borne au-delà de laquelle l'assistant cesse
+d'attendre et répond sans vecteur — et comme le gardien frappe toutes les 5
+minutes, le service est chaud et répond en 85 à 573 ms.
+
+## Le décor de démonstration
+
+Les visiteurs entrent en un tap, comme Amina ou comme Karim. Tout ce qu'ils font
+est donc fait **au nom des comptes de démonstration**, et reste après eux — y
+compris ce qu'ils *défont*. Un visiteur entré comme Karim qui refuse une demande
+ne crée rien : il vide la file de l'écran 9. Au bout de cinq visiteurs, la
+meilleure page du projet ne montre plus rien.
+
+Le ménage distingue donc **le décor** de ce qui est arrivé après, par les
+préfixes d'identifiant que les seeds posent exprès : `b0000000-` pour une
+réservation du décor, `5a11e000-` pour une salle, `d0000000-` pour une personne.
+Une réservation créée depuis l'application passe par `request_booking()`, donc
+par un identifiant tiré au sort : elle ne peut pas porter le préfixe. Le critère
+ne regarde jamais *qui* a réservé — un visiteur **est** Amina.
+
+**Ce qui se remet en place tout seul :** les réservations du décor et leur état,
+les avis, les dates bloquées, les notifications, et les personnes — nom, adresse,
+langue, et le rôle de propriétaire. Une empreinte, prise au sortir du seed,
+décrit l'état juste ; le ménage y ramène la base.
+
+**Ce qui ne se remet pas :** une salle inscrite par un visiteur. Elle porte un
+identifiant aléatoire et reste en `pending`, invisible. La vue `etat_du_decor`
+la compte, et `seed/002_reset_demo.sql` l'efface en la nommant — mais rien ne le
+fait à l'heure.
+
+**L'ordre de restauration est un garde-fou, pas une préférence.** Les
+réservations de visiteurs partent d'abord, sinon l'une d'elles, confirmée sur un
+créneau du décor, ferait échouer la réinsertion sur l'index d'unicité. Et les
+saisies d'un profil se remettent avant son rôle, parce que le déclencheur
+`updated_at` rajeunit la ligne à chaque écriture : dans l'autre sens, la
+condition de délai ne serait plus jamais vraie et le nom ne reviendrait jamais.
+
+Deux horloges, enfin. Rien n'est touché avant **deux heures** — un visiteur qui
+teste dix minutes garde ce qu'il vient de faire sous les yeux. Sauf le rôle de
+propriétaire, qui se remet **sans délai** : l'application n'écrit jamais ce
+champ, il n'y a donc aucune saisie en cours à protéger, et tant qu'il est faux
+« Entrer comme Amina (cliente) » ouvre l'espace propriétaire à tout le monde.
+
+Le détail est dans [`supabase/README.md`](supabase/README.md), et le banc
+d'essai dans `supabase/tests/018_le_decor_se_remet_en_place.sql`.
+
 ## Identité visuelle
 
 La palette « Ambre & ivoire » du cahier des charges (§10.1) vit dans une seule
@@ -402,6 +742,14 @@ les mêmes données pour de bon, et une panne s'y verra sans instrument dédié.
 - `docs/maquettes.html` — maquettes des écrans
 - [`docs/deploiement.md`](docs/deploiement.md) — la mise en ligne du web sur
   Cloudflare Pages, écran par écran, dépôt privé compris
+- [`supabase/README.md`](supabase/README.md) — la base : migrations, RLS, prix,
+  tâches planifiées
+- [`lib/core/l10n/README.md`](lib/core/l10n/README.md) — les deux langues et le
+  sens de lecture
+- [`supabase/functions/ai-chat/README.md`](supabase/functions/ai-chat/README.md)
+  — l'assistant et son banc d'essai
+- [`docs/captures/A-PRENDRE.md`](docs/captures/A-PRENDRE.md) — ce que chacune des
+  six captures doit montrer
 
 ## Licence
 
