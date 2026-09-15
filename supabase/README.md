@@ -46,6 +46,7 @@ seulement :
 | 33 | `migrations/033_options_dans_mes_reservations.sql` | `option_labels` — les libellés des options retenues, pour que la confirmation d'une demande survive à un rechargement — **redéfinit `client_bookings()`** | 004, 005, 006, 024, 026 |
 | 34 | `migrations/034_gardien_des_empreintes.sql` | `gardien_empreintes`, `reveiller_empreintes()`, la vue `etat_du_gardien`, le cron `ferha-reveil-empreintes` — le service d'empreintes ne s'endort plus | pg_cron, pg_net |
 | 35 | `migrations/035_le_decor_se_remet_en_place.sql` | `decor_bookings`, `decor_reviews`, `decor_blackouts`, `capturer_le_decor()`, `vider_le_decor()`, `menage_du_decor()`, la vue `etat_du_decor`, le cron `ferha-menage-du-decor` — la démonstration se répare entre deux visiteurs | 001, 004, 005, 012, et les seeds 001, 003, 004 |
+| 36 | `migrations/036_les_personnes_du_decor.sql` | `decor_profiles`, `roles_detournes` — l'empreinte tient aussi les personnes ; le rôle se remet sans délai, les saisies attendent — **élargit `capturer_le_decor()`, `vider_le_decor()`, `menage_du_decor()` et `etat_du_decor`** | 001, 018, 035 |
 
 `002` a besoin des tables de `001`. `003` a besoin de la table `amenities` de
 `001`, mais pas de `002`. Appliquer `002` avant `003` reste le bon ordre : le
@@ -224,14 +225,46 @@ Storage, **avant** de supprimer la salle : après, la politique
 `venue_photos_storage_delete` (021) exige `owns_venue()` et plus personne n'y a
 droit.
 
-**Le chantier suivant, à faire avant le J26 : `profiles` dans l'empreinte (036).**
-L'empreinte tient les réservations, les avis et les dates bloquées — pas les
-personnes. Le 16 septembre, Amina portait `is_owner = true` alors que son seed la
-déclare cliente : « Entrer comme Amina (cliente) » ne tenait plus sa promesse, et
-le ménage horaire ne l'aurait jamais vu. Le périmètre exact de 036 est écrit dans
-l'en-tête de la migration 035 ; le point dur y est nommé : un profil se restaure
-par `UPDATE`, jamais par delete-insert, parce que `bookings.client_id` est en
-RESTRICT et `venues.owner_id` en CASCADE.
+### Les personnes aussi (036)
+
+L'empreinte de 035 tient les réservations, les avis et les dates bloquées. Elle ne
+voyait pas les **personnes**, et deux dérives vivaient en base le 16 septembre
+2026 : Amina portait `is_owner = true` alors que son seed la déclare cliente — «
+Entrer comme Amina (cliente) » ouvrait l'espace propriétaire — et `locale = 'ar'`,
+si bien que l'application s'ouvrait **en arabe**, de droite à gauche, pour tout
+visiteur entrant comme elle. Les deux ont été remises à la main avant la première
+empreinte.
+
+**Deux horloges, et c'est la décision du fichier.** `is_owner` se remet **sans
+délai** : l'application n'écrit jamais ce champ — aucun écran ne le touche, 018
+l'interdit dans les deux sens, et seule `creer_salle()` (017) le lève en même
+temps qu'elle insère une salle. Il n'y a donc aucune saisie en cours à protéger,
+et tant qu'il est faux la promesse de l'écran d'accueil est fausse pour tout le
+monde. Le nom, l'e-mail, le téléphone et la langue, eux, sont des **saisies** et
+gardent le délai de deux heures : un visiteur qui bascule en arabe pour regarder
+la mise en page doit la garder le temps de sa visite.
+
+L'objection — « la salle du visiteur attend deux heures, remettre le drapeau tout
+de suite laisserait une salle dont le propriétaire n'est plus déclaré
+propriétaire » — reposait sur une prémisse fausse : **le ménage n'efface jamais
+les salles publiées par un visiteur**, ni au bout de deux heures, ni jamais. Cet
+état est donc définitif quelle que soit la durée. Et ce qu'il casse est petit :
+côté base **rien** — `owns_venue()` lit `owner_id`, jamais `is_owner` — côté
+application, le bouton « Mes salles » disparaît de l'écran profil.
+
+**La restauration se fait par `UPDATE`, jamais par delete-insert** :
+`profiles.id` est référencé par `bookings.client_id` en RESTRICT, par
+`venues.owner_id` et `notifications.user_id` en CASCADE. Un profil absent n'est
+pas recréé — seul `seed/003` sait reposer un compte avec son identité GoTrue, et
+036 n'approche pas `auth.users`.
+
+```sql
+select roles_detournes, profils_detournes from public.etat_du_decor;
+```
+
+`roles_detournes` a sa propre ligne parce qu'elle ne dit pas la même chose que
+`profils_detournes` : un nom changé est une salissure, un rôle changé modifie ce
+qu'un visiteur **voit** en entrant.
 
 ### Le gardien des empreintes (034), et comment voir qu'il est mort
 

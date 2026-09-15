@@ -322,18 +322,22 @@ values
 
 do $$
 declare
-  v_r integer; v_a integer; v_d integer;
+  v_r integer; v_a integer; v_d integer; v_p integer;
 begin
   if to_regprocedure('public.capturer_le_decor()') is null then
     raise notice 'Migration 035 non appliquée : pas d''empreinte, donc pas de ménage horaire.';
     return;
   end if;
 
-  select c.reservations, c.avis, c.dates_bloquees
-    into v_r, v_a, v_d
+  -- La quatrième colonne vient de la migration 036 : les PERSONNES. Sans elle,
+  -- un visiteur qui se donne le rôle de propriétaire ou qui bascule la langue
+  -- en arabe laisse une trace que le ménage horaire ne voit pas.
+  select c.reservations, c.avis, c.dates_bloquees, c.personnes
+    into v_r, v_a, v_d, v_p
   from public.capturer_le_decor() c;
 
-  raise notice 'Empreinte du décor : % réservations, % avis, % dates bloquées.', v_r, v_a, v_d;
+  raise notice 'Empreinte du décor : % réservations, % avis, % dates bloquées, % personnes.',
+    v_r, v_a, v_d, v_p;
 end $$;
 
 commit;

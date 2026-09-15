@@ -26,6 +26,11 @@
 -- l'empreinte, casse, puis vérifie qu'on revient à L'EMPREINTE, et non à des
 -- valeurs écrites en dur ici. C'est aussi ce que le ménage promet.
 --
+-- LES TESTS 14 À 16 PORTENT SUR LES PERSONNES (036), ET SUR SA DÉCISION :
+-- deux horloges. Le test 14 appelle le ménage AVEC SON DÉLAI PAR DÉFAUT et
+-- exige que le rôle soit déjà remis ; le test 15 fait l'inverse pour le nom et
+-- la langue. Si l'un des deux cédait, la règle se serait inversée sans bruit.
+--
 -- LE DÉLAI PASSÉ EST NÉGATIF, ET C'EST LE PIÈGE DU FICHIER. Dans une
 -- transaction unique, now() ne bouge pas : une ligne écrite trois lignes plus
 -- haut porte updated_at = now() exactement, et un délai nul ne la rendrait
@@ -43,7 +48,7 @@
 --
 -- CE QU'IL LAISSE : rien.
 --
--- Prérequis : migrations 001 à 035, et les seeds 001, 003 et 004.
+-- Prérequis : migrations 001 à 036, et les seeds 001, 003 et 004.
 -- =============================================================================
 
 begin;
@@ -566,6 +571,114 @@ begin
     raise exception 'ÉCHEC 13 — une demande détournée et la vue ne la compte pas.';
   end if;
   raise notice 'Test 13 OK — etat_du_decor voit ce qui est sale, et ne crie pas quand tout va bien.';
+
+  -- On répare ce que le test 13 vient de détourner, pour que les tests des
+  -- personnes partent d'un décor propre.
+  perform public.menage_du_decor(c_tout);
+
+  -- ---------------------------------------------------------------------------
+  -- TEST 14 — LE RÔLE SE REMET SANS ATTENDRE (036)
+  --
+  -- C'est la décision de la migration 036, et c'est ce test qui la tient. On
+  -- appelle le ménage AVEC SON DÉLAI PAR DÉFAUT : si le rôle attendait comme le
+  -- reste, Amina resterait propriétaire et « Entrer comme Amina (cliente) »
+  -- mentirait à tout visiteur pendant deux heures.
+  --
+  -- On écrit is_owner directement : profiles_guard_privileges (018) interdit ce
+  -- geste à l'application, mais rend la main quand auth.uid() est null — ce qui
+  -- est le cas ici comme sous pg_cron. C'est précisément ce que le ménage
+  -- exploite, et donc ce qu'il faut éprouver.
+  -- ---------------------------------------------------------------------------
+  update public.profiles set is_owner = true where id = c_amina;
+
+  if (select roles_detournes from public.etat_du_decor) is distinct from 1 then
+    raise exception 'ÉCHEC 14 — un rôle détourné et la vue ne le compte pas.';
+  end if;
+
+  select * into v_m from public.menage_du_decor();   -- délai par défaut : deux heures
+
+  if v_m.roles_remis <> 1 then
+    raise exception 'ÉCHEC 14 — % rôle(s) remis, 1 attendu. Le délai n''aurait pas dû s''appliquer.',
+      v_m.roles_remis;
+  end if;
+  if (select is_owner from public.profiles where id = c_amina) then
+    raise exception 'ÉCHEC 14 — Amina est restée propriétaire : « Entrer comme Amina (cliente) » ment.';
+  end if;
+  if (select roles_detournes from public.etat_du_decor) is distinct from 0 then
+    raise exception 'ÉCHEC 14 — le rôle est remis et la vue le compte encore détourné.';
+  end if;
+  raise notice 'Test 14 OK — Amina passée propriétaire redevient cliente, sans attendre.';
+
+  -- ---------------------------------------------------------------------------
+  -- TEST 15 — MAIS CE QUI SE SAISIT ATTEND, LUI
+  --
+  -- L'autre moitié de la décision. `locale` est le cas réel : un visiteur qui
+  -- bascule en arabe pour regarder la mise en page de droite à gauche doit la
+  -- garder le temps de sa visite. C'est cette dérive-là qu'on a trouvée en base
+  -- le 16 septembre 2026 — Amina en 'ar' au lieu de 'fr'.
+  -- ---------------------------------------------------------------------------
+  update public.profiles set locale = 'ar', full_name = 'Amina Détournée'
+   where id = c_amina;
+
+  if (select profils_detournes from public.etat_du_decor) is distinct from 1 then
+    raise exception 'ÉCHEC 15 — un profil détourné et la vue ne le compte pas.';
+  end if;
+
+  select * into v_m from public.menage_du_decor();   -- délai par défaut
+
+  if v_m.profils_remis <> 0 then
+    raise exception 'ÉCHEC 15 — une saisie faite à l''instant a été écrasée malgré la borne.';
+  end if;
+  if (select locale from public.profiles where id = c_amina) <> 'ar' then
+    raise exception 'ÉCHEC 15 — la langue choisie par le visiteur n''a pas tenu deux heures.';
+  end if;
+
+  select * into v_m from public.menage_du_decor(c_tout);
+
+  if v_m.profils_remis <> 1 then
+    raise exception 'ÉCHEC 15 — % profil(s) remis, 1 attendu.', v_m.profils_remis;
+  end if;
+  if (select locale from public.profiles where id = c_amina) <> 'fr'
+     or (select full_name from public.profiles where id = c_amina) <> 'Amina Haddad' then
+    raise exception 'ÉCHEC 15 — le profil n''est pas revenu à l''empreinte.';
+  end if;
+  raise notice 'Test 15 OK — le nom et la langue attendent le délai, puis reviennent.';
+
+  -- ---------------------------------------------------------------------------
+  -- TEST 16 — UN COMPTE HORS DÉCOR N'EST PAS TOUCHÉ
+  --
+  -- Les deux comptes du test 10 ne portent pas le préfixe d0000000-. Le ménage
+  -- n'a rien à leur dire — ni sur leur rôle, ni sur leur nom.
+  -- ---------------------------------------------------------------------------
+  update public.profiles set full_name = 'Renommé par le banc d''essai'
+   where id = c_hors_cli;
+
+  -- ON RECAPTURE ICI, ET C'EST VOULU : les deux comptes du test 10 sont nés
+  -- APRÈS la capture du test 2, donc vérifier qu'ils n'y sont pas ne prouverait
+  -- rien. On reprend l'empreinte maintenant qu'ils existent — le décor vient
+  -- d'être remis au propre par le test 15 — et c'est le CRITÈRE de capture
+  -- qu'on éprouve alors, pas le hasard du calendrier.
+  perform public.capturer_le_decor();
+
+  if exists (select 1 from public.decor_profiles
+              where id in (c_hors_prop, c_hors_cli)) then
+    raise exception 'ÉCHEC 16 — un compte hors décor est entré dans l''empreinte.';
+  end if;
+  if (select count(*) from public.decor_profiles) <> 8 then
+    raise exception 'ÉCHEC 16 — l''empreinte porte % personnes au lieu des 8 comptes de démonstration.',
+      (select count(*) from public.decor_profiles);
+  end if;
+
+  select * into v_m from public.menage_du_decor(c_tout);
+
+  if (select full_name from public.profiles where id = c_hors_cli)
+     <> 'Renommé par le banc d''essai' then
+    raise exception 'ÉCHEC 16 — le ménage a réécrit le nom d''un compte hors décor.';
+  end if;
+  if not (select is_owner from public.profiles where id = c_hors_prop) then
+    raise exception 'ÉCHEC 16 — le ménage a retiré son rôle à un propriétaire hors décor.';
+  end if;
+  raise notice 'Test 16 OK — hors des comptes de démonstration, le ménage ne voit rien.';
 
   raise notice '--------------------------------------------------------------';
   raise notice 'tests/018 — tout est passé. La transaction va être annulée.';
