@@ -1,14 +1,14 @@
 # =============================================================================
-# Ferha - les 30 questions de reference contre l'agent deploye (J20)
+# Ferha - les 34 questions de reference contre l'agent deploye (J20)
 #
-#   .\agent_30_questions.ps1              les 30 questions
+#   .\agent_30_questions.ps1              les 34 questions
 #   .\agent_30_questions.ps1 -seulement 11,12,13
 #   .\agent_30_questions.ps1 -detail      montre aussi la reponse redigee
 #
 # LA CLE VIENT DE L'ENVIRONNEMENT, jamais d'un fichier versionne :
 #   $env:FERHA_SUPABASE_ANON_KEY = "..."   (SUPABASE_ANON_KEY de env.json)
 #
-# CE QU'IL VERIFIE, ET POURQUOI CES SIX-LA (section 8.5)
+# CE QU'IL VERIFIE, ET POURQUOI CES SEPT-LA (section 8.5)
 #
 #   1. AUCUN IDENTIFIANT HORS CONTEXTE. C'est le garde-fou central : l'agent ne
 #      doit parler que des salles qu'on lui a donnees. On ne se fie pas a ce que
@@ -61,6 +61,20 @@
 #      il n'y a personne a joindre avant. Le seul geste que l'agent propose est
 #      celui de l'application : ouvrir la fiche, envoyer une demande.
 #
+#   7. LE PARCOURS NE PART PAS QUAND IL N'EST PAS DEMANDE. C'EST LA SEULE
+#      ASSERTION NEGATIVE DU BANC, et elle repare un angle mort.
+#
+#      Les six autres verifient qu'une bonne reponse CONTIENT ce qu'il faut. Un
+#      bareme qui ne sait que cela ne peut pas voir une reponse hors sujet : la
+#      question "est-ce que je peux publier ma salle ?" recevait les six etapes
+#      de la reservation, et les six controles passaient au vert, parce que la
+#      reponse contenait bien 48, 25 et 72.
+#
+#      Les questions 31 a 34 n'ont AUCUN texte de procedure qui les couvre. La
+#      bonne reponse est un aveu d'ignorance, et on verifie donc l'INVERSE : ni
+#      48, ni 25, ni 72, ni un moyen de paiement, ni le mot acompte. Pour les
+#      trente autres, ce controle ne s'applique pas et vaut vrai.
+#
 # CE FICHIER EST EN ASCII PUR. Les questions arabes sont lues depuis le document
 # de reference en UTF-8, jamais ecrites ici : un .ps1 accentue lu dans le mauvais
 # encodage par Windows PowerShell 5.1 ne s'analyse pas.
@@ -97,7 +111,7 @@ $chemin = if ([IO.Path]::IsPathRooted($questions)) { $questions }
           else { Join-Path $PSScriptRoot $questions }
 if (-not (Test-Path $chemin)) { throw "Document de reference introuvable : $chemin" }
 
-# --- les 30 questions, lues telles quelles ----------------------------------
+# --- les 34 questions, lues telles quelles ----------------------------------
 $doc = Get-Content $chemin -Raw -Encoding UTF8
 # UNE TABLE DE HACHAGE ORDINAIRE, ET SURTOUT PAS [ordered]@{} : un dictionnaire
 # ordonne indexe par un ENTIER fait de l'acces PAR POSITION, pas par cle.
@@ -106,7 +120,40 @@ $liste = @{}
 foreach ($m in [regex]::Matches($doc, '(?m)^\*\*(\d+)\.\*\*\s+(.+?)\s*$')) {
   $liste[[int]$m.Groups[1].Value] = $m.Groups[2].Value
 }
-if ($liste.Count -ne 30) { throw "$($liste.Count) questions lues, 30 attendues." }
+if ($liste.Count -ne 34) { throw "$($liste.Count) questions lues, 34 attendues." }
+
+# LES QUESTIONS DONT LA BONNE REPONSE EST UN REFUS. Voir le controle 7 en tete,
+# et la section D du document de reference. La liste est ecrite ici plutot que
+# deduite du document : un *Attendu* est de la prose, et on ne fait pas dependre
+# une assertion d'une phrase qu'on peut reformuler.
+$QuestionsDeRefus = @(31, 32, 33, 34)
+
+# Les chiffres arabes-indiens ramenes aux notres, comme chiffresLatins() dans
+# ai-chat : sans cela un 72 ecrit en chiffres arabes-indiens passerait sous le
+# controle 7 sans etre vu.
+function ChiffresLatins([string]$t) {
+  if (-not $t) { return "" }
+  $sb = New-Object Text.StringBuilder
+  foreach ($c in $t.ToCharArray()) {
+    $code = [int]$c
+    if ($code -ge 0x0660 -and $code -le 0x0669)      { [void]$sb.Append([char](48 + $code - 0x0660)) }
+    elseif ($code -ge 0x06f0 -and $code -le 0x06f9)  { [void]$sb.Append([char](48 + $code - 0x06f0)) }
+    else                                             { [void]$sb.Append($c) }
+  }
+  return $sb.ToString()
+}
+
+# Le texte porte-t-il le parcours de reservation ? Les trois reperes chiffres,
+# un moyen de paiement, ou le mot acompte : chacun suffit a le trahir.
+function PorteLeParcours([string]$t) {
+  if (-not $t) { return $false }
+  $avecChiffres = ChiffresLatins $t
+  foreach ($r in @("48", "25", "72")) {
+    if ($avecChiffres.Contains($r)) { return $true }
+  }
+  $plat = Aplatir $avecChiffres
+  return [bool]($plat -match "cib|edahabia|dahabia|espece|acompte")
+}
 
 # --- le catalogue publie, vu comme un visiteur le voit ----------------------
 $entetes = @{ apikey = $cleAnon; Authorization = "Bearer $cleAnon" }
@@ -295,7 +342,7 @@ foreach ($n in $aJouer) {
 
   if ($erreur) {
     Write-Host ("  {0,-3} {1}" -f $n, $erreur) -ForegroundColor Red
-    $resultats += [pscustomobject]@{ n=$n; statut="ECHEC"; c1=$false; c2=$false; c3=$false; c4=$false; c5=$false; c6=$false; ecriture=(EcritureQuestion $q); etiquette=""; note=$erreur }
+    $resultats += [pscustomobject]@{ n=$n; statut="ECHEC"; c1=$false; c2=$false; c3=$false; c4=$false; c5=$false; c6=$false; c7=$false; refus=($QuestionsDeRefus -contains [int]$n); ecriture=(EcritureQuestion $q); etiquette=""; note=$erreur }
     Start-Sleep -Milliseconds $pauseMs
     continue
   }
@@ -365,6 +412,14 @@ foreach ($n in $aJouer) {
   $appel = AppelAuContact $texte
   $c6 = ($appel -eq "")
 
+  # --- verification 7 : le parcours ne part pas quand il n'est pas demande ---
+  # LA SEULE ASSERTION NEGATIVE. Elle ne s'applique qu'aux questions de refus ;
+  # ailleurs elle vaut vrai, sans quoi elle ferait echouer les trente questions
+  # auxquelles le parcours REPOND.
+  $refusAttendu = ($QuestionsDeRefus -contains [int]$n)
+  $parcoursParti = if ($refusAttendu) { PorteLeParcours $texte } else { $false }
+  $c7 = -not $parcoursParti
+
   # --- affichage ------------------------------------------------------------
   $resumeCrit = @()
   if ($crit.wilaya_code)    { $resumeCrit += "w=$($crit.wilaya_code)" }
@@ -396,7 +451,9 @@ foreach ($n in $aJouer) {
   $marques += if ($c4) { " nom+" } else { " nom-" }
   $marques += if ($c5) { " lang+" } else { " lang-" }
   $marques += if ($c6) { " cta+" } else { " cta-" }
-  $couleur = if ($c1 -and $c2 -and $c3 -and $c4 -and $c5 -and $c6) { "Green" } else { "Red" }
+  # La marque du controle 7 n'apparait que la ou il veut dire quelque chose.
+  if ($refusAttendu) { $marques += if ($c7) { " refus+" } else { " refus-" } }
+  $couleur = if ($c1 -and $c2 -and $c3 -and $c4 -and $c5 -and $c6 -and $c7) { "Green" } else { "Red" }
 
   Write-Host ("  {0,-3} {1,-7} {2,-36} {3,-30} {4}" -f $n, $statut, $txtCrit, $txtSalles, $marques) -ForegroundColor $couleur
   if (-not $c1) { Write-Host ("       hors contexte : " + ($horsContexte -join ", ")) -ForegroundColor Red }
@@ -405,9 +462,10 @@ foreach ($n in $aJouer) {
   if (-not $c4) { Write-Host ("       NOMS COUPES   : " + ($coupes -join ", ")) -ForegroundColor Red }
   if (-not $c5) { Write-Host ("       ECRITURE      : question en lettres $ecriture, reponse non (la fonction a compris '$etiquette')") -ForegroundColor Red }
   if (-not $c6) { Write-Host ("       CONTACT       : " + $appel) -ForegroundColor Red }
+  if (-not $c7) { Write-Host ("       PARCOURS RECITE : aucun texte ne couvre cette question, et la reponse repond quand meme") -ForegroundColor Red }
   if ($detail)  { Write-Host ("       > " + ($texte -replace "\s+", " ")) -ForegroundColor DarkGray }
 
-  $resultats += [pscustomobject]@{ n=$n; statut=$statut; c1=$c1; c2=$c2; c3=$c3; c4=$c4; c5=$c5; c6=$c6; ecriture=$ecriture; etiquette=$etiquette; note="" }
+  $resultats += [pscustomobject]@{ n=$n; statut=$statut; c1=$c1; c2=$c2; c3=$c3; c4=$c4; c5=$c5; c6=$c6; c7=$c7; refus=$refusAttendu; ecriture=$ecriture; etiquette=$etiquette; note="" }
   Start-Sleep -Milliseconds $pauseMs
 }
 
@@ -423,7 +481,8 @@ $total  = $resultats.Count
 $joues  = @($resultats | Where-Object { $NonAbouti -notcontains $_.statut })
 $rates  = @($resultats | Where-Object { $NonAbouti -contains $_.statut })
 $n      = $joues.Count
-$ok     = @($joues | Where-Object { $_.c1 -and $_.c2 -and $_.c3 -and $_.c4 -and $_.c5 -and $_.c6 }).Count
+$ok     = @($joues | Where-Object { $_.c1 -and $_.c2 -and $_.c3 -and $_.c4 -and $_.c5 -and $_.c6 -and $_.c7 }).Count
+$refus  = @($joues | Where-Object { $_.refus })
 
 Write-Host ""
 Write-Host ("  " + ("=" * 124))
@@ -438,7 +497,11 @@ if ($n -gt 0) {
   Write-Host ("  Aucun nom coupe entre deux ecritures  : {0} / {1}" -f @($joues | Where-Object c4).Count, $n)
   Write-Host ("  Reponse dans l'ecriture de la question : {0} / {1}" -f @($joues | Where-Object c5).Count, $n)
   Write-Host ("  Aucun appel au contact direct         : {0} / {1}" -f @($joues | Where-Object c6).Count, $n)
-  Write-Host ("  LES SIX A LA FOIS                     : {0} / {1}  ({2:N1} %)" -f $ok, $n, (100.0 * $ok / $n))
+  if ($refus.Count) {
+    Write-Host ("  Refus quand aucun texte ne couvre     : {0} / {1}   (questions {2})" -f `
+      @($refus | Where-Object c7).Count, $refus.Count, (($refus | ForEach-Object { $_.n } | Sort-Object) -join ", "))
+  }
+  Write-Host ("  LES SEPT A LA FOIS                    : {0} / {1}  ({2:N1} %)" -f $ok, $n, (100.0 * $ok / $n))
   Write-Host ""
   # LE DETAIL PAR ECRITURE, parce que c'est la que le controle 5 se juge : un
   # 30/30 obtenu sur trente questions francaises ne prouverait rien.

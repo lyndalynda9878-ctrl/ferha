@@ -212,6 +212,89 @@ const PROCEDURE_AR = `كيفاش تحجز في فرحة:
 const REPERES_PROCEDURE = ["48", "25", "72"];
 const MOYEN_DE_PAIEMENT = /cib|edahabia|dahabia|ذهبي|نقد|espece/;
 
+/// LES SUJETS DE PROCÉDURE, ET CE QUE CHACUN A — OU N'A PAS — À DIRE.
+///
+/// AVANT, C'ÉTAIT UN BOOLÉEN. `question_procedure` disait « ça parle du
+/// fonctionnement », jamais DE QUELLE PARTIE. La branche tendait donc au modèle
+/// le seul texte qu'elle avait — le parcours de réservation — quelle que soit
+/// la question, et le modèle rédigeait consciencieusement une réponse hors
+/// sujet. « Est-ce que je peux publier ma salle ? » recevait les six étapes de
+/// la réservation, et les trois contrôles la laissaient passer parce qu'elle
+/// contenait bien 48, 25 et 72.
+///
+/// UN SUJET SANS TEXTE N'EST PAS UNE ERREUR, C'EST UNE RÉPONSE. `null` ici veut
+/// dire « je ne sais pas », et c'est la bonne réponse — pas un repli. Entre une
+/// réponse fausse et un aveu d'ignorance, l'aveu gagne toujours : il se corrige
+/// en ajoutant un texte, l'autre se découvre par un propriétaire qui a suivi
+/// des étapes qui n'étaient pas les siennes.
+///
+/// `publication` est volontairement à `null` aujourd'hui. Le texte du
+/// propriétaire viendra ; d'ici là, la question part sur le refus, et c'est
+/// exact : l'assistant ne sait effectivement pas y répondre.
+///
+/// LES REPÈRES SONT ICI, PAS AILLEURS. Ils étaient une liste unique appliquée à
+/// toute réponse de procédure — c'est-à-dire les repères de la réservation
+/// imposés à des sujets qui n'en ont pas. Chaque texte porte désormais les
+/// siens, et un texte qui arrive amène ses repères avec lui.
+type TexteDeProcedure = {
+  fr: string;
+  ar: string;
+  reperes: string[];
+  moyenDePaiement: boolean;
+};
+
+const TEXTES_PROCEDURE: Record<string, TexteDeProcedure | null> = {
+  // Le parcours client, du premier geste à la confirmation. « Tenir une date »
+  // en fait partie : c'est l'option de 72 heures, et non le blocage d'agenda
+  // d'un propriétaire.
+  reservation: {
+    fr: PROCEDURE,
+    ar: PROCEDURE_AR,
+    reperes: REPERES_PROCEDURE,
+    moyenDePaiement: true,
+  },
+  // Le versement de l'acompte PAR LE CLIENT : le même parcours le décrit, aux
+  // étapes 3 à 5. L'argent vu du côté du propriétaire n'est pas ici — il n'est
+  // écrit nulle part, et c'est « autre ».
+  paiement: {
+    fr: PROCEDURE,
+    ar: PROCEDURE_AR,
+    reperes: REPERES_PROCEDURE,
+    moyenDePaiement: true,
+  },
+  // Aucun texte n'existe pour ces trois-là. Ils refusent.
+  annulation: null,
+  publication: null,
+  autre: null,
+};
+
+const SUJETS_PROCEDURE = Object.keys(TEXTES_PROCEDURE);
+
+/// LE REFUS, DANS LES TROIS ÉCRITURES, ET IL DIT CE QU'IL SAIT FAIRE.
+///
+/// Sur le modèle de HORS_SUJET, qui fait déjà ce geste plus bas. La différence
+/// tient en une phrase : HORS_SUJET répond « ce n'est pas mon métier », celui-ci
+/// répond « c'est mon métier, et je ne sais pas ». Les deux se disent, et les
+/// confondre enverrait promener quelqu'un qui pose une question légitime.
+///
+/// IL NE RENVOIE VERS PERSONNE. Pas de « appelez la salle », pas de « contactez
+/// le support » : c'est exactement ce que `appelAuContact` interdit ailleurs, et
+/// un refus n'a pas le droit de faire ce qu'une réponse n'a pas le droit de
+/// faire.
+const JE_NE_SAIS_PAS: Record<string, string> = {
+  fr: "Je sais expliquer comment réserver une salle : les délais, l’acompte et " +
+    "les moyens de paiement. Sur ce point précis, je n’ai pas d’information " +
+    "fiable à vous donner — je préfère vous le dire plutôt que de vous " +
+    "répondre à côté.",
+  ar: "نعرف نشرح كيفاش تحجز قاعة: الآجال، التسبيق، وطرق الدفع. أما هذا الموضوع " +
+    "بالذات، ما عنديش معلومة أكيدة نعطيهالك — نفضّل نقولهالك بدل ما نجاوبك " +
+    "بحاجة غالطة.",
+  mixte: "Je sais expliquer comment réserver une salle : les délais, l’acompte " +
+    "et les moyens de paiement. Sur ce point précis, je n’ai pas d’information " +
+    "fiable à vous donner — je préfère vous le dire plutôt que de vous " +
+    "répondre à côté.",
+};
+
 const WILAYAS =
   "01 Adrar, 02 Chlef, 03 Laghouat, 04 Oum El Bouaghi, 05 Batna, 06 Béjaïa, " +
   "07 Biskra, 08 Béchar, 09 Blida, 10 Bouira, 11 Tamanrasset, 12 Tébessa, " +
@@ -238,7 +321,8 @@ const SCHEMA_CRITERES = {
   type: "object",
   properties: {
     hors_sujet: { type: "boolean" },
-    question_procedure: { type: "boolean" },
+    // "" quand la question porte sur une salle. Voir TEXTES_PROCEDURE.
+    sujet_procedure: { type: "string", enum: ["", ...SUJETS_PROCEDURE] },
     langue: { type: "string", enum: ["fr", "ar", "mixte"] },
     date_origine: {
       type: "string",
@@ -259,7 +343,7 @@ const SCHEMA_CRITERES = {
     soft_query: { type: "string" },
   },
   required: [
-    "hors_sujet", "question_procedure", "langue", "date_origine",
+    "hors_sujet", "sujet_procedure", "langue", "date_origine",
     "jour_semaine", "parking_min", "parking_flou", "prix_bas",
     "equipements", "soft_query",
   ],
@@ -276,7 +360,9 @@ const SCHEMA_REPONSE = {
 
 type Criteres = {
   hors_sujet: boolean;
-  question_procedure: boolean;
+  /// La partie du service dont parle la question, "" si elle parle d'une salle.
+  /// Une clé de TEXTES_PROCEDURE, où `null` vaut « je ne sais pas ».
+  sujet_procedure: string;
   langue: string;
   date_origine: string;
   /// Vrai dès que l'année n'était pas dans la question. La réponse le dit.
@@ -445,12 +531,17 @@ function chiffresLatins(texte: string): string {
     .replace(/[\u06f0-\u06f9]/g, (c) => String(c.charCodeAt(0) - 0x06f0));
 }
 
-/// Les quatre repères sont-ils tous là ? Voir REPERES_PROCEDURE.
-function procedureComplete(texte: string): boolean {
+/// Les repères DE CE TEXTE-LÀ sont-ils tous là ?
+///
+/// Ils se lisent dans le texte qu'on a tendu au modèle, et non dans une liste
+/// unique : imposer les repères de la réservation à un autre sujet ferait
+/// rejouer trois fois une réponse juste, puis partir un texte de référence qui
+/// ne répond pas à la question. Voir TEXTES_PROCEDURE.
+function procedureComplete(texte: string, attendu: TexteDeProcedure): boolean {
   if (!texte) return false;
   const avecChiffres = chiffresLatins(texte);
-  return REPERES_PROCEDURE.every((r) => avecChiffres.includes(r)) &&
-    MOYEN_DE_PAIEMENT.test(aplatir(avecChiffres));
+  return attendu.reperes.every((r) => avecChiffres.includes(r)) &&
+    (!attendu.moyenDePaiement || MOYEN_DE_PAIEMENT.test(aplatir(avecChiffres)));
 }
 
 /// Echappe ce qui a un sens dans une expression reguliere.
@@ -554,10 +645,22 @@ CHAMPS :
 - hors_sujet : true UNIQUEMENT si la question ne concerne ni une salle des fêtes,
   ni une réservation, ni le fonctionnement du service. La météo, le sport, la cuisine
   sont hors sujet. "comment réserver ?" n'est PAS hors sujet.
-- question_procedure : true quand la question porte sur le FONCTIONNEMENT du service
-  et non sur une salle en particulier : comment réserver, comment bloquer une date,
-  quel acompte, quel délai, comment payer, comment annuler. "kifach ndir bach nhabes
-  date" et "كيفاش نحجز" sont des questions de procédure.
+- sujet_procedure : chaîne VIDE quand la question porte sur une SALLE — en chercher
+  une, la comparer, un prix, une disponibilité. Sinon, la partie du service dont
+  elle parle, et une seule :
+  * "reservation" : comment réserver, comment BLOQUER ou TENIR une date, les délais,
+    l'acompte, la confirmation. "kifach ndir bach nhabes date" et "كيفاش نحجز" sont
+    des questions de reservation : tenir une date, c'est l'option du parcours client.
+  * "paiement" : comment LE CLIENT verse son acompte, et par quels moyens.
+  * "annulation" : annuler une réservation déjà envoyée, ou en changer la date.
+  * "publication" : inscrire, publier, corriger ou gérer SA PROPRE salle — c'est un
+    propriétaire qui parle, pas un client.
+  * "autre" : tout le reste du fonctionnement du service. EN PARTICULIER l'argent vu
+    du côté du PROPRIÉTAIRE — être payé, reversement, commission —, qui n'est PAS
+    "paiement". Et toute question trop vague pour désigner l'une des quatre autres,
+    comme "comment ça marche ici ?".
+  DANS LE DOUTE, "autre". Une question mal rangée reçoit une réponse qui ne lui
+  répond pas ; "autre" reçoit un aveu d'ignorance, qui ne trompe personne.
 - langue : "fr" si la question est en français, "ar" si elle est en caractères arabes,
   "mixte" si elle est en caractères LATINS et mêle français et arabe translittéré
   ("kayen salle f wahran"). L'écriture arabe est recomptée après toi et l'emporte
@@ -1053,7 +1156,14 @@ Deno.serve(async (requete: Request): Promise<Response> => {
 
     criteres = {
       hors_sujet: brut.hors_sujet === true,
-      question_procedure: brut.question_procedure === true,
+      // Un sujet inventé par le modèle ne doit pas ouvrir une branche muette :
+      // il retombe sur "autre", qui refuse. C'est le même geste que pour les
+      // équipements juste au-dessus — ce qui n'est pas du vocabulaire se jette.
+      sujet_procedure: SUJETS_PROCEDURE.includes(String(brut.sujet_procedure))
+        ? String(brut.sujet_procedure)
+        : String(brut.sujet_procedure ?? "") === ""
+        ? ""
+        : "autre",
       langue: ["fr", "ar", "mixte"].includes(String(brut.langue))
         ? String(brut.langue) : "fr",
       date_origine: ["aucune", "explicite", "annee_absente", "relative"]
@@ -1113,15 +1223,32 @@ Deno.serve(async (requete: Request): Promise<Response> => {
     // empreinte ni requête : le modèle reçoit le texte du parcours, un contexte
     // VIDE, et la validation du §8.5 garantit qu'il ne nommera personne —
     // toute salle citée serait hors contexte, et ferait rejouer.
-    if (criteres.question_procedure) {
-      // LES QUATRE REPÈRES SE VÉRIFIENT, ILS NE SE DEMANDENT PAS.
+    if (criteres.sujet_procedure) {
+      const attendu = TEXTES_PROCEDURE[criteres.sujet_procedure] ?? null;
+
+      // AUCUN TEXTE NE COUVRE CE SUJET : ON LE DIT, ET ON NE DEMANDE RIEN AU
+      // MODÈLE. Ne pas l'appeler est le fond de la correction, pas une économie :
+      // un modèle à qui l'on tend un texte rédige à partir de ce texte, même
+      // quand il ne répond pas à la question. La seule façon de ne pas obtenir
+      // une réponse hors sujet est de ne pas la demander.
+      if (!attendu) {
+        // Le sujet n'est pas répété dans le statut : il part déjà dans
+        // `criteres`, que la colonne jsonb garde en entier.
+        await journaliser("procedure_sans_texte", [], null);
+        return reponseHttp({
+          reponse: JE_NE_SAIS_PAS[langue] ?? JE_NE_SAIS_PAS.fr,
+          salles: [], criteres, modele, statut: "procedure_sans_texte",
+        });
+      }
+
+      // LES REPÈRES SE VÉRIFIENT, ILS NE SE DEMANDENT PAS.
       //
       // Le modèle reformulait le parcours et perdait l'option de 72 heures —
       // le délai au bout duquel la date se relâche. On relit donc sa réponse,
       // et si un repère manque on rejoue ; s'il manque encore, c'est le texte
       // de référence qui part, mot pour mot, dans la langue de la question.
       // Moins fluide, et juste.
-      const texteDeReference = langue === "ar" ? PROCEDURE_AR : PROCEDURE;
+      const texteDeReference = langue === "ar" ? attendu.ar : attendu.fr;
       let texteProc = "";
 
       for (let essai = 0; essai <= REJEUX_MAX; essai++) {
@@ -1144,7 +1271,7 @@ Deno.serve(async (requete: Request): Promise<Response> => {
         //
         // Le contexte est VIDE ici : aucun nom propre à retirer avant de
         // compter les lettres, et c'est bien ce que `langueCorrespond` reçoit.
-        const manque = !procedureComplete(candidat)
+        const manque = !procedureComplete(candidat, attendu)
           ? "repère manquant"
           : !langueCorrespond(candidat, langue, [])
           ? `hors de la langue attendue (${langue})`

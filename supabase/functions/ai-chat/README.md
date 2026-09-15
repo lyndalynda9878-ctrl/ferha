@@ -100,9 +100,32 @@ rien ne peut les déformer.
 Le parcours de réservation est une attestation, pas une rédaction. Les quatre
 repères — **48 h** de réponse, **25 %** d'acompte, **72 h** d'option, les moyens
 de paiement — sont cherchés dans la réponse rendue, chiffres arabes-indiens
-compris. S'il en manque un, on rejoue ; s'il en manque encore un, c'est
-`PROCEDURE` (ou `PROCEDURE_AR`) qui part **mot pour mot**, dans la langue de la
-question. Moins fluide, et juste.
+compris. S'il en manque un, on rejoue ; s'il en manque encore un, c'est le texte
+de référence qui part **mot pour mot**, dans la langue de la question. Moins
+fluide, et juste.
+
+Ces repères sont ceux **du texte retenu**, et non une liste unique : chaque
+entrée de `TEXTES_PROCEDURE` porte les siens.
+
+### Et une question sans texte reçoit un refus
+
+`sujet_procedure` remplace l'ancien booléen `question_procedure`. Le booléen
+disait « ça parle du fonctionnement » sans dire **de quelle partie**, et la
+branche tendait donc au modèle le seul texte qu'elle avait — le parcours de
+réservation — quelle que soit la question. « Est-ce que je peux publier ma
+salle ? » recevait les six étapes de la réservation, et les trois contrôles la
+laissaient passer : elle contenait bien 48, 25 et 72.
+
+Les sujets sont maintenant `reservation`, `paiement`, `annulation`,
+`publication` et `autre`. `TEXTES_PROCEDURE` associe à chacun son texte, ou
+`null`. **`null` n'est pas un trou, c'est une réponse** : la fonction renvoie
+`JE_NE_SAIS_PAS` sans appeler le modèle du tout — un modèle à qui l'on tend un
+texte rédige à partir de ce texte, et la seule façon de ne pas obtenir une
+réponse hors sujet est de ne pas la demander.
+
+`publication` vaut `null` **aujourd'hui, et volontairement** : le texte du
+propriétaire viendra ; d'ici là le refus est exact, puisque l'assistant ne sait
+effectivement pas y répondre.
 
 ---
 

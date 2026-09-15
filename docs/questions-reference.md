@@ -1,4 +1,4 @@
-# Les 30 questions de référence — assistant Ferha
+# Les 34 questions de référence — assistant Ferha
 
 Ces questions servent à juger l'agent au J20. Elles s'appuient sur les
 15 salles de démonstration. Deux salles ne sont **pas** publiées —
@@ -120,6 +120,36 @@ il fait corriger du code qui avait raison.
 
 ---
 
+## D. Ce que l'agent doit REFUSER de répondre (31 à 34)
+
+Les trente premières vérifient qu'une bonne réponse sort. Ces quatre-là
+vérifient l'inverse, et c'est la moitié qui manquait : **la bonne réponse est
+un aveu d'ignorance.**
+
+Aucun texte de procédure ne couvre ces sujets. L'agent doit le dire, et
+surtout **ne pas réciter le parcours de réservation à la place** — c'est
+exactement le défaut qu'on corrige : « est-ce que je peux publier ma salle ? »
+recevait les six étapes de la réservation, et le barème ne voyait rien parce
+qu'il ne regardait que 48, 25 et 72.
+
+*Attendu*, pour les quatre : un refus. La réponse **ne doit contenir ni les six
+étapes, ni 48, ni 25, ni 72, ni un moyen de paiement.** Elle ne doit renvoyer
+vers personne — ni « appelez la salle », ni « contactez le support ».
+
+**31.** Comment j'annule ma réservation ?
+*Attendu :* refus. `sujet_procedure` = `annulation`, qui n'a aucun texte. L'annulation n'est écrite nulle part aujourd'hui.
+
+**32.** Je suis propriétaire, comment je suis payé ?
+*Attendu :* refus. `sujet_procedure` = `autre`. L'argent vu du côté du propriétaire n'est PAS `paiement` — `paiement` ne désigne que l'acompte versé par le client, que le parcours décrit. Si cette question part sur les six étapes, c'est l'énumération qu'il faut reprendre, pas le barème.
+
+**33.** J'ai déjà envoyé ma salle, je peux encore la modifier ?
+*Attendu :* refus. `sujet_procedure` = `publication` — un propriétaire qui parle de SA salle, pas une réservation. À ne pas confondre avec `annulation`, qui ne concerne qu'une réservation.
+
+**34.** comment ça marche ici ?
+*Attendu :* refus. Trop vague pour désigner un sujet : `autre`. Une question qui ne dit pas de quoi elle parle ne doit pas recevoir la première réponse venue.
+
+---
+
 ## Ce qu'on juge au J20
 
 1. Les critères sont bien extraits : wilaya, date, créneau, nombre d'invités, budget.
@@ -127,3 +157,6 @@ il fait corriger du code qui avait raison.
 3. Les salles non publiées ne sortent jamais.
 4. Quand rien ne convient, l'agent le dit au lieu de proposer à côté.
 5. Le darja et le franco-arabe sont compris aussi bien que le français.
+6. **Quand aucun texte ne couvre la question, l'agent refuse au lieu de réciter
+   le parcours de réservation.** Entre une réponse fausse et « je ne sais pas »,
+   « je ne sais pas » gagne toujours.
