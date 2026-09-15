@@ -1,0 +1,133 @@
+# =============================================================================
+# Ferha — empêcher le projet Supabase de se mettre en pause
+#
+# POURQUOI DE DEHORS, ET PAS UN pg_cron. Un projet gratuit se met en pause après
+# une semaine sans activité. Le gardien des empreintes (migration 034) frappe
+# toutes les 5 minutes, mais il vit DANS la base : un pg_cron ne tourne pas dans
+# un projet en pause, et il ne peut donc pas l'en sortir. Le réveil doit venir
+# d'ailleurs, et GitHub Actions est le seul « ailleurs » que ce projet possède
+# déjà.
+#
+# CE QUE ÇA COÛTE. Toutes les 48 h, soit seize exécutions par mois d'une dizaine
+# de secondes : moins de trois minutes sur les 2 000 d'un dépôt privé. C'est le
+# calcul qui rendait le réveil des empreintes impossible ici — toutes les 5
+# minutes auraient demandé plus de 8 000 minutes — et qui reste confortable à ce
+# rythme-là.
+#
+# UNE VRAIE REQUÊTE, PAS UN PING, et c'est tout l'objet de ce fichier. Une
+# requête qui vérifie seulement qu'un serveur répond peut réussir contre une
+# page de maintenance, contre un proxy, contre un projet en pause qui rend
+# poliment une erreur. On demande donc au projet quelque chose que SEULE une
+# base vivante sait rendre : les salles publiées de son catalogue, lues à
+# travers PostgREST, Postgres et les politiques RLS, avec la clé publiable — la
+# même requête que le banc des 37 questions emploie pour se constituer son
+# catalogue de référence.
+#
+# ET ON VÉRIFIE LA RÉPONSE, pas le code HTTP. Un vert qui ne prouve rien serait
+# le défaut qu'on a déjà rencontré deux fois : un workflow satisfait au-dessus
+# d'un service mort. Trois conditions doivent tenir, et chacune fait échouer le
+# travail séparément, avec son message :
+#
+#   1. le code est 200 ;
+#   2. le corps est un TABLEAU JSON — une page d'erreur n'en est pas un ;
+#   3. ce tableau contient au moins une salle — un catalogue vide veut dire que
+#      la base répond mais que la démonstration est cassée, ce qu'on veut
+#      apprendre ici et pas devant quelqu'un.
+#
+# Les noms lus sont écrits dans le résumé du travail. C'est la preuve qu'un
+# humain peut regarder sans rien déchiffrer : si les salles sont là, la base
+# servait vraiment.
+#
+# ⚠ GITHUB DÉSACTIVE LES TÂCHES PLANIFIÉES d'un dépôt resté soixante jours sans
+# activité, et il prévient par courriel avant de le faire. C'est la panne la
+# plus sournoise de ce fichier : le workflow ne devient pas rouge, il cesse
+# d'exister. Voir « Comment savoir qu'il a échoué » dans supabase/README.md.
+#
+# LES SECRETS SONT DÉJÀ POSÉS — SUPABASE_URL et SUPABASE_ANON_KEY servent à
+# deploy-web.yml. Rien de neuf à créer, et rien à écrire ici : la clé publiable
+# part dans le JavaScript servi, elle n'est pas secrète, mais le dépôt ne porte
+# aucune clé (CLAUDE.md) et ce fichier non plus.
+# =============================================================================
+
+name: Maintien de la base
+
+on:
+  # Toutes les 48 h, à 4 h UTC — 5 h en Algérie, personne ne regarde.
+  # `*/2` sur le quantième redémarre au changement de mois : l'écart peut
+  # tomber à 24 h entre le 31 et le 1er, jamais au-dessus de 48 h. C'est le
+  # sens qui compte ici, et il est du bon côté.
+  schedule:
+    - cron: "0 4 */2 * *"
+  # De quoi le lancer à la main depuis l'onglet Actions, sans attendre l'heure.
+  workflow_dispatch:
+
+concurrency:
+  group: maintien-supabase
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  reveiller:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Interroger le catalogue publié
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${SUPABASE_URL}" ] || [ -z "${SUPABASE_ANON_KEY}" ]; then
+            echo "::error::SUPABASE_URL ou SUPABASE_ANON_KEY manquant dans les secrets du dépôt."
+            exit 1
+          fi
+
+          URL="${SUPABASE_URL%/}/rest/v1/venues?select=id,name,commune&status=eq.published&limit=5"
+
+          # -s sans -f : on VEUT le corps même sur une erreur, pour le lire.
+          # Le code HTTP est écrit sur la dernière ligne, séparé du corps.
+          reponse=$(curl -s -w '\n%{http_code}' --max-time 60 \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
+            "$URL")
+
+          code=$(printf '%s' "$reponse" | tail -n 1)
+          corps=$(printf '%s' "$reponse" | sed '$d')
+
+          echo "Code HTTP : $code"
+
+          # --- 1. le code ------------------------------------------------------
+          if [ "$code" != "200" ]; then
+            echo "::error::La base n'a pas répondu 200 (reçu : $code)."
+            echo "Corps de la réponse :"
+            printf '%s\n' "$corps"
+            exit 1
+          fi
+
+          # --- 2. un tableau JSON, et non une page ----------------------------
+          if ! printf '%s' "$corps" | jq -e 'type == "array"' > /dev/null 2>&1; then
+            echo "::error::200 reçu, mais le corps n'est pas un tableau JSON. Une page d'erreur répond 200 elle aussi."
+            printf '%s\n' "$corps" | head -c 2000
+            exit 1
+          fi
+
+          # --- 3. un catalogue non vide ---------------------------------------
+          salles=$(printf '%s' "$corps" | jq 'length')
+          if [ "$salles" -lt 1 ]; then
+            echo "::error::La base répond, mais AUCUNE salle publiée. La démonstration est vide."
+            exit 1
+          fi
+
+          # --- La preuve, lisible par un humain --------------------------------
+          {
+            echo "### Base réveillée"
+            echo
+            echo "**$salles** salle(s) publiée(s) lue(s) à $(date -u '+%Y-%m-%d %H:%M:%S') UTC."
+            echo
+            printf '%s' "$corps" | jq -r '.[] | "- \(.name) — \(.commune)"'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          printf '%s' "$corps" | jq -r '.[] | "  \(.name) — \(.commune)"'
+          echo "La base a servi $salles salle(s) : elle est bien éveillée."

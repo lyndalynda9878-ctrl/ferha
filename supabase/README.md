@@ -206,6 +206,40 @@ L'adresse se lit dans le Vault sous `ferha_embeddings_url`, et à défaut retomb
 sur celle du dépôt — un projet recréé repart donc avec son gardien sans qu'on
 ait rien à poser. `/health` ne demande aucun jeton.
 
+### Empêcher la base de se mettre en pause — et comment voir que ça a lâché
+
+Un projet gratuit se met en pause après une semaine sans activité. **Le gardien
+ci-dessus n'y peut rien** : il vit dans la base, et un pg_cron ne tourne pas
+dans un projet en pause. Le réveil doit venir de dehors, d'où le workflow
+`.github/workflows/maintien-supabase.yml`, toutes les 48 h à 4 h UTC.
+
+**C'est une prophylaxie, pas un remède.** Une fois le projet effectivement en
+pause, aucune requête API ne le relance : il faut le restaurer à la main depuis
+le tableau de bord Supabase. Ce workflow sert à ce que ce moment n'arrive
+jamais ; il ne sait pas en sortir.
+
+**Il fait une vraie requête, et il en vérifie la réponse.** Il lit les salles
+publiées par PostgREST, avec la clé publiable — la même requête que le banc des
+37 questions. Trois conditions, chacune capable de faire échouer le travail à
+elle seule : code **200**, corps qui est un **tableau JSON** (une page d'erreur
+n'en est pas un), et **au moins une salle**. Les noms lus sont écrits dans le
+résumé du travail : c'est la preuve qu'un humain peut regarder.
+
+| ce qui a lâché | comment ça se voit |
+|---|---|
+| la base ne répond plus, ou plus 200 | **travail rouge**, et GitHub envoie un courriel au propriétaire du dépôt |
+| la base répond mais le catalogue est vide | **travail rouge** — `AUCUNE salle publiée` |
+| un secret a disparu ou changé | **travail rouge** dès la première étape |
+| **le dépôt est resté 60 jours sans activité** | **le travail ne devient PAS rouge : il cesse d'être planifié.** GitHub désactive les tâches planifiées des dépôts dormants, après un courriel d'avertissement |
+
+Cette dernière ligne est la panne sournoise de ce dispositif, et la seule qu'un
+vert ne montrera jamais. Le repère à regarder est la **date de la dernière
+exécution** dans l'onglet Actions : si elle a plus de 48 h, la planification est
+tombée, quoi qu'en dise la dernière exécution connue.
+
+On peut le lancer à la main à tout moment : onglet **Actions** → *Maintien de la
+base* → **Run workflow**.
+
 La troisième est la seule à **sortir de la base**, et c'est assumé : elle a
 besoin de parler à un modèle de langage, donc d'une clé d'API, qui n'a rien à
 faire dans PostgreSQL (§7.1). Elle lit l'URL et la clé de service dans le
