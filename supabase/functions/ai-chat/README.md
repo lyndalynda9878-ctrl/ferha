@@ -158,6 +158,106 @@ U+0654 planté au milieu du mot. D'où « سعار » plutôt que « أسعار 
 
 ---
 
+## « Bloquer une date » a deux lectures — décision prise, pas encore faite
+
+**Rien de ce qui suit n'est implémenté.** C'est une décision arbitrée au J22 et
+volontairement reportée : le comportement actuel n'est pas faux, il est
+incomplet. Cette section existe pour qu'on puisse l'exécuter sans refaire
+l'analyse.
+
+### Le problème
+
+« kifach ndir bach nhabes date ? » — la question 30 du banc — désigne **deux
+fonctionnalités réelles, toutes deux implémentées**, et rien dans la phrase ne
+dit laquelle :
+
+| lecture | ce que ça veut dire | où ça vit |
+|---|---|---|
+| cliente | tenir une date pendant 72 h après acceptation | l'option, `PROCEDURE` étape 4 |
+| propriétaire | fermer une date dans son agenda | `bloquer_date()` / `debloquer_date()` (016, `bloquer_date` redéfinie en 023), `agenda_screen.dart`, route `/proprietaire/agenda` |
+
+Le mot est le même des deux côtés : la migration 023 s'appelle littéralement
+« une option tient la date ». Ce n'est donc pas une question mal posée — **les
+deux features tiennent une date.**
+
+Aujourd'hui l'agent répond le parcours client **sans dire qu'il a choisi un
+sens**. Ce n'est pas un accident : `instructionExtraction()` range explicitement
+« comment BLOQUER ou TENIR une date » dans `reservation`, et c'était pour
+protéger la question 30, seule question de procédure du banc avant le J22.
+
+**L'énumération n'a aucune case pour la lecture propriétaire.** L'agenda n'est
+ni `reservation` ni `publication`. Détecter l'ambiguïté ne servirait donc à rien
+tant qu'on n'a nulle part où pointer la seconde lecture : c'est la première
+chose à faire, pas la seconde.
+
+### Les trois options examinées
+
+**A — Répondre, et dire qu'on a choisi.** On garde la réponse cliente par
+défaut, précédée d'une phrase construite **en code** : « Je réponds pour une
+réservation. Si vous êtes propriétaire et cherchez à fermer une date dans votre
+agenda, dites-le-moi. » C'est le motif de `phraseAnneeSupposee()`, qui fait déjà
+ce geste quand l'application choisit une année à la place de quelqu'un.
+*Coût* : un libellé court par sujet et par écriture, un champ de plus à
+l'extraction. *Perte* : deux lignes dans chaque réponse ambiguë.
+
+**B — Demander avant de répondre.** Une branche de plus, qui pose la question au
+lieu d'y répondre. *Coût* : un statut, un texte en trois écritures, et une
+**troisième sorte d'assertion au banc** — la réponse doit être une question et
+ne réciter aucun des deux parcours. *Risque* : on confie au modèle un jugement
+neuf (« cette question est-elle ambiguë ? »), et ce fichier documente ailleurs
+que les jugements confiés au modèle échouent par intermittence. *Perte* : un
+tour de dialogue, y compris pour ceux qui n'étaient pas ambigus.
+
+**C — Trancher sur `is_owner`.** La fonction exige déjà un JWT et pourrait lire
+le profil de l'appelant. *Rejetée* : `is_owner` est un mauvais indicateur — un
+propriétaire est aussi un client, et une visiteuse non connectée n'a pas de
+profil —, et surtout cela continuerait de choisir **en silence**, c'est-à-dire
+le défaut même qu'on répare.
+
+### La décision
+
+**Option A, avec `agenda` comme sixième sujet ET son propre texte.**
+
+**La détection passe par un SECOND SUJET demandé au classifieur**, vide la
+plupart du temps. Quand il est rempli et différent du premier, la phrase se
+construit à partir des deux, en code. Surtout **pas** une liste de formulations
+ambiguës : ce serait un annuaire, et ce projet refuse les annuaires — « on borne
+la FORME, pas l'annuaire ». Avantage du second sujet : aucune liste à tenir à
+jour, et un septième sujet entrerait dans le mécanisme sans le toucher.
+
+**`agenda` prend un texte, pas un refus.** Contrairement aux tarifs (OWN-03), la
+fonctionnalité existe vraiment : `bloquer_date()` refuse déjà une date qui porte
+une demande en attente (FE022), et la feuille de créneau sait rouvrir. Refuser
+serait dire « je ne sais pas » de quelque chose que l'application fait — faux
+dans l'autre sens.
+
+### Les deux conséquences à accepter d'avance
+
+1. **La question 30 change d'attendu.** Sa bonne réponse devient « le parcours
+   client **plus** la phrase qui nomme l'autre lecture ». Le contrôle 7 du banc
+   ne la couvre pas : il vérifie une absence, or il faudra vérifier une
+   **présence**. `docs/questions-reference.md` doit être corrigé dans le même
+   mouvement — le document dit lui-même qu'« un barème faux est pire qu'un
+   barème absent ».
+2. **`agenda` demande son texte en français et en arabe**, avec ses `reperes` et
+   ses `mentions` comme les autres. Et la même discipline que pour
+   `PROCEDURE_PUBLICATION` : **chaque ligne se vérifie dans le code avant d'être
+   écrite**, jamais de mémoire. À vérifier en particulier avant de rédiger — je
+   ne l'ai pas fait — **par où un propriétaire atteint réellement son agenda
+   aujourd'hui**, la barre d'onglets de l'écran 9 n'existant pas encore.
+
+### L'ordre d'exécution
+
+1. `agenda` entre dans `TEXTES_PROCEDURE`, avec son texte fr/ar et ses gardes.
+2. `instructionExtraction()` cesse de ranger « bloquer une date » d'office dans
+   `reservation`, et gagne le second sujet.
+3. La phrase qui nomme les deux lectures, construite en code — jamais par le
+   modèle : §8.5, « il rédige, il n'atteste pas ».
+4. La question 30 est re-spécifiée dans `docs/questions-reference.md`, et le banc
+   apprend à vérifier la présence de cette phrase.
+
+---
+
 ## Les critères que le modèle extrait
 
 Le §8.1 dit que la similarité ne sait pas compter. Chaque fois qu'un nombre est
