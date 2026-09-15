@@ -19,6 +19,10 @@
 -- propriétaire peut s'appeler Karim et tenir une salle à Oran. L'identifiant,
 -- lui, ne se produit pas par hasard.
 --
+-- L'EMPREINTE DU DÉCOR (migration 035) part aussi, et en premier : sans décor,
+-- elle n'a plus d'objet, et le ménage horaire tenterait de restaurer des
+-- réservations vers des salles supprimées.
+--
 -- LES RÉSERVATIONS DE DÉMONSTRATION de 004_demo_bookings.sql partent aussi :
 -- elles portent le préfixe b0000000-, elles se recréent en relançant le
 -- fichier, et leurs avis avec elles.
@@ -35,6 +39,26 @@
 -- =============================================================================
 
 begin;
+
+-- -----------------------------------------------------------------------------
+-- L'empreinte du décor, d'abord
+--
+-- La migration 035 garde une empreinte du décor pour le remettre en place après
+-- le passage d'un visiteur. Après ce fichier, il n'y a plus de décor : une
+-- empreinte qui lui survit ferait tenter au ménage horaire d'insérer des
+-- réservations vers des salles supprimées — une violation de clé étrangère
+-- toutes les heures, dans les journaux, pour rien.
+--
+-- Elle n'a pas de clé étrangère vers venues, donc rien ne l'emporterait toute
+-- seule. C'est exactement pour cela qu'il faut la nommer ici.
+-- -----------------------------------------------------------------------------
+
+do $$
+begin
+  if to_regprocedure('public.vider_le_decor()') is not null then
+    perform public.vider_le_decor();
+  end if;
+end $$;
 
 -- -----------------------------------------------------------------------------
 -- D'abord les réservations de démonstration, et leurs avis

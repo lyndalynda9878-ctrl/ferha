@@ -44,6 +44,8 @@ seulement :
 | 31 | `migrations/031_agent_photo_de_la_salle.sql` | `cover_photo` remonte pour les cartes de l'écran 8 — **redéfinit `salles_pour_agent()`** | 023, 030 |
 | 32 | `migrations/032_synthese_des_avis.sql` | `venue_review_summaries`, `synthese_avis_minimum()`, `avis_pour_synthese()`, `enregistrer_synthese_avis()`, le cron `ferha-synthese-avis` — **redéfinit `avis_de_la_salle()`** | 001, 002, 004, 022, 026 |
 | 33 | `migrations/033_options_dans_mes_reservations.sql` | `option_labels` — les libellés des options retenues, pour que la confirmation d'une demande survive à un rechargement — **redéfinit `client_bookings()`** | 004, 005, 006, 024, 026 |
+| 34 | `migrations/034_gardien_des_empreintes.sql` | `gardien_empreintes`, `reveiller_empreintes()`, la vue `etat_du_gardien`, le cron `ferha-reveil-empreintes` — le service d'empreintes ne s'endort plus | pg_cron, pg_net |
+| 35 | `migrations/035_le_decor_se_remet_en_place.sql` | `decor_bookings`, `decor_reviews`, `decor_blackouts`, `capturer_le_decor()`, `vider_le_decor()`, `menage_du_decor()`, la vue `etat_du_decor`, le cron `ferha-menage-du-decor` — la démonstration se répare entre deux visiteurs | 001, 004, 005, 012, et les seeds 001, 003, 004 |
 
 `002` a besoin des tables de `001`. `003` a besoin de la table `amenities` de
 `001`, mais pas de `002`. Appliquer `002` avant `003` reste le bon ordre : le
@@ -167,6 +169,37 @@ migration 022, portent ce mot :
 | `ferha-purge-cron-history` | tous les jours à 3 h 20 | efface les exécutions de plus de 7 jours dans `cron.job_run_details` |
 | `ferha-synthese-avis` (032) | tous les jours à 3 h 50 | `select public.declencher_synthese_avis();` — réveille l'Edge Function « summarize-reviews » par pg_net |
 | `ferha-reveil-empreintes` (034) | toutes les 5 min | `select public.reveiller_empreintes();` — tient le service d'empreintes éveillé |
+| `ferha-menage-du-decor` (035) | toutes les heures, à la minute 10 | `select public.menage_du_decor();` — efface ce qu'un visiteur a fait sur la démonstration et remet le décor en place |
+
+### La démonstration se répare entre deux visiteurs (035)
+
+Les visiteurs entrent en un tap, comme Amina ou comme Karim. Tout ce qu'ils font
+est donc fait au nom des comptes de démonstration, et reste après eux — y
+compris ce qu'ils DÉFONT : un visiteur entré comme Karim qui refuse une demande
+vide la file d'attente de l'écran 9 sans rien créer. Mesuré le 16 septembre
+2026, avant la migration : 19 réservations de visiteurs, 45 notifications, 4
+dates bloquées de trop, et **plus une seule demande en attente**.
+
+Le ménage distingue le DÉCOR de ce qui est arrivé après, par les préfixes
+d'identifiant déjà posés par les seeds (`b0000000-`, `5a11e000-`, `d0000000-`).
+Il efface les réservations de visiteurs sur les salles de démonstration, puis
+remet le décor tel qu'une empreinte le décrit. Rien n'est touché avant deux
+heures : un visiteur qui teste dix minutes garde ce qu'il vient de faire.
+
+**Sans empreinte, il ne fait rien.** L'empreinte se prend par
+`capturer_le_decor()`, que `seed/004_demo_bookings.sql` appelle en dernière
+instruction — et à ce moment-là seulement, parce que capturer un décor déjà
+abîmé fige le dégât.
+
+```sql
+select * from public.etat_du_decor;   -- ce qui est sale en ce moment
+```
+
+`demandes_en_attente` est la ligne qui compte : le tableau de bord n'a plus rien
+à montrer quand elle tombe à zéro. Deux trous connus et documentés dans
+l'en-tête de la migration — une vraie réservation sur une salle de démonstration
+serait effacée, et une salle publiée par un visiteur échappe à
+`seed/002_reset_demo.sql`. Banc d'essai : `tests/018_le_decor_se_remet_en_place.sql`.
 
 ### Le gardien des empreintes (034), et comment voir qu'il est mort
 

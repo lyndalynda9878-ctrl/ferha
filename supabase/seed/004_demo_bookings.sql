@@ -29,7 +29,12 @@
 -- se reconnaissent à leur identifiant (b0000000-…), comme les salles à
 -- 5a11e000-… et les personnes à d0000000-….
 --
--- Prérequis : migrations 001 à 014, et seed/001_demo_venues.sql.
+-- IL PREND L'EMPREINTE DU DÉCOR en dernière instruction : c'est elle que le
+-- ménage horaire de la migration 035 remet en place après le passage d'un
+-- visiteur. Voir le bloc en bas de fichier.
+--
+-- Prérequis : migrations 001 à 014 — et 035 pour l'empreinte, sans quoi la
+-- dernière instruction ne fait rien — puis seed/001_demo_venues.sql.
 -- =============================================================================
 
 begin;
@@ -298,6 +303,38 @@ values
   ('b0000000-0000-4000-a000-000000000024', '5a11e000-0000-4000-a000-000000000001',
    5, 5, 5, 5, 4,
    'Merci pour tout, la famille a beaucoup apprécié.', '2026-08-24 12:00+01');
+
+-- -----------------------------------------------------------------------------
+-- L'empreinte, prise ici et à aucun autre moment
+--
+-- Le ménage horaire de la migration 035 remet le décor en place après le
+-- passage d'un visiteur. Pour cela il lui faut savoir à quoi il ressemblait, et
+-- le seul instant où la question a une réponse sûre est CELUI-CI : les lignes
+-- viennent d'être écrites, personne n'y a encore touché.
+--
+-- Capturer plus tard, c'est figer le dégât : le ménage remettrait alors
+-- fidèlement en place une file d'attente vide.
+--
+-- Les dates bloquées viennent de seed/001, qui tourne avant : à cet instant,
+-- tout est là. Si la migration 035 n'est pas appliquée, ce bloc ne fait rien et
+-- le dit — ce fichier reste utilisable seul.
+-- -----------------------------------------------------------------------------
+
+do $$
+declare
+  v_r integer; v_a integer; v_d integer;
+begin
+  if to_regprocedure('public.capturer_le_decor()') is null then
+    raise notice 'Migration 035 non appliquée : pas d''empreinte, donc pas de ménage horaire.';
+    return;
+  end if;
+
+  select c.reservations, c.avis, c.dates_bloquees
+    into v_r, v_a, v_d
+  from public.capturer_le_decor() c;
+
+  raise notice 'Empreinte du décor : % réservations, % avis, % dates bloquées.', v_r, v_a, v_d;
+end $$;
 
 commit;
 
