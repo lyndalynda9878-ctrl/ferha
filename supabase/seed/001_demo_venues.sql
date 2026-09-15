@@ -50,13 +50,27 @@ begin;
 -- connecte pas. Pour s'y connecter, passer par l'inscription normale et
 -- basculer is_owner.
 --
--- Rachid n'a pas de téléphone : la colonne est nullable depuis la v2.0, et il
--- faut au moins un cas qui l'exerce.
+-- AUCUN PROFIL DE DÉMONSTRATION NE PORTE DE NUMÉRO, et c'est la règle qui tient
+-- ce bloc. « 0770112233 » avait la forme d'un vrai mobile algérien parce que
+-- c'en est un : 05, 06 et 07 sont tous attribués, et rien ne distingue un
+-- numéro inventé d'un numéro qui sonne chez quelqu'un. Le site est en ligne,
+-- « Appeler » compose ce qu'on lui donne, et personne ne doit décrocher à cause
+-- d'une démonstration.
 --
--- LES NUMÉROS S'ÉCRIVENT EN CHIFFRES SEULS. C'est la règle de 020 : les espaces
--- sont tolérés à la saisie et retirés à l'écriture. Les poser ici sous la forme
--- « 0770 11 22 33 » marcherait — le trigger les nettoierait — mais ce fichier
--- doit montrer ce que la base contient, pas ce qu'un écran accepte.
+-- Les écrans savent s'en passer : « Mes réservations » masque le bloc contact
+-- entier quand le numéro est absent, et l'espace propriétaire écrit « Ce client
+-- n'a pas renseigné de numéro ». Ce qu'on perd, c'est la démonstration du §9 —
+-- le contact révélé après acceptation — et c'est le prix assumé.
+--
+-- LE JOUR OÙ ON VOUDRA LA RÉCUPÉRER, il faudra une plage vérifiée non attribuée
+-- auprès de l'ARPCE, pas un numéro qui « a l'air faux ». Ne repose aucun numéro
+-- ici sans cette vérification : la forme valide est justement ce qui rend un
+-- numéro joignable.
+--
+-- Et si l'on en repose un : EN CHIFFRES SEULS. C'est la règle de 020 — les
+-- espaces sont tolérés à la saisie et retirés à l'écriture. Sous la forme
+-- « 0770 11 22 33 » cela marcherait, le trigger les nettoierait, mais ce
+-- fichier doit montrer ce que la base contient, pas ce qu'un écran accepte.
 -- -----------------------------------------------------------------------------
 
 insert into auth.users (instance_id, id, aud, role, email,
@@ -75,10 +89,10 @@ values
 on conflict (id) do nothing;
 
 insert into public.profiles (id, full_name, email, phone, is_owner) values
-  ('d0000000-0000-4000-a000-000000000001', 'Karim Belhadj',       'karim.belhadj@demo.ferha.dz',     '0770112233', true),
-  ('d0000000-0000-4000-a000-000000000002', 'Yacine Mokrani',      'yacine.mokrani@demo.ferha.dz',    '0661445566', true),
-  ('d0000000-0000-4000-a000-000000000003', 'Nadia Cherifi',       'nadia.cherifi@demo.ferha.dz',     '0555778899', true),
-  ('d0000000-0000-4000-a000-000000000004', 'Rachid Amrani',       'rachid.amrani@demo.ferha.dz',     null,         true)
+  ('d0000000-0000-4000-a000-000000000001', 'Karim Belhadj',       'karim.belhadj@demo.ferha.dz',     null, true),
+  ('d0000000-0000-4000-a000-000000000002', 'Yacine Mokrani',      'yacine.mokrani@demo.ferha.dz',    null, true),
+  ('d0000000-0000-4000-a000-000000000003', 'Nadia Cherifi',       'nadia.cherifi@demo.ferha.dz',     null, true),
+  ('d0000000-0000-4000-a000-000000000004', 'Rachid Amrani',       'rachid.amrani@demo.ferha.dz',     null, true)
 on conflict (id) do update set
   full_name = excluded.full_name,
   email     = excluded.email,

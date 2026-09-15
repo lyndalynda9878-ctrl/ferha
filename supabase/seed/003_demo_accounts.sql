@@ -225,13 +225,18 @@ where u.id in (
 -- même, explicitement : ce fichier doit produire le même résultat qu'on l'ait
 -- lancé avant ou après 007, et Karim, lui, n'est pas inséré mais mis à jour —
 -- aucun déclencheur ne se déclenche pour lui.
+--
+-- PAS DE NUMÉRO, pour la raison écrite en tête de 001 : un mobile algérien bien
+-- formé est un mobile algérien joignable. Ce fichier-ci compte doublement —
+-- c'est lui qui pose les deux seuls comptes où l'on se connecte vraiment, donc
+-- les deux seuls dont le numéro finirait sous un bouton « Appeler ».
 -- -----------------------------------------------------------------------------
 
 insert into public.profiles (id, full_name, email, phone, is_owner, locale) values
   ('d0000000-0000-4000-a000-000000000010', 'Amina Haddad',
-   'amina@demo.ferha.dz', '0770001122', false, 'fr'),
+   'amina@demo.ferha.dz', null, false, 'fr'),
   ('d0000000-0000-4000-a000-000000000001', 'Karim Belhadj',
-   'karim.belhadj@demo.ferha.dz', '0770112233', true, 'fr')
+   'karim.belhadj@demo.ferha.dz', null, true, 'fr')
 on conflict (id) do update set
   full_name = excluded.full_name,
   email     = excluded.email,
