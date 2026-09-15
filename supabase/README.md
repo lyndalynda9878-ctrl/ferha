@@ -166,6 +166,45 @@ migration 022, portent ce mot :
 | `ferha-expire-options` | toutes les 15 min | `select public.expire_options();` |
 | `ferha-purge-cron-history` | tous les jours à 3 h 20 | efface les exécutions de plus de 7 jours dans `cron.job_run_details` |
 | `ferha-synthese-avis` (032) | tous les jours à 3 h 50 | `select public.declencher_synthese_avis();` — réveille l'Edge Function « summarize-reviews » par pg_net |
+| `ferha-reveil-empreintes` (034) | toutes les 5 min | `select public.reveiller_empreintes();` — tient le service d'empreintes éveillé |
+
+### Le gardien des empreintes (034), et comment voir qu'il est mort
+
+Render endort l'offre gratuite. Mesuré au J25 : **62 s** pour le premier appel
+après deux heures de silence, contre **85 à 573 ms** à chaud. Une tâche pg_cron
+frappe donc `/health` toutes les 5 minutes — 288 appels par jour, qui ne se
+paient nulle part, et **aucune dépendance nouvelle** : pg_cron et pg_net étaient
+déjà là.
+
+**`cron.job_run_details` ne suffit pas à surveiller ce gardien.** Il dit que la
+tâche a tourné, jamais que le service a répondu : une tâche qui dépose une
+requête vers une adresse morte est enregistrée « succeeded ». Un voyant vert
+au-dessus d'un service éteint est exactement ce qu'on veut éviter.
+
+C'est pourquoi `public.gardien_empreintes` garde le **code HTTP et le corps
+réels**, relevés de `net._http_response` à la passe suivante — pg_net est
+asynchrone, la réponse n'existe pas encore quand la fonction rend la main. Une
+seule requête à retenir :
+
+```sql
+select * from public.etat_du_gardien;
+```
+
+| ce qu'on lit | ce que ça veut dire |
+|---|---|
+| `derniere_reussite` il y a moins de 10 min | tout va bien |
+| `derniere_reussite` vieille, `derniere_frappe` récente | **le gardien tourne, le service est mort** — c'est le cas qu'aucun voyant vert ne montre |
+| `derniere_frappe` vieille aussi | la tâche pg_cron ne tourne plus : regarder `cron.job` et `cron.job_run_details` |
+| `dernier_corps` vide et `derniere_erreur` remplie | le service répond mais mal — l'erreur vient de pg_net, telle quelle |
+| `echecs_24h` qui monte | à regarder avant une démonstration |
+
+`dernier_corps` doit contenir le modèle chargé :
+`{"etat":"ok","modele":"intfloat/multilingual-e5-small","dimensions":384,"charge":true}`.
+Ce corps ne peut venir que de Render : c'est lui la preuve, pas l'état du job.
+
+L'adresse se lit dans le Vault sous `ferha_embeddings_url`, et à défaut retombe
+sur celle du dépôt — un projet recréé repart donc avec son gardien sans qu'on
+ait rien à poser. `/health` ne demande aucun jeton.
 
 La troisième est la seule à **sortir de la base**, et c'est assumé : elle a
 besoin de parler à un modèle de langage, donc d'une clé d'API, qui n'a rien à
