@@ -47,6 +47,7 @@ seulement :
 | 34 | `migrations/034_gardien_des_empreintes.sql` | `gardien_empreintes`, `reveiller_empreintes()`, la vue `etat_du_gardien`, le cron `ferha-reveil-empreintes` — le service d'empreintes ne s'endort plus | pg_cron, pg_net |
 | 35 | `migrations/035_le_decor_se_remet_en_place.sql` | `decor_bookings`, `decor_reviews`, `decor_blackouts`, `capturer_le_decor()`, `vider_le_decor()`, `menage_du_decor()`, la vue `etat_du_decor`, le cron `ferha-menage-du-decor` — la démonstration se répare entre deux visiteurs | 001, 004, 005, 012, et les seeds 001, 003, 004 |
 | 36 | `migrations/036_les_personnes_du_decor.sql` | `decor_profiles`, `roles_detournes` — l'empreinte tient aussi les personnes ; le rôle se remet sans délai, les saisies attendent — **élargit `capturer_le_decor()`, `vider_le_decor()`, `menage_du_decor()` et `etat_du_decor`** | 001, 018, 035 |
+| 37 | `migrations/037_les_dates_bloquees_manquantes.sql` | les 50 dates bloquées du second bloc de `seed/001`, que la base n'avait jamais reçues — additive, rejouable, et elle reprend l'empreinte APRÈS l'insertion | 001, 035, 036, seed/001 |
 
 `002` a besoin des tables de `001`. `003` a besoin de la table `amenities` de
 `001`, mais pas de `002`. Appliquer `002` avant `003` reste le bon ordre : le
