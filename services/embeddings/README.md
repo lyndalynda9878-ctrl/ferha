@@ -143,9 +143,22 @@ la même chose (arabe, français, franco-arabe) et trois sans rapport — et com
 ```
 
 Sortie obtenue **en local** — un `uvicorn app:app` sur ce poste, joint par le
-réseau en HTTP, avec la commande de démarrage que Render emploiera. Elle n'a
-pas encore tourné contre une instance Render : au J18, rien n'y est déployé.
-Ce qu'elle prouve est donc le modèle et le service, pas l'hébergement.
+réseau en HTTP, avec la commande de démarrage que Render emploiera. Ce qu'elle
+prouve est donc le modèle et le service, pas l'hébergement.
+
+> **Corrigé au J25.** Ce paragraphe disait « au J18, rien n'y est déployé ».
+> Ce n'est plus vrai, et le laisser ferait chercher une instance qui existe :
+>
+> ```
+> GET https://ferha-embeddings.onrender.com/health
+> HTTP 200
+> {"etat":"ok","modele":"intfloat/multilingual-e5-small","dimensions":384,"charge":true}
+> ```
+>
+> `preuve-multilingue.ps1` n'a en revanche toujours pas tourné contre cette
+> instance : elle demande le jeton, et ce document n'en porte aucun. Ce qui est
+> vérifié aujourd'hui, c'est que le service **est en ligne et son modèle
+> chargé** — pas que ses vecteurs valent ceux mesurés en local.
 
 ```
   0,8767   AR   arabe standard   قاعة أفراح في وهران
