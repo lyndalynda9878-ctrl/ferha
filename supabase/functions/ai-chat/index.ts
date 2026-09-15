@@ -136,7 +136,40 @@ const SALLES_PRIX_BAS = 3;
 /// Un rejeu, pas deux. Voir l'en-tête.
 const REJEUX_MAX = 1;
 
-const DELAI_EMPREINTES_MS = 90_000;
+/// LES DEUX DÉLAIS DU SERVICE D'EMPREINTES, ET POURQUOI ILS SONT COURTS.
+///
+/// Ils valaient 90 s chacun, en série. Un visiteur qui ouvrait la démonstration
+/// à froid attendait donc jusqu'à une minute avant d'obtenir quoi que ce soit —
+/// mesuré au J25 : **62 s** pour le premier appel après deux heures de silence.
+/// Le repli existait déjà et il est bon ; c'est le délai avant de l'atteindre
+/// qui était faux.
+///
+/// CE QUE LES MESURES DU J25 DONNENT, et d'où viennent ces valeurs :
+///
+///   /health à chaud          85 à 573 ms sur onze mesures
+///   /embed + SQL à chaud     ~255 ms (écart entre les planchers `ok` et
+///                            `procedure`, sur 270 appels journalisés)
+///   premier appel à froid    ~62 s
+///
+/// 2 s couvre donc plus de trois fois la pire réponse chaude observée, et 3 s
+/// en laisse trente à `/embed`, qui fait un vrai calcul là où `/health` rend un
+/// dictionnaire.
+///
+/// ABANDONNER NE COÛTE PAS LE RÉVEIL, et c'est ce qui rend ces valeurs
+/// tenables. Vérifié au J25 sur une instance froide depuis deux heures : un
+/// appel abandonné au bout de 3,2 s, puis 90 s de silence strict, puis un appel
+/// patient — **HTTP 200 en 900 ms**. Render démarre l'instance dès que la
+/// requête atteint son routeur et poursuit le démarrage même si le client s'en
+/// va. Le premier visiteur paie donc 2 s au lieu de 62, et le suivant trouve un
+/// service chaud.
+///
+/// LE PIRE CAS N'EST PAS TOUJOURS LA SOMME. Si `/health` expire, la requête
+/// lève et l'on part au `catch` : `/embed` n'est jamais tenté. Le cas froid
+/// courant coûte donc **2 s**, et les 5 s ne s'atteignent que si `/health`
+/// répond puis que `/embed` reste muet.
+const DELAI_SANTE_MS = 2_000;
+const DELAI_EMBED_MS = 3_000;
+
 const DELAI_MODELE_MS = 60_000;
 
 /// Les dix codes d'équipement de la base. Le modèle choisit dans cette liste
@@ -1447,6 +1480,13 @@ Deno.serve(async (requete: Request): Promise<Response> => {
     //
     // SI LE SERVICE NE RÉPOND PAS, ON CONTINUE SANS VECTEUR. Le tri exact suffit
     // à répondre ; on perd le classement fin, pas la réponse.
+    //
+    // ET ON N'ATTEND PLUS. Voir DELAI_SANTE_MS : on abandonne au bout de 2 s
+    // plutôt que 90, parce qu'un service froid met une minute et qu'un visiteur
+    // n'attend pas une minute. L'abandon ne coûte pas le réveil — Render démarre
+    // l'instance quand même —, donc la personne suivante retrouve le classement
+    // sémantique. Le banc voit alors l'ordre des salles changer : c'est écrit
+    // dans docs/questions-reference.md, et c'est un résultat, pas un défaut.
     // -------------------------------------------------------------------------
     let vecteur: string | null = null;
     // Le nom du modele d'empreintes, pour ne comparer qu'a des vecteurs de la
@@ -1455,7 +1495,7 @@ Deno.serve(async (requete: Request): Promise<Response> => {
     const aVectoriser = criteres.soft_query || question;
     try {
       const sante = await fetch(`${serviceUrl}/health`, {
-        signal: AbortSignal.timeout(DELAI_EMPREINTES_MS),
+        signal: AbortSignal.timeout(DELAI_SANTE_MS),
       });
       if (!sante.ok) throw new Error(`/health a rendu ${sante.status}`);
       const etat = await sante.json();
@@ -1467,7 +1507,7 @@ Deno.serve(async (requete: Request): Promise<Response> => {
           Authorization: `Bearer ${jetonEmbed}`,
         },
         body: JSON.stringify({ textes: [aVectoriser], nature: "question" }),
-        signal: AbortSignal.timeout(DELAI_EMPREINTES_MS),
+        signal: AbortSignal.timeout(DELAI_EMBED_MS),
       });
       if (!appel.ok) throw new Error(`/embed a rendu ${appel.status}`);
 

@@ -13,6 +13,37 @@ questions 4, 6, 7, 11 et 28 ont été corrigées le J21 dans ce sens : leurs
 défaut qui était celui du barème. Un barème faux est pire qu'un barème absent :
 il fait corriger du code qui avait raison.
 
+## ⚠ L'ORDRE DES SALLES CHANGE QUAND LE SERVICE D'EMPREINTES EST FROID
+
+**C'est un résultat attendu, pas une régression.** Depuis le J25, `ai-chat`
+abandonne le service d'empreintes au bout de quelques secondes au lieu de
+l'attendre jusqu'à 90 s : un visiteur qui ouvre la démonstration à froid reçoit
+une réponse tout de suite, au lieu d'attendre une minute.
+
+Quand cet abandon se produit, `salles_pour_agent` reçoit `p_embedding = null`.
+Ce qui change, et ce qui ne change pas :
+
+| | |
+|---|---|
+| **Inchangé** | le tri EXACT — wilaya, commune, capacité, budget, date, créneau, équipements, type d'événement. Les salles retenues sont **les mêmes**. |
+| **Inchangé** | les salles non publiées ne sortent toujours pas, les prix viennent toujours de la base, les contrôles 1 à 7 s'appliquent tels quels. |
+| **Changé** | l'ORDRE. Le classement retombe sur `rating desc`, puis le nom, au lieu de la proximité sémantique. |
+| **Perdu** | la nuance de `soft_query` : « près de la mer », « moderne », « une belle ambiance ». |
+
+**Comment le reconnaître dans une sortie du banc** : la réponse cite les bonnes
+salles mais pas dans l'ordre attendu, et les questions dont tout le sens tient
+au flou — **18** (« قريبة من البحر ») en premier — sont celles qui en souffrent.
+Si une exécution montre cela, **vérifier l'état du service avant d'accuser
+l'agent** :
+
+```
+curl https://ferha-embeddings.onrender.com/health
+```
+
+Une réponse en quelques centaines de millisecondes veut dire que le service
+était chaud et que le défaut est ailleurs. Une réponse qui met une minute
+explique l'ordre à elle seule.
+
 ---
 
 ## A. En français (1 à 10)

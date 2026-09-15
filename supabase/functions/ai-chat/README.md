@@ -460,6 +460,66 @@ libre d'une salle, le modèle aura de la matière à reformuler — et à débor
 
 ---
 
+## Le service d'empreintes ne fait plus attendre (J25)
+
+Les deux appels au service — `/health` puis `/embed` — avaient chacun **90 s**
+de délai. Un visiteur ouvrant la démonstration à froid attendait donc jusqu'à
+une minute avant d'obtenir quoi que ce soit. Le repli existait déjà et il est
+bon ; c'est le délai avant de l'atteindre qui était faux.
+
+### Ce qui a été mesuré au J25
+
+| | |
+|---|---|
+| `/health` à chaud | **85 à 573 ms** (onze mesures, jusqu'à 2 min de silence) |
+| empreintes + SQL à chaud | **~255 ms** (écart des planchers `ok` 2 442 ms et `procedure` 2 187 ms, sur 270 appels journalisés) |
+| premier appel après ~2 h de silence | **~62 s** |
+| après un démarrage à froid | plusieurs minutes à ~20 s par appel, le temps que l'instance atteigne son régime sur 0,1 vCPU |
+
+### Abandonner ne coûte pas le réveil
+
+C'est ce qui rend des délais courts tenables, et **c'est vérifié, pas supposé**.
+Sur une instance froide depuis deux heures :
+
+```
+21:25:17  appel abandonne a 3 s    ABANDON apres 3242 ms
+21:26:49  appel patient, +90 s     HTTP 200  900 ms
+21:27:19  controle, +30 s          HTTP 200  201 ms
+```
+
+Render démarre l'instance dès que la requête atteint son routeur, et poursuit
+le démarrage même si le client s'en va. Le premier visiteur paie donc le délai
+court ; le suivant trouve un service chaud. *Une seule mesure, et le moment
+exact où l'instance est redevenue disponible n'est pas connu — seulement qu'elle
+l'était à +90 s.*
+
+### Les valeurs, et le pire cas
+
+```
+DELAI_SANTE_MS = 2_000
+DELAI_EMBED_MS = 3_000
+```
+
+2 s couvre plus de trois fois la pire réponse chaude observée ; 3 s en laisse
+trente à `/embed`, qui fait un vrai calcul là où `/health` rend un dictionnaire.
+
+**Le pire cas n'est pas la somme.** Si `/health` expire, la requête lève et l'on
+part au `catch` : `/embed` n'est jamais tenté.
+
+| cas | attente due au service |
+|---|---|
+| service chaud | ~255 ms |
+| **service froid (cas courant)** | **2 s** |
+| `/health` répond mais `/embed` reste muet | 5 s |
+
+Conséquence assumée : quand le service est froid, `salles_pour_agent` reçoit
+`p_embedding = null`, **les salles retenues sont les mêmes** et seul leur ORDRE
+change — `rating desc` au lieu de la proximité sémantique. Le banc le verra.
+C'est écrit dans `docs/questions-reference.md`, et c'est un résultat, pas une
+régression.
+
+---
+
 ## Ce qui manque encore
 
 * **`kb_documents` et le vrai §8.2.** Le parcours de réservation est aujourd'hui
@@ -479,6 +539,7 @@ libre d'une salle, le modèle aura de la matière à reformuler — et à débor
 * **Le mode dégradé en recherche plein texte (§8.4).** Si le service d'empreintes
   ne répond pas, l'agent continue **sans vecteur** : le tri exact suffit, le
   classement fin est perdu. Le repli `tsvector` + `pg_trgm` reste à écrire.
+  Depuis le J25, l'attente avant ce repli est bornée — voir ci-dessous.
 * **La description d'une salle n'est pas dans le contexte.** Le modèle reçoit le
   nom, la commune, la capacité, les équipements, le prix et la note — rien qui
   décrive le lieu. C'est ce qui rend la règle 10 tenable aujourd'hui, et ce qui
