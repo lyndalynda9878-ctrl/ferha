@@ -123,9 +123,38 @@ Les sujets sont maintenant `reservation`, `paiement`, `annulation`,
 texte rédige à partir de ce texte, et la seule façon de ne pas obtenir une
 réponse hors sujet est de ne pas la demander.
 
-`publication` vaut `null` **aujourd'hui, et volontairement** : le texte du
-propriétaire viendra ; d'ici là le refus est exact, puisque l'assistant ne sait
-effectivement pas y répondre.
+Restent à `null` **`annulation` et `autre`** : rien n'est écrit sur l'annulation,
+ni sur l'argent vu du côté du propriétaire.
+
+### Le parcours du propriétaire, et son point 6
+
+`publication` a depuis son texte — `PROCEDURE_PUBLICATION`, et sa version arabe.
+Il décrit ce que l'application fait **aujourd'hui**, chaque ligne vérifiable
+dans le code : brouillon puis envoi en validation (`017`), cinq photos
+(`photos_min()`, `021`), numéro joignable (FE041), et la publication décidée par
+une administration que `venues_guard_status` (`001`) protège.
+
+**Son point 6 est le plus important, et c'est celui qu'on aurait envie de
+retirer** : la saisie des tarifs (OWN-03) n'existe pas, `search_venues()` fait
+une jointure interne sur `venue_pricing`, et une salle validée sans tarif ne
+sort donc d'aucune recherche. Le récapitulatif de l'inscription le dit déjà au
+propriétaire ; l'assistant dit la même chose, parce que deux voix qui divergent
+là-dessus sont pires qu'une seule qui se tait.
+
+### Deux sortes de gardes
+
+`reperes` cherche des **nombres**, qui traversent les deux écritures sans être
+traduits. `mentions` cherche des **mots**, pour les faits qui n'ont pas de
+nombre — et toutes doivent matcher.
+
+| sujet | repères | mentions |
+|---|---|---|
+| `reservation`, `paiement` | `48`, `25`, `72` | moyen de paiement |
+| `publication` | `5`, `20` | validation, tarifs |
+
+⚠ Les motifs arabes évitent toute lettre portant une hamza : `aplatir()`
+normalise en NFD et ne retire que U+0300–U+036F, si bien que « أ » laisse un
+U+0654 planté au milieu du mot. D'où « سعار » plutôt que « أسعار ».
 
 ---
 

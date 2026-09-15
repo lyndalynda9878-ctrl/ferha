@@ -1,4 +1,4 @@
-# Les 34 questions de référence — assistant Ferha
+# Les 37 questions de référence — assistant Ferha
 
 Ces questions servent à juger l'agent au J20. Elles s'appuient sur les
 15 salles de démonstration. Deux salles ne sont **pas** publiées —
@@ -150,6 +150,33 @@ vers personne — ni « appelez la salle », ni « contactez le support ».
 
 ---
 
+## E. Le parcours du propriétaire (35 à 37)
+
+Trois écritures pour un seul sujet, comme les sections A à C le font pour la
+recherche : `sujet_procedure` = `publication`, `statut` = `procedure`.
+
+**CE NE SONT PAS DES QUESTIONS DE REFUS.** Elles ont un texte, et une réponse
+qui refuserait serait un échec — c'est la contrepartie des questions 31 à 34,
+et c'est pour cela que les deux sections se lisent ensemble.
+
+*Attendu*, pour les trois : le parcours du propriétaire, dans l'écriture de la
+question. Doivent y être **5** et **20** (les bornes des photos), le fait que
+**la publication est décidée par une vérification humaine et non par le
+propriétaire**, et — celui qu'on n'adoucit pas — que **la saisie des tarifs
+n'existe pas encore, et qu'une salle validée n'apparaît donc dans aucune
+recherche**. Aucun délai de validation ne doit être promis : il n'en existe pas.
+
+**35.** Je suis propriétaire, comment j'inscris ma salle sur Ferha ?
+*Attendu :* les six points, en français.
+
+**36.** كيفاش نسجل قاعتي في فرحة؟
+*Attendu :* les six points, en arabe. C'est `PROCEDURE_PUBLICATION_AR` qui part si la rédaction perd un repère.
+
+**37.** rani 3andi salle, kifach ndir bach nzidha f Ferha ?
+*Attendu :* les six points, en français simple — la question est en lettres latines, donc la règle 5 s'applique comme pour les questions 21 à 30.
+
+---
+
 ## Ce qu'on juge au J20
 
 1. Les critères sont bien extraits : wilaya, date, créneau, nombre d'invités, budget.
@@ -160,3 +187,7 @@ vers personne — ni « appelez la salle », ni « contactez le support ».
 6. **Quand aucun texte ne couvre la question, l'agent refuse au lieu de réciter
    le parcours de réservation.** Entre une réponse fausse et « je ne sais pas »,
    « je ne sais pas » gagne toujours.
+7. **Quand un texte couvre la question, l'agent répond — et n'adoucit rien.** Le
+   parcours du propriétaire dit que les tarifs n'existent pas encore, et donc
+   qu'une salle validée reste introuvable. Une réponse qui tait ce point est
+   fausse, même si tout le reste est juste.

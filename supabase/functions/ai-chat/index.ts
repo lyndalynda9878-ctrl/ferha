@@ -199,6 +199,51 @@ const PROCEDURE_AR = `كيفاش تحجز في فرحة:
 5. التسبيق يتدفع ببطاقة CIB ولا الذهبية، ولا نقدا في عين المكان.
 6. الحجز يتأكد كي يوصل التسبيق.`;
 
+/// LE PARCOURS DU PROPRIÉTAIRE, EN DUR COMME L'AUTRE.
+///
+/// Il décrit CE QUE L'APPLICATION FAIT AUJOURD'HUI, et rien de ce qu'elle fera.
+/// Chaque ligne se vérifie dans le code : le brouillon et l'envoi en validation
+/// viennent de `creer_salle()` et `envoyer_salle_en_validation()` (017), les
+/// cinq photos de `photos_min()` (021), le numéro joignable du refus FE041 de
+/// la même migration, et la décision d'administration du garde `venues_guard_status`
+/// (001), qu'un SECURITY DEFINER n'endort pas.
+///
+/// LE POINT 6 EST LE PLUS IMPORTANT, ET C'EST CELUI QU'ON AURAIT ENVIE DE
+/// RETIRER. `search_venues()` (010) fait une jointure INTERNE sur
+/// `venue_pricing` : une salle sans ligne de tarif ne sort d'AUCUNE recherche,
+/// même publiée, et `estimate_price()` (005) lève P0002 sur sa fiche. L'écran
+/// de saisie des tarifs (OWN-03) n'existe pas. Un propriétaire à qui l'on
+/// cacherait cela attendrait des demandes qui ne peuvent pas arriver.
+///
+/// C'est déjà ce que dit l'écran de récapitulatif (recapitulatif_salle_screen.dart)
+/// en toutes lettres. Deux voix qui divergeraient là-dessus seraient pires
+/// qu'une seule qui se tait.
+///
+/// CE TEXTE DISPARAÎT LE JOUR OÙ OWN-03 ARRIVE — et ce jour-là, c'est le point 6
+/// qu'on retire, pas les autres.
+const PROCEDURE_PUBLICATION = `Inscrire votre salle sur Ferha :
+1. Vous créez votre salle depuis l'application : identité, localisation, capacité, équipements.
+2. Vous ajoutez vos photos : 5 au minimum, 20 au maximum.
+3. Vous donnez un numéro de téléphone joignable — sans lui, la salle ne part pas.
+4. Vous l'envoyez en validation : elle passe alors « en attente ».
+5. La publication est décidée par une vérification humaine, et non par vous ; aucun délai n'est garanti.
+6. La saisie des tarifs n'existe pas encore dans l'application : tant qu'elle manque, une salle validée n'apparaît dans aucune recherche.`;
+
+/// LE MÊME, EN ARABE. Même raison que PROCEDURE_AR : quand la rédaction perd un
+/// repère, c'est ce texte-ci qui part, et une personne qui écrit en arabe mérite
+/// le repli dans sa langue.
+///
+/// LES MOTS SONT CHOISIS SANS HAMZA PORTÉE — « مراجعة », « تسعير » — et ce n'est
+/// pas un hasard : voir MENTION_TARIFS pour ce que `aplatir()` fait subir aux
+/// lettres décomposables.
+const PROCEDURE_PUBLICATION_AR = `كيفاش تسجل قاعتك في فرحة:
+1. تنشئ قاعتك من التطبيق: الاسم، الموقع، السعة، والتجهيزات.
+2. تزيد الصور: 5 على الأقل، و20 على الأكثر.
+3. تعطي رقم هاتف يخدم — بلاه القاعة ما تتبعثش.
+4. تبعثها للمراجعة: وقتها تولي «في الانتظار».
+5. النشر يقرروه ناس بعد مراجعة، ماشي أنت، وما كاين حتى أجل مضمون.
+6. تسعير القاعة ما زال ما كاينش في التطبيق: ما دام ناقص، القاعة حتى لو تقبلت ما تبانش في حتى بحث.`;
+
 /// LES QUATRE REPÈRES D'UNE RÉPONSE DE PROCÉDURE.
 ///
 /// Le modèle reformulait le parcours et laissait tomber l'option de 72 heures —
@@ -211,6 +256,29 @@ const PROCEDURE_AR = `كيفاش تحجز في فرحة:
 /// réservation est une attestation.
 const REPERES_PROCEDURE = ["48", "25", "72"];
 const MOYEN_DE_PAIEMENT = /cib|edahabia|dahabia|ذهبي|نقد|espece/;
+
+/// LES DEUX MENTIONS DU PARCOURS PROPRIÉTAIRE, ET POURQUOI CE SONT DES MOTS.
+///
+/// Les repères de la réservation sont des NOMBRES, et c'est ce qui les rend
+/// bilingues sans effort : « 72 » s'écrit pareil des deux côtés, et
+/// `chiffresLatins()` ramène « ٧٢ » au même. Les deux faits les plus importants
+/// du parcours propriétaire n'ont pas de nombre — « ce n'est pas vous qui
+/// publiez » et « les tarifs n'existent pas encore » — et ce sont justement les
+/// deux qu'un modèle serviable retire en premier, parce qu'ils sont les seuls
+/// qui déçoivent.
+///
+/// ON LES VÉRIFIE DONC PAR LE MOT, dans les deux écritures. C'est le même geste
+/// que MOYEN_DE_PAIEMENT juste au-dessus, qui fait exactement cela depuis le
+/// J20 — on ne l'avait simplement jamais nommé.
+///
+/// ⚠ AUCUNE LETTRE PORTANT UNE HAMZA DANS CES MOTIFS. `aplatir()` normalise en
+/// NFD puis retire U+0300–U+036F ; « أ » se décompose en « ا » + U+0654, qui
+/// n'est PAS dans cette plage et reste donc planté au milieu du mot. « أسعار »
+/// devient « ا◌ٔسعار » et aucun motif écrit « أسعار » ou « اسعار » ne l'y
+/// retrouve. On vise donc « سعار », qui survit à la décomposition, et l'on
+/// choisit ailleurs des mots sans hamza — « مراجعة », « تسعير ».
+const MENTION_TARIFS = /tarif|prix|سعار|سعر|تسعير/;
+const MENTION_VALIDATION = /validation|verification|مراجعة|تحقق|موافقة/;
 
 /// LES SUJETS DE PROCÉDURE, ET CE QUE CHACUN A — OU N'A PAS — À DIRE.
 ///
@@ -228,19 +296,23 @@ const MOYEN_DE_PAIEMENT = /cib|edahabia|dahabia|ذهبي|نقد|espece/;
 /// en ajoutant un texte, l'autre se découvre par un propriétaire qui a suivi
 /// des étapes qui n'étaient pas les siennes.
 ///
-/// `publication` est volontairement à `null` aujourd'hui. Le texte du
-/// propriétaire viendra ; d'ici là, la question part sur le refus, et c'est
-/// exact : l'assistant ne sait effectivement pas y répondre.
+/// `annulation` et `autre` sont à `null`, et ce n'est pas un oubli : rien n'est
+/// écrit sur l'annulation, ni sur l'argent vu du côté du propriétaire.
 ///
 /// LES REPÈRES SONT ICI, PAS AILLEURS. Ils étaient une liste unique appliquée à
 /// toute réponse de procédure — c'est-à-dire les repères de la réservation
 /// imposés à des sujets qui n'en ont pas. Chaque texte porte désormais les
 /// siens, et un texte qui arrive amène ses repères avec lui.
+///
+/// DEUX SORTES DE GARDES, parce qu'il y a deux sortes de faits à tenir :
+/// `reperes` cherche des NOMBRES, qui traversent les deux écritures sans être
+/// traduits ; `mentions` cherche des MOTS, pour les faits qui n'ont pas de
+/// nombre. Toutes les mentions doivent matcher, pas une seule.
 type TexteDeProcedure = {
   fr: string;
   ar: string;
   reperes: string[];
-  moyenDePaiement: boolean;
+  mentions: RegExp[];
 };
 
 const TEXTES_PROCEDURE: Record<string, TexteDeProcedure | null> = {
@@ -251,7 +323,7 @@ const TEXTES_PROCEDURE: Record<string, TexteDeProcedure | null> = {
     fr: PROCEDURE,
     ar: PROCEDURE_AR,
     reperes: REPERES_PROCEDURE,
-    moyenDePaiement: true,
+    mentions: [MOYEN_DE_PAIEMENT],
   },
   // Le versement de l'acompte PAR LE CLIENT : le même parcours le décrit, aux
   // étapes 3 à 5. L'argent vu du côté du propriétaire n'est pas ici — il n'est
@@ -260,11 +332,29 @@ const TEXTES_PROCEDURE: Record<string, TexteDeProcedure | null> = {
     fr: PROCEDURE,
     ar: PROCEDURE_AR,
     reperes: REPERES_PROCEDURE,
-    moyenDePaiement: true,
+    mentions: [MOYEN_DE_PAIEMENT],
   },
-  // Aucun texte n'existe pour ces trois-là. Ils refusent.
+  // LES DEUX BORNES DES PHOTOS, ET LES DEUX FAITS QUI DÉÇOIVENT.
+  //
+  // « 5 » et « 20 » sont les seuls nombres du parcours propriétaire. Pris
+  // séparément ils vaudraient peu — `includes("5")` est presque gratuit —, mais
+  // ensemble ils tiennent l'étape 2, la seule qu'un propriétaire puisse rater
+  // en silence : sous cinq photos, `envoyer_salle_en_validation()` refuse en
+  // FE041, et il ne le découvrirait qu'au moment d'envoyer.
+  //
+  // LE RESTE SE GARDE PAR LES MOTS. Les étapes 5 et 6 n'ont aucun nombre, et ce
+  // sont les deux qu'il ne faut surtout pas perdre. Les étapes 1, 3 et 4 ne
+  // sont gardées par rien, et c'est assumé : les oublier fait perdre du temps
+  // au propriétaire, pas une salle — l'application les redemandera. Oublier la
+  // 5 ou la 6 le laisse attendre des demandes qui ne peuvent pas arriver.
+  publication: {
+    fr: PROCEDURE_PUBLICATION,
+    ar: PROCEDURE_PUBLICATION_AR,
+    reperes: ["5", "20"],
+    mentions: [MENTION_VALIDATION, MENTION_TARIFS],
+  },
+  // Aucun texte n'existe pour ces deux-là. Ils refusent.
   annulation: null,
-  publication: null,
   autre: null,
 };
 
@@ -540,8 +630,9 @@ function chiffresLatins(texte: string): string {
 function procedureComplete(texte: string, attendu: TexteDeProcedure): boolean {
   if (!texte) return false;
   const avecChiffres = chiffresLatins(texte);
+  const plat = aplatir(avecChiffres);
   return attendu.reperes.every((r) => avecChiffres.includes(r)) &&
-    (!attendu.moyenDePaiement || MOYEN_DE_PAIEMENT.test(aplatir(avecChiffres)));
+    attendu.mentions.every((motif) => motif.test(plat));
 }
 
 /// Echappe ce qui a un sens dans une expression reguliere.

@@ -1,7 +1,7 @@
 # =============================================================================
-# Ferha - les 34 questions de reference contre l'agent deploye (J20)
+# Ferha - les 37 questions de reference contre l'agent deploye (J20)
 #
-#   .\agent_30_questions.ps1              les 34 questions
+#   .\agent_30_questions.ps1              les 37 questions
 #   .\agent_30_questions.ps1 -seulement 11,12,13
 #   .\agent_30_questions.ps1 -detail      montre aussi la reponse redigee
 #
@@ -73,7 +73,11 @@
 #      Les questions 31 a 34 n'ont AUCUN texte de procedure qui les couvre. La
 #      bonne reponse est un aveu d'ignorance, et on verifie donc l'INVERSE : ni
 #      48, ni 25, ni 72, ni un moyen de paiement, ni le mot acompte. Pour les
-#      trente autres, ce controle ne s'applique pas et vaut vrai.
+#      trente-trois autres, ce controle ne s'applique pas et vaut vrai.
+#
+#      LES QUESTIONS 35 A 37 N'EN SONT PAS. Elles portent sur la publication
+#      d'une salle, qui a son texte depuis le J22 : elles attendent une REPONSE,
+#      et un refus y serait un echec. Ne les ajoutez jamais a QuestionsDeRefus.
 #
 # CE FICHIER EST EN ASCII PUR. Les questions arabes sont lues depuis le document
 # de reference en UTF-8, jamais ecrites ici : un .ps1 accentue lu dans le mauvais
@@ -111,7 +115,7 @@ $chemin = if ([IO.Path]::IsPathRooted($questions)) { $questions }
           else { Join-Path $PSScriptRoot $questions }
 if (-not (Test-Path $chemin)) { throw "Document de reference introuvable : $chemin" }
 
-# --- les 34 questions, lues telles quelles ----------------------------------
+# --- les 37 questions, lues telles quelles ----------------------------------
 $doc = Get-Content $chemin -Raw -Encoding UTF8
 # UNE TABLE DE HACHAGE ORDINAIRE, ET SURTOUT PAS [ordered]@{} : un dictionnaire
 # ordonne indexe par un ENTIER fait de l'acces PAR POSITION, pas par cle.
@@ -120,7 +124,7 @@ $liste = @{}
 foreach ($m in [regex]::Matches($doc, '(?m)^\*\*(\d+)\.\*\*\s+(.+?)\s*$')) {
   $liste[[int]$m.Groups[1].Value] = $m.Groups[2].Value
 }
-if ($liste.Count -ne 34) { throw "$($liste.Count) questions lues, 34 attendues." }
+if ($liste.Count -ne 37) { throw "$($liste.Count) questions lues, 37 attendues." }
 
 # LES QUESTIONS DONT LA BONNE REPONSE EST UN REFUS. Voir le controle 7 en tete,
 # et la section D du document de reference. La liste est ecrite ici plutot que

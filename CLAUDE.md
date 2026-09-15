@@ -99,6 +99,24 @@ droit de la lire. En cas de doute, la réponse est non : la colonne reste dans
 la table, derrière sa politique. Ne remplace pas non plus ce filtrage par
 security_invoker = true — la vue se viderait.
 
+## Déployer une Edge Function
+Le serveur MCP de Supabase ne doit JAMAIS servir à déployer une Edge
+Function. Il ne prend pas un chemin de fichier : il fait retaper le
+fichier entier dans une charge JSON, et les antislashs n'y survivent
+pas. Le 15 septembre 2026, ça a cassé `ai-chat` en ligne trois fois de
+suite — une fois en changeant `̀` en caractère littéral, deux fois
+en doublant tous les antislashs, ce qui a tué `/^\d{2}$/` et
+`/^\d{4}-\d{2}-\d{2}$/` : plus aucune wilaya ni aucune date reconnue.
+
+Le seul chemin est la CLI, qui lit le fichier sur le disque :
+
+    npx supabase functions deploy ai-chat --project-ref <ref>
+
+Elle demande `SUPABASE_ACCESS_TOKEN` dans l'environnement. Les autres
+outils MCP de Supabase — lire le schéma, interroger, migrer, consulter
+les journaux — restent parfaitement utilisables : c'est le déploiement,
+et lui seul, qui passe par la CLI.
+
 ## Avant de me rendre la main
 Utilise la skill « verification ». Systématiquement, après toute
 modification.
