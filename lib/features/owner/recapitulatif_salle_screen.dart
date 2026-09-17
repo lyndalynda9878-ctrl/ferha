@@ -340,13 +340,15 @@ class _Contenu extends StatelessWidget {
           // Depuis la migration 038, un compte de démonstration ne peut pas
           // garder de numéro : le champ ci-dessus le réclame et la base le
           // jette. Ici la ligne juste au-dessus PROMET en plus un appel de
-          // l'équipe Ferha — promesse qui devient fausse sans numéro. D'où une
-          // chaîne propre à cet écran, qui annule les deux.
+          // l'équipe Ferha — promesse qui devient fausse sans numéro. Cette
+          // phrase annule les deux, et c'est pour cela qu'elle ne réutilise
+          // pas celle de l'écran 5 : là-bas il n'y avait rien à annuler.
           //
-          // Cet écran n'est pas traduit (l'espace propriétaire est resté en
-          // français, voir test/ecrans_non_traduits_en_arabe_test.dart) : cette
-          // ligne-ci l'est quand même, parce qu'elle est la seule du lot à
-          // porter une conséquence pour la personne qui lit.
+          // EN DUR, COMME SES VOISINES. L'espace propriétaire n'est pas
+          // traduit (voir test/ecrans_non_traduits_en_arabe_test.dart), et une
+          // seule phrase arabe au milieu de vingt phrases françaises serait le
+          // demi-état que ce choix-là refuse. Elle rejoindra `app_ar.arb` le
+          // jour où cet écran sera traduit, avec toutes les autres.
           if (compteDeDemonstration) ...<Widget>[
             const SizedBox(height: 6),
             Row(
@@ -356,7 +358,8 @@ class _Contenu extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    AppLocalizations.of(context).publierTelephoneCompteDemo,
+                    'Ce compte est une démonstration partagée : le numéro '
+                    'saisi n’est pas conservé, et personne ne vous appellera.',
                     style: text.bodySmall?.copyWith(color: colors.inkTertiary),
                   ),
                 ),

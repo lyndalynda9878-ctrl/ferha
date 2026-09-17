@@ -5,10 +5,9 @@
 > vide parce que chaque ligne convient telle quelle, et non parce qu’elle n’a
 > pas été regardée.
 >
-> **DEUX CLÉS ATTENDENT, ELLES, LEUR RELECTURE** — les 53ᵉ et 54ᵉ, ajoutées le
-> 17 septembre 2026, hors des écrans d’authentification. Elles sont en toute
-> dernière section, à part, pour que la validation ci-dessus ne les couvre pas
-> par erreur.
+> **UNE 53ᵉ CLÉ ATTEND, ELLE, SA RELECTURE** — ajoutée le 17 septembre 2026,
+> hors des écrans d’authentification. Elle est en toute dernière section, à
+> part, pour que la validation ci-dessus ne la couvre pas par erreur.
 
 **52 clés**, ajoutées après le J22 pour les trois écrans d’authentification :
 connexion, inscription, profil, et les messages d’erreur qu’ils montrent.
@@ -144,7 +143,7 @@ Ils sont choisis d'après le CODE que renvoie GoTrue, jamais d'après son texte 
 
 ---
 
-## À RELIRE — le téléphone des comptes de démonstration, 2 clés (17 septembre 2026)
+## À RELIRE — le téléphone des comptes de démonstration, 1 clé (17 septembre 2026)
 
 > **CETTE SECTION N’A PAS ÉTÉ RELUE.** Elle est postérieure aux 52 clés
 > ci-dessus et ne relève pas des écrans d’authentification.
@@ -171,18 +170,25 @@ Deux points à regarder en particulier :
 | clé | écran | français | arabe proposé | correction |
 |---|---|---|---|---|
 | `demandeTelephoneCompteDemo` | demande (écran 5) | Ce compte est une démonstration partagée : le numéro saisi n’est pas conservé. | هذا الحساب تجريبي ومشترك: الرقم الذي تُدخله لا يُحفَظ. | |
-| `publierTelephoneCompteDemo` | publication d’une salle | Ce compte est une démonstration partagée : le numéro saisi n’est pas conservé, et personne ne vous appellera. | هذا الحساب تجريبي ومشترك: الرقم الذي تُدخله لا يُحفَظ، ولن يتّصل بك أحد. | |
 
-**Pourquoi deux phrases et non une.** Sur l’écran 5, il n’y avait rien à
-annuler. Sur le récapitulatif de publication, la ligne juste au-dessus promet
-que *« l’équipe Ferha vous appelle pour vérifier votre salle »* — promesse qui
-devient fausse sans numéro. La demi-phrase en plus, **ولن يتّصل بك أحد**
-(« et personne ne vous appellera »), annule cette promesse-là.
+### Une phrase sœur qui n’est PAS ici, et pourquoi
 
-**Un mot sur l’écran de publication.** Il n’est pas traduit : l’espace
-propriétaire est resté en français (voir
-`test/ecrans_non_traduits_en_arabe_test.dart`). Cette ligne-ci l’est quand
-même, et c’est délibéré — elle est la seule du lot à porter une conséquence
-pour la personne qui lit. En arabe, elle s’affichera donc au milieu de phrases
-françaises. Si vous préférez la laisser en dur comme ses voisines, dites-le :
-c’est une ligne à retirer de `app_ar.arb`.
+Le récapitulatif de publication d’une salle porte le même aveu, dans une
+version plus longue :
+
+> Ce compte est une démonstration partagée : le numéro saisi n’est pas
+> conservé, **et personne ne vous appellera.**
+
+La demi-phrase en plus existe parce que, sur cet écran-là, la ligne juste
+au-dessus promet que *« l’équipe Ferha vous appelle pour vérifier votre
+salle »* — promesse qui devient fausse sans numéro. Sur l’écran 5, il n’y
+avait rien à annuler.
+
+**Elle est écrite en dur dans le Dart, et n’a donc pas de clé ni de
+traduction.** L’espace propriétaire est resté en français (voir
+`test/ecrans_non_traduits_en_arabe_test.dart` : *« les traduire à moitié serait
+pire que pas du tout »*), et une seule phrase arabe au milieu de vingt phrases
+françaises aurait été exactement ce demi-état. Elle rejoindra `app_ar.arb` le
+jour où cet écran sera traduit, avec toutes ses voisines — c’est à ce
+moment-là qu’il faudra la relire, et c’est pour cela qu’elle est recopiée
+ici.
