@@ -172,6 +172,7 @@
   "telephoneMalForme": "هذا الرقم ليس بالشكل الصحيح. أمثلة: 0770 11 22 33، أو 041 23 45 67 للثابت.",
   "demandeTelephoneQuiLeVoit": "لا يراه صاحب القاعة إلا بعد قبول طلبك.",
   "demandeTelephoneCompteDemo": "هذا الحساب تجريبي ومشترك: الرقم الذي تُدخله لا يُحفَظ.",
+  "publierTelephoneCompteDemo": "هذا الحساب تجريبي ومشترك: الرقم الذي تُدخله لا يُحفَظ، ولن يتّصل بك أحد.",
   "demandeEnvoyer": "إرسال الطلب",
   "demandeAucunPaiement": "لا دفع في هذه المرحلة. يردّ صاحب القاعة خلال 48 ساعة.",
   "demandeDevisImpossible": "تعذّر حساب التقدير",

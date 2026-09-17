@@ -140,6 +140,20 @@ premier. Les seeds posaient bien `phone = null` et le §9 fonctionnait — rien
 n'était cassé, et c'est justement pourquoi le correctif est descendu dans la
 base plutôt que dans l'écran qui se trouvait être la porte du jour.
 
+**`full_name` et `email` gardent, eux, la fenêtre que `phone` avait — décidé le
+17 septembre 2026.** Ils ne sont pas empêchés, ils sont écrasés : le ménage du
+décor les remet au bout de deux heures, donc jusqu'à trois heures peuvent passer
+avant qu'un barbouillage ne disparaisse. Ce choix tient à trois choses — aucun
+écran ne les écrit, il faut appeler l'API délibérément pour y toucher, et ce
+qu'on y met est un dégât d'affichage, pas une coordonnée par laquelle on joint
+quelqu'un. Ce n'est pas le même risque que le téléphone, et il ne justifiait pas
+une seconde branche à tenir.
+
+**La condition qui retourne cette décision est écrite d'avance** : le jour où
+l'adresse du site est diffusée — un lien sur un CV, un article, un réseau — ces
+deux champs méritent le même déclencheur que `phone`. Le calcul change avec le
+nombre de gens qui passent, pas avec le code.
+
 **Pas de SMS : la connexion se fait par adresse électronique et mot de passe.**
 Et la messagerie intégrée de Supabase, en offre gratuite, n'envoie que quelques
 messages par heure : une inscription normale peut donc ne jamais recevoir sa

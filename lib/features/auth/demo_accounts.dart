@@ -32,14 +32,20 @@ const CompteDemo compteKarim = (
 /// Le préfixe d'identifiant des comptes de démonstration.
 ///
 /// C'EST LA CONVENTION DU DÉCOR, PAS UNE INVENTION D'ICI : `d0000000-…` pour
-/// une personne de démonstration, posée par `seed/003_demo_accounts.sql` et
-/// reprise telle quelle par le ménage du décor (035, 036) et par le
-/// déclencheur qui interdit le téléphone (038).
+/// une personne de démonstration, posée par
+/// `supabase/seed/003_demo_accounts.sql` et reprise telle quelle par le ménage
+/// du décor (`supabase/migrations/035_le_decor_se_remet_en_place.sql` et
+/// `036_les_personnes_du_decor.sql`) et par le déclencheur qui interdit le
+/// téléphone :
+///
+///     supabase/migrations/038_pas_de_telephone_en_demonstration.sql
+///       profiles_pas_de_telephone_en_demonstration()
 ///
 /// LES DEUX EXEMPLAIRES DOIVENT S'ACCORDER. Celui-ci décide de ce que l'écran
 /// DIT ; celui de la base décide de ce qui se PASSE. Si l'un changeait sans
 /// l'autre, l'écran promettrait une chose et la base en ferait une autre —
-/// c'est exactement le mensonge que 038 répare.
+/// c'est exactement le mensonge que 038 répare. Le commentaire symétrique se
+/// trouve dans l'en-tête de cette migration.
 const String prefixeCompteDemonstration = 'd0000000-';
 
 /// Vrai si [idUtilisateur] est l'un des comptes de démonstration partagés.

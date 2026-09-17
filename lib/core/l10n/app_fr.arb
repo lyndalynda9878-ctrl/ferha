@@ -565,6 +565,10 @@
   "@demandeTelephoneCompteDemo": {
     "description": "UNIQUEMENT sur les comptes de demonstration. Le champ exige un vrai numero et la base le jette (migration 038) : le dire est une question d'honnetete, pas de confort. Un vrai client ne voit jamais cette ligne — chez lui le numero sert."
   },
+  "publierTelephoneCompteDemo": "Ce compte est une démonstration partagée : le numéro saisi n’est pas conservé, et personne ne vous appellera.",
+  "@publierTelephoneCompteDemo": {
+    "description": "La meme regle que demandeTelephoneCompteDemo, mais sur l'ecran de publication d'une salle. UNE SECONDE CHAINE ET NON LA PREMIERE : ici la phrase juste au-dessus promet que l'equipe Ferha appelle pour verifier la salle, et cette promesse devient fausse sans numero. La demi-phrase en plus annule la promesse ; sur l'ecran 5 il n'y avait rien a annuler."
+  },
   "demandeEnvoyer": "Envoyer la demande",
   "@demandeEnvoyer": { "description": "Le bouton d'envoi." },
   "demandeAucunPaiement": "Aucun paiement à cette étape. Le propriétaire répond sous 48 h.",

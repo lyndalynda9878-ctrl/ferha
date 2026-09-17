@@ -60,6 +60,19 @@
 -- est recopiée et non encapsulée dans une fonction, pour que ce fichier et le
 -- ménage disent LE MÊME texte : deux définitions divergeraient un jour.
 --
+-- IL EXISTE UN TROISIÈME EXEMPLAIRE, ET IL EST EN DART :
+--
+--     lib/features/auth/demo_accounts.dart
+--       const String prefixeCompteDemonstration = 'd0000000-';
+--       bool estCompteDeDemonstration(String? idUtilisateur)
+--
+-- Il ne protège rien — la protection, c'est le déclencheur ci-dessous. Il sert
+-- à DIRE à la personne que son numéro ne sera pas gardé, sur l'écran de demande
+-- (écran 5) et sur le récapitulatif de publication d'une salle. Si le préfixe
+-- change ici sans changer là-bas, l'application promettra une chose et la base
+-- en fera une autre : c'est exactement le mensonge que ce fichier répare.
+-- Le commentaire symétrique se trouve dans demo_accounts.dart.
+--
 -- L'ORDRE DES DÉCLENCHEURS. PostgreSQL les appelle par ordre alphabétique, à
 -- timing égal. Sur `profiles`, cela donne :
 --

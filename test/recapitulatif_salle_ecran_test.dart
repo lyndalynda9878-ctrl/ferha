@@ -36,6 +36,7 @@ void main() {
   Future<DepotDeTest> ouvre(
     WidgetTester tester, {
     String? telephoneDuProfil,
+    String? idDuProfil,
     StatutSalle statut = StatutSalle.brouillon,
     ThemeData? theme,
   }) async {
@@ -75,9 +76,12 @@ void main() {
           ),
           ownerRepositoryProvider.overrideWithValue(depot),
           profilProvider.overrideWith(
-            (ref) async => telephoneDuProfil == null
+            (ref) async => telephoneDuProfil == null && idDuProfil == null
                 ? null
-                : <String, dynamic>{'phone': telephoneDuProfil},
+                : <String, dynamic>{
+                    'phone': telephoneDuProfil,
+                    'id': idDuProfil,
+                  },
           ),
         ],
         child: MaterialApp.router(
@@ -213,6 +217,40 @@ void main() {
       expect(find.text('Envoyer pour validation'), findsNothing);
       expect(champTelephone(), findsNothing);
       expect(find.text('Mes salles'), findsOneWidget);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Le numéro jeté, et dit — le pendant de l'écran 5
+  //
+  // Cet écran réclame « un propriétaire joignable », et depuis la migration 038
+  // un compte de démonstration ne peut plus garder de numéro. Il promet en plus
+  // un appel de l'équipe Ferha : sans numéro, cette promesse est fausse. La
+  // mention annule les deux.
+  // ---------------------------------------------------------------------------
+  group('la ligne « ce compte est une démonstration »', () {
+    const phrase =
+        'Ce compte est une démonstration partagée : '
+        'le numéro saisi n’est pas conservé, et personne ne vous appellera.';
+
+    testWidgets('s’affiche sur un compte de démonstration', (tester) async {
+      // Karim, le propriétaire de démonstration de seed/003.
+      await ouvre(tester, idDuProfil: 'd0000000-0000-4000-a000-000000000001');
+
+      expect(find.text(phrase), findsOneWidget);
+    });
+
+    testWidgets('ne s’affiche pas sur un compte normal', (tester) async {
+      await ouvre(tester, idDuProfil: '7e000000-0000-4000-a000-000000000029');
+
+      expect(find.text(phrase), findsNothing);
+
+      // Et la promesse d'appel, elle, reste : chez un vrai propriétaire le
+      // numéro est conservé et l'équipe rappelle vraiment.
+      expect(
+        find.textContaining('L’équipe Ferha vous appelle'),
+        findsOneWidget,
+      );
     });
   });
 

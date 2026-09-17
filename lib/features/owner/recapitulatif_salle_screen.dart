@@ -8,6 +8,7 @@ import '../../core/theme/ferha_colors.dart';
 import '../../core/theme/ferha_radii.dart';
 import '../../core/validation/telephone.dart';
 import '../auth/auth_providers.dart';
+import '../auth/demo_accounts.dart';
 import '../search/widgets/etats.dart';
 import 'owner_messages.dart';
 import 'owner_providers.dart';
@@ -156,6 +157,9 @@ class _RecapitulatifSalleScreenState
         AsyncData() => _Contenu(
           salle: salle!,
           telephone: _telephone,
+          compteDeDemonstration: estCompteDeDemonstration(
+            ref.watch(profilProvider).value?['id'] as String?,
+          ),
           manqueTelephone: TelephoneAlgerien.ceQuiManque(
             AppLocalizations.of(context),
             _telephone.text,
@@ -180,6 +184,7 @@ class _Contenu extends StatelessWidget {
   const _Contenu({
     required this.salle,
     required this.telephone,
+    required this.compteDeDemonstration,
     required this.manqueTelephone,
     required this.onTelephoneChange,
     required this.enCours,
@@ -189,6 +194,10 @@ class _Contenu extends StatelessWidget {
 
   final SalleDuProprietaire salle;
   final TextEditingController telephone;
+
+  /// Vrai sur les comptes de démonstration partagés, où la base refuse de
+  /// garder le numéro (migration 038).
+  final bool compteDeDemonstration;
 
   /// Ce qui manque au numéro, ou `null` s'il va bien.
   final String? manqueTelephone;
@@ -326,6 +335,34 @@ class _Contenu extends StatelessWidget {
             'clients ne le voient qu’après avoir accepté une réservation.',
             style: text.bodySmall?.copyWith(color: colors.inkTertiary),
           ),
+
+          // LE MÊME AVEU QUE SUR L'ÉCRAN 5, ET UNE PHRASE DE PLUS À ANNULER.
+          // Depuis la migration 038, un compte de démonstration ne peut pas
+          // garder de numéro : le champ ci-dessus le réclame et la base le
+          // jette. Ici la ligne juste au-dessus PROMET en plus un appel de
+          // l'équipe Ferha — promesse qui devient fausse sans numéro. D'où une
+          // chaîne propre à cet écran, qui annule les deux.
+          //
+          // Cet écran n'est pas traduit (l'espace propriétaire est resté en
+          // français, voir test/ecrans_non_traduits_en_arabe_test.dart) : cette
+          // ligne-ci l'est quand même, parce qu'elle est la seule du lot à
+          // porter une conséquence pour la personne qui lit.
+          if (compteDeDemonstration) ...<Widget>[
+            const SizedBox(height: 6),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Icon(Icons.info_outline, size: 16, color: colors.inkTertiary),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    AppLocalizations.of(context).publierTelephoneCompteDemo,
+                    style: text.bodySmall?.copyWith(color: colors.inkTertiary),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
 
         if (erreur != null) ...<Widget>[

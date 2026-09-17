@@ -5,9 +5,10 @@
 > vide parce que chaque ligne convient telle quelle, et non parce qu’elle n’a
 > pas été regardée.
 >
-> **UNE 53ᵉ CLÉ ATTEND, ELLE, SA RELECTURE** — ajoutée le 17 septembre 2026,
-> hors des écrans d’authentification. Elle est en toute dernière section, à
-> part, pour que la validation ci-dessus ne la couvre pas par erreur.
+> **DEUX CLÉS ATTENDENT, ELLES, LEUR RELECTURE** — les 53ᵉ et 54ᵉ, ajoutées le
+> 17 septembre 2026, hors des écrans d’authentification. Elles sont en toute
+> dernière section, à part, pour que la validation ci-dessus ne les couvre pas
+> par erreur.
 
 **52 clés**, ajoutées après le J22 pour les trois écrans d’authentification :
 connexion, inscription, profil, et les messages d’erreur qu’ils montrent.
@@ -143,7 +144,7 @@ Ils sont choisis d'après le CODE que renvoie GoTrue, jamais d'après son texte 
 
 ---
 
-## À RELIRE — l’écran de demande, 1 clé (17 septembre 2026)
+## À RELIRE — le téléphone des comptes de démonstration, 2 clés (17 septembre 2026)
 
 > **CETTE SECTION N’A PAS ÉTÉ RELUE.** Elle est postérieure aux 52 clés
 > ci-dessus et ne relève pas des écrans d’authentification.
@@ -167,6 +168,21 @@ Deux points à regarder en particulier :
 * **لا يُحفَظ** (« n’est pas conservé ») est au passif et au présent : la
   phrase décrit ce que fait la base, pas une promesse de l’équipe.
 
-| clé | français | arabe proposé | correction |
-|---|---|---|---|
-| `demandeTelephoneCompteDemo` | Ce compte est une démonstration partagée : le numéro saisi n’est pas conservé. | هذا الحساب تجريبي ومشترك: الرقم الذي تُدخله لا يُحفَظ. | |
+| clé | écran | français | arabe proposé | correction |
+|---|---|---|---|---|
+| `demandeTelephoneCompteDemo` | demande (écran 5) | Ce compte est une démonstration partagée : le numéro saisi n’est pas conservé. | هذا الحساب تجريبي ومشترك: الرقم الذي تُدخله لا يُحفَظ. | |
+| `publierTelephoneCompteDemo` | publication d’une salle | Ce compte est une démonstration partagée : le numéro saisi n’est pas conservé, et personne ne vous appellera. | هذا الحساب تجريبي ومشترك: الرقم الذي تُدخله لا يُحفَظ، ولن يتّصل بك أحد. | |
+
+**Pourquoi deux phrases et non une.** Sur l’écran 5, il n’y avait rien à
+annuler. Sur le récapitulatif de publication, la ligne juste au-dessus promet
+que *« l’équipe Ferha vous appelle pour vérifier votre salle »* — promesse qui
+devient fausse sans numéro. La demi-phrase en plus, **ولن يتّصل بك أحد**
+(« et personne ne vous appellera »), annule cette promesse-là.
+
+**Un mot sur l’écran de publication.** Il n’est pas traduit : l’espace
+propriétaire est resté en français (voir
+`test/ecrans_non_traduits_en_arabe_test.dart`). Cette ligne-ci l’est quand
+même, et c’est délibéré — elle est la seule du lot à porter une conséquence
+pour la personne qui lit. En arabe, elle s’affichera donc au milieu de phrases
+françaises. Si vous préférez la laisser en dur comme ses voisines, dites-le :
+c’est une ligne à retirer de `app_ar.arb`.
