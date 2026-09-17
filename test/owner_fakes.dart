@@ -32,7 +32,7 @@ import 'package:ferha/features/search/search_filters.dart';
 /// l'application sur le même téléphone.
 class PreferencesEnMemoire implements PreferencesAffichage {
   /// Crée des préférences, éventuellement déjà remplies.
-  PreferencesEnMemoire([this._salle]);
+  PreferencesEnMemoire([this._salle, this._modeTheme]);
 
   String? _salle;
 
@@ -49,6 +49,15 @@ class PreferencesEnMemoire implements PreferencesAffichage {
   Future<void> retenirLangue(String codeLangue) async => _langue = codeLangue;
 
   String? _langue;
+
+  @override
+  Future<String?> modeTheme() async => _modeTheme;
+
+  @override
+  Future<void> retenirModeTheme(String nomDuMode) async =>
+      _modeTheme = nomDuMode;
+
+  String? _modeTheme;
 
   @override
   Future<String?> salleChoisie() async => _salle;

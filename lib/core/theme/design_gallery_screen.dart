@@ -5,6 +5,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../l10n/locale_controller.dart';
 import 'ferha_colors.dart';
 import 'ferha_radii.dart';
+import '../widgets/bouton_theme.dart';
 
 /// Galerie de contrôle de l'identité visuelle — route cachée `/_design`.
 ///
@@ -23,6 +24,11 @@ class DesignGalleryScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text(l10n.designGalleryTitle),
         actions: <Widget>[
+          // ICI PLUS QU'AILLEURS : c'est l'écran où l'on vient vérifier que le
+          // clair et le sombre tiennent la route, et jusqu'ici il fallait aller
+          // changer le réglage du système pour voir la moitié de ce qu'il
+          // montre.
+          const BoutonTheme(),
           Padding(
             padding: const EdgeInsetsDirectional.only(end: 8),
             child: TextButton.icon(

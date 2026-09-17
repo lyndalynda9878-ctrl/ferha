@@ -4,13 +4,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// Ce que l'appareil retient d'une ouverture à l'autre.
 ///
 /// N'Y METTRE QUE DES PRÉFÉRENCES D'AFFICHAGE — la salle choisie dans l'espace
-/// propriétaire, la langue. C'est une règle du projet, elle est écrite dans
-/// CLAUDE.md, et elle tient à ce qu'est ce stockage : un fichier en clair sur
-/// l'appareil, `localStorage` sur le web, que n'importe quelle extension de
-/// navigateur peut lire. Aucune donnée métier, aucun jeton, aucun identifiant
-/// sensible n'y entre. Un numéro de téléphone rangé ici échapperait à la règle
-/// du §9, qui ne le révèle qu'après acceptation ; un prix rangé ici deviendrait
-/// une seconde source à côté d'`estimate_price()`.
+/// propriétaire, la langue, le thème clair ou sombre. C'est une règle du
+/// projet, elle est écrite dans CLAUDE.md, et elle tient à ce qu'est ce
+/// stockage : un fichier en clair sur l'appareil, `localStorage` sur le web,
+/// que n'importe quelle extension de navigateur peut lire. Aucune donnée
+/// métier, aucun jeton, aucun identifiant sensible n'y entre. Un numéro de
+/// téléphone rangé ici échapperait à la règle du §9, qui ne le révèle qu'après
+/// acceptation ; un prix rangé ici deviendrait une seconde source à côté
+/// d'`estimate_price()`.
 ///
 /// La session, elle, n'est pas notre affaire : `supabase_flutter` range son
 /// jeton lui-même, chiffré ou non selon la plateforme, et c'est son problème.
@@ -40,6 +41,27 @@ abstract interface class PreferencesAffichage {
 
   /// Retient la langue choisie.
   Future<void> retenirLangue(String codeLangue);
+
+  /// Le mode de thème retenu — `system`, `light`, `dark` — ou `null` si
+  /// personne n'a encore touché le bouton.
+  ///
+  /// `null` N'EST PAS `system`, ET LA DIFFÉRENCE EST TOUT L'INTÉRÊT DE CETTE
+  /// CLÉ. Les deux donnent le même écran — celui que le téléphone demande —
+  /// mais `null` dit « on ne m'a jamais rien demandé », là où `system` dirait
+  /// « on m'a demandé de suivre le téléphone ». Le premier lancement est le
+  /// premier cas, et c'est lui qui fait arriver en sombre quelqu'un dont
+  /// l'appareil est en sombre.
+  ///
+  /// Comme la langue, c'est une préférence d'affichage, et pour la même
+  /// raison : elle ne dit rien de qui vous êtes, elle dit comment vous voulez
+  /// lire. Elle n'a en revanche PAS de jumelle en base — il n'existe pas de
+  /// `profiles.theme`, et il n'en faut pas : un thème n'a aucune raison de
+  /// suivre un compte d'un appareil à l'autre, puisqu'il répond d'abord à
+  /// l'écran qu'on a sous les yeux et à la lumière de la pièce.
+  Future<String?> modeTheme();
+
+  /// Retient le mode de thème choisi.
+  Future<void> retenirModeTheme(String nomDuMode);
 }
 
 /// L'implémentation qui écrit vraiment sur l'appareil.
@@ -57,6 +79,9 @@ class PreferencesAffichagePartagees implements PreferencesAffichage {
   /// Préfixée comme la précédente, et pour la même raison.
   static const String _cleLangue = 'ferha.langue';
 
+  /// Préfixée comme les deux précédentes, et pour la même raison.
+  static const String _cleTheme = 'ferha.theme';
+
   @override
   Future<String?> salleChoisie() => _stockage.getString(_cleSalle);
 
@@ -71,6 +96,13 @@ class PreferencesAffichagePartagees implements PreferencesAffichage {
   @override
   Future<void> retenirLangue(String codeLangue) =>
       _stockage.setString(_cleLangue, codeLangue);
+
+  @override
+  Future<String?> modeTheme() => _stockage.getString(_cleTheme);
+
+  @override
+  Future<void> retenirModeTheme(String nomDuMode) =>
+      _stockage.setString(_cleTheme, nomDuMode);
 }
 
 /// Les préférences d'affichage de l'appareil.

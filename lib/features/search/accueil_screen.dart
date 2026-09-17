@@ -7,6 +7,7 @@ import '../../core/l10n/generated/app_localizations.dart';
 import '../../core/router/routes.dart';
 import '../../core/theme/ferha_colors.dart';
 import '../../core/theme/ferha_radii.dart';
+import '../../core/widgets/bouton_theme.dart';
 import '../notifications/widgets/cloche_notifications.dart';
 import 'search_filters.dart';
 import 'search_providers.dart';
@@ -134,7 +135,11 @@ class _AccueilScreenState extends ConsumerState<AccueilScreen> {
         // La cloche de la maquette (écran 1). Elle s'affiche aussi pour un
         // visiteur non connecté, sans pastille : c'est l'appui qui demande la
         // connexion, pas la vue.
-        actions: const <Widget>[ClocheNotifications(), SizedBox(width: 4)],
+        actions: const <Widget>[
+          BoutonTheme(),
+          ClocheNotifications(),
+          SizedBox(width: 4),
+        ],
       ),
       body: ListView(
         padding: const EdgeInsetsDirectional.fromSTEB(20, 8, 20, 32),

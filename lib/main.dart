@@ -9,6 +9,7 @@ import 'core/router/app_router.dart';
 import 'core/theme/ferha_colors.dart';
 import 'core/theme/ferha_radii.dart';
 import 'core/theme/ferha_theme.dart';
+import 'core/theme/theme_controller.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -59,13 +60,19 @@ class FerhaApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
     final locale = ref.watch(localeProvider);
+    final modeTheme = ref.watch(modeThemeProvider);
 
     return MaterialApp.router(
       onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
       routerConfig: router,
       theme: FerhaTheme.light(),
       darkTheme: FerhaTheme.dark(),
-      themeMode: ThemeMode.system,
+      // COMME `locale` JUSTE EN DESSOUS : le mode vient d'un fournisseur, donc
+      // changer d'état reconstruit l'arbre entier sans rien à redémarrer.
+      // `ThemeMode.system` reste ce que le fournisseur rend tant que personne
+      // n'a touché le bouton — c'est le comportement de la première visite, et
+      // non un défaut.
+      themeMode: modeTheme,
       locale: locale,
       supportedLocales: ferhaSupportedLocales,
       localizationsDelegates: AppLocalizations.localizationsDelegates,

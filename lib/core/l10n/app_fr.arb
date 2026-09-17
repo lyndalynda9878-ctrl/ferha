@@ -15,6 +15,14 @@
   "@switchLanguage": {
     "description": "Libelle du bouton de bascule de langue : il annonce toujours la langue vers laquelle on bascule, donc il est ecrit dans CETTE langue-la et non dans la langue courante."
   },
+  "themeVersSombre": "Passer en thème sombre",
+  "@themeVersSombre": {
+    "description": "Infobulle et etiquette d'accessibilite du bouton de theme QUAND L'ECRAN EST CLAIR : comme la bascule de langue, le bouton annonce ce vers quoi il mene, jamais l'etat courant. Un bouton « Theme clair » sur un ecran clair ne dit pas s'il change quelque chose."
+  },
+  "themeVersClair": "Passer en thème clair",
+  "@themeVersClair": {
+    "description": "La meme chose QUAND L'ECRAN EST SOMBRE. Deux libelles et non un seul : c'est ce qui permet de nommer la destination plutot que le bouton."
+  },
   "langueFrancais": "Français",
   "@langueFrancais": {
     "description": "Le nom de la langue francaise, ecrit en francais dans les deux fichiers : un nom de langue ne se traduit pas."

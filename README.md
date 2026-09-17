@@ -743,7 +743,16 @@ La palette « Ambre & ivoire » du cahier des charges (§10.1) vit dans une seul
 `ThemeExtension`, `FerhaColors` : c'est le seul fichier du projet où une valeur
 hexadécimale est écrite. Un écran lit ses couleurs par `context.ferhaColors`.
 
-Les deux thèmes, clair et sombre, sont livrés ensemble.
+Les deux thèmes, clair et sombre, sont livrés ensemble, et un petit bouton rond
+— soleil ou lune — les échange depuis la barre du haut, à côté de la cloche et
+là où vit déjà la bascule de langue. Le choix est retenu par l'appareil et
+survit au rechargement de la page.
+
+Tant que personne n'y a touché, l'application suit le **réglage du système**, et
+c'est délibéré : un téléphone en sombre doit ouvrir Ferha en sombre sans qu'on
+ait rien à demander. Le modèle porte donc trois états — « système », « clair »,
+« sombre » — là où le bouton n'en montre que deux : il annonce ce vers quoi il
+mène, jamais l'état courant.
 
 La police d'affichage, Bricolage Grotesque, est embarquée en un seul fichier
 variable : `assets/fonts/BricolageGrotesque-Variable.ttf`. Les styles pilotent
@@ -754,7 +763,7 @@ s'afficher correctement, dès le premier lancement.
 
 La route `/_design` affiche chaque couleur avec son code, l'échelle
 typographique, les boutons, les puces, la carte de salle, les trois états du
-calendrier, et une bascule fr / ar. Elle n'apparaît dans aucune barre d'onglets.
+calendrier, et les deux bascules d'affichage — fr / ar, clair / sombre. Elle n'apparaît dans aucune barre d'onglets.
 
 ```bash
 flutter run -d chrome --dart-define-from-file=env.json --print-dtd

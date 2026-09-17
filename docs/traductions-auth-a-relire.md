@@ -5,9 +5,10 @@
 > vide parce que chaque ligne convient telle quelle, et non parce qu’elle n’a
 > pas été regardée.
 >
-> **UNE 53ᵉ CLÉ ATTEND, ELLE, SA RELECTURE** — ajoutée le 17 septembre 2026,
-> hors des écrans d’authentification. Elle est en toute dernière section, à
-> part, pour que la validation ci-dessus ne la couvre pas par erreur.
+> **TROIS CLÉS ATTENDENT, ELLES, LEUR RELECTURE** — ajoutées le 17 septembre
+> 2026, hors des écrans d’authentification. Elles sont dans les deux dernières
+> sections, à part, pour que la validation ci-dessus ne les couvre pas par
+> erreur.
 
 **52 clés**, ajoutées après le J22 pour les trois écrans d’authentification :
 connexion, inscription, profil, et les messages d’erreur qu’ils montrent.
@@ -192,3 +193,39 @@ françaises aurait été exactement ce demi-état. Elle rejoindra `app_ar.arb` l
 jour où cet écran sera traduit, avec toutes ses voisines — c’est à ce
 moment-là qu’il faudra la relire, et c’est pour cela qu’elle est recopiée
 ici.
+
+---
+
+## À RELIRE — la bascule clair / sombre, 2 clés (17 septembre 2026)
+
+> **CETTE SECTION N’A PAS ÉTÉ RELUE.** Elle est postérieure aux 52 clés
+> validées plus haut et ne relève pas des écrans d’authentification.
+
+Le thème sombre existait depuis le premier jour et restait invisible : il
+suivait le réglage du système, donc personne dont la machine est en clair ne
+le voyait jamais. Un petit bouton rond — soleil ou lune — le rend atteignable
+depuis la barre du haut ; ces deux clés sont son infobulle et son étiquette
+d’accessibilité, qui sont la même phrase.
+
+**Deux libellés et non un seul**, parce que le bouton annonce ce vers quoi il
+mène et jamais l’état courant — la règle que suit déjà `switchLanguage`, qui
+écrit « Français » quand on est en arabe. Un libellé unique ne dirait pas si
+l’appui change quoi que ce soit.
+
+Deux points à regarder en particulier :
+
+* **المظهر** (« l’apparence ») traduit *thème* : c’est le mot de l’interface,
+  pas السمة ni un emprunt à l’anglais. Si un autre terme est plus courant sur
+  un téléphone algérien, c’est celui-là qu’il faut ;
+* **التبديل إلى** (« basculer vers ») est un nom verbal, pas un impératif. Il
+  nomme la destination — ce que fait le bouton — là où un impératif donnerait
+  un ordre à celui qui lit.
+
+Ces deux clés s’affichent sur **tous** les écrans qui portent le bouton, y
+compris les écrans restés en français : c’est un contrôle d’affichage, pas du
+contenu, et il est traduit partout où il apparaît.
+
+| clé | quand | français | arabe proposé | correction |
+|---|---|---|---|---|
+| `themeVersSombre` | l’écran est clair | Passer en thème sombre | التبديل إلى المظهر الداكن | |
+| `themeVersClair` | l’écran est sombre | Passer en thème clair | التبديل إلى المظهر الفاتح | |

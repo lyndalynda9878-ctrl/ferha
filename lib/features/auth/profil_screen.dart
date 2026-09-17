@@ -7,6 +7,7 @@ import '../../core/l10n/locale_controller.dart';
 import '../../core/router/routes.dart';
 import '../../core/theme/ferha_colors.dart';
 import '../../core/theme/ferha_radii.dart';
+import '../../core/widgets/bouton_theme.dart';
 import 'auth_messages.dart';
 import 'auth_providers.dart';
 import 'auth_service.dart';
@@ -33,6 +34,11 @@ class ProfilScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text(AppLocalizations.of(context).profilTitre),
         actions: <Widget>[
+          // LES DEUX PRÉFÉRENCES D'AFFICHAGE SE TIENNENT AU MÊME ENDROIT : la
+          // langue et le thème répondent à la même question — comment voulez-
+          // vous lire ? — et on ne devrait pas avoir à chercher l'une après
+          // avoir trouvé l'autre.
+          const BoutonTheme(),
           Padding(
             padding: const EdgeInsetsDirectional.only(end: 8),
             // LA BASCULE DE LANGUE (§10, CORE-03).
