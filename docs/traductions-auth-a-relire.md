@@ -1,9 +1,13 @@
 # Les traductions arabes des écrans d’authentification
 
-> **LES 52 TRADUCTIONS CI-DESSOUS ONT ÉTÉ RELUES ET VALIDÉES.** Aucune
-> correction n’a été demandée : la colonne *correction* est vide parce que
-> chaque ligne convient telle quelle, et non parce qu’elle n’a pas été
-> regardée.
+> **LES 52 TRADUCTIONS DES ÉCRANS D’AUTHENTIFICATION ONT ÉTÉ RELUES ET
+> VALIDÉES.** Aucune correction n’a été demandée : la colonne *correction* est
+> vide parce que chaque ligne convient telle quelle, et non parce qu’elle n’a
+> pas été regardée.
+>
+> **UNE 53ᵉ CLÉ ATTEND, ELLE, SA RELECTURE** — ajoutée le 17 septembre 2026,
+> hors des écrans d’authentification. Elle est en toute dernière section, à
+> part, pour que la validation ci-dessus ne la couvre pas par erreur.
 
 **52 clés**, ajoutées après le J22 pour les trois écrans d’authentification :
 connexion, inscription, profil, et les messages d’erreur qu’ils montrent.
@@ -136,3 +140,33 @@ Ils sont choisis d'après le CODE que renvoie GoTrue, jamais d'après son texte 
 | `authCaptchaEchoue` | La vérification anti-robot a échoué. Réessayez. | فشل التحقق من أنك لست روبوتاً. أعد المحاولة. | |
 | `authRefusNonTraduit` | Connexion impossible ({code}) : {message} | تعذّر تسجيل الدخول ({code}): {message} | |
 
+
+---
+
+## À RELIRE — l’écran de demande, 1 clé (17 septembre 2026)
+
+> **CETTE SECTION N’A PAS ÉTÉ RELUE.** Elle est postérieure aux 52 clés
+> ci-dessus et ne relève pas des écrans d’authentification.
+
+Cette ligne est née d’un incident. Le 17 septembre 2026, un visiteur connecté
+avec le bouton « Entrer comme Amina » a tapé son vrai numéro de téléphone sur
+l’écran de demande ; il s’est retrouvé affiché en clair dans l’espace
+propriétaire de la démonstration en ligne. La migration 038 empêche désormais
+la base de garder un numéro sur un compte de démonstration — et cette phrase
+est la moitié honnête du correctif : un formulaire qui exige un numéro et le
+jette en silence est un mensonge, même bien intentionné.
+
+Elle ne s’affiche que sur les comptes de démonstration. Un vrai client ne la
+voit jamais.
+
+Deux points à regarder en particulier :
+
+* le mot **مشترك** (« partagé ») — c’est lui qui porte l’idée que d’autres
+  personnes entrent dans le même compte, et donc la raison pour laquelle le
+  numéro ne peut pas y rester ;
+* **لا يُحفَظ** (« n’est pas conservé ») est au passif et au présent : la
+  phrase décrit ce que fait la base, pas une promesse de l’équipe.
+
+| clé | français | arabe proposé | correction |
+|---|---|---|---|
+| `demandeTelephoneCompteDemo` | Ce compte est une démonstration partagée : le numéro saisi n’est pas conservé. | هذا الحساب تجريبي ومشترك: الرقم الذي تُدخله لا يُحفَظ. | |

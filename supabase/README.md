@@ -48,6 +48,7 @@ seulement :
 | 35 | `migrations/035_le_decor_se_remet_en_place.sql` | `decor_bookings`, `decor_reviews`, `decor_blackouts`, `capturer_le_decor()`, `vider_le_decor()`, `menage_du_decor()`, la vue `etat_du_decor`, le cron `ferha-menage-du-decor` — la démonstration se répare entre deux visiteurs | 001, 004, 005, 012, et les seeds 001, 003, 004 |
 | 36 | `migrations/036_les_personnes_du_decor.sql` | `decor_profiles`, `roles_detournes` — l'empreinte tient aussi les personnes ; le rôle se remet sans délai, les saisies attendent — **élargit `capturer_le_decor()`, `vider_le_decor()`, `menage_du_decor()` et `etat_du_decor`** | 001, 018, 035 |
 | 37 | `migrations/037_les_dates_bloquees_manquantes.sql` | les 50 dates bloquées du second bloc de `seed/001`, que la base n'avait jamais reçues — additive, rejouable, et elle reprend l'empreinte APRÈS l'insertion | 001, 035, 036, seed/001 |
+| 38 | `migrations/038_pas_de_telephone_en_demonstration.sql` | `profiles_pas_de_telephone_en_demonstration` — un compte `d0000000-…` ne PEUT PAS porter de numéro : le déclencheur force `phone` à NULL et `phone_verified` à false, sous toutes les portes. Il force, il ne refuse pas | 001, 018, 020 |
 
 `002` a besoin des tables de `001`. `003` a besoin de la table `amenities` de
 `001`, mais pas de `002`. Appliquer `002` avant `003` reste le bon ordre : le
@@ -601,6 +602,17 @@ autres.
   et c'est ainsi qu'un numéro finit par fuiter — pas par une faille, par une
   divergence. Si un jour l'écran du propriétaire a besoin de la même liste, il
   passera par la même fonction.
+  **Et sur un compte de démonstration, il n'y a rien à sortir** : depuis 038,
+  le déclencheur `profiles_pas_de_telephone_en_demonstration` remet `phone` à
+  NULL et `phone_verified` à false sur tout profil `d0000000-…`, avant
+  écriture. Le §9 n'est pas modifié — il s'ouvre toujours à `accepted`, et
+  `phone_available` reste vrai ; il n'a simplement plus de numéro à révéler.
+  Le déclencheur FORCE au lieu de REFUSER, sans quoi `request_booking()`
+  lèverait une exception et le parcours du testeur s'arrêterait sur l'écran 5.
+  Les deux colonnes partent ensemble parce que
+  `profiles_phone_verified_requires_phone` interdit un numéro vérifié sans
+  numéro. Il est nommé pour passer APRÈS `profiles_normalise_telephone` dans
+  l'ordre alphabétique des déclencheurs : rien ne repose de valeur derrière lui.
 - **`bookings` est publiée en temps réel** (013), et c'est sa politique RLS qui
   la protège : Realtime évalue `bookings_select_parties` pour chaque abonné
   avant de lui livrer une ligne. Ouvrir la publication n'ouvre donc pas la
@@ -1194,6 +1206,7 @@ signale la règle qui ne tient plus.
 | `tests/015_les_avis.sql` | un avis exige une réservation honorée, la fenêtre de J+1 à J+30, la réponse du propriétaire qui fige l'avis, la moyenne bayésienne, et **aucun nom entier ni téléphone dans ce que lit un inconnu** |
 | `tests/016_index_semantique.sql` | le document porte tout ce qu'on peut demander, le hachage ne bouge qu'avec le contenu, **une salle non publiée n'est jamais indexée**, et `venue_embeddings` est close |
 | `tests/017_synthese_des_avis.sql` | **pas de synthèse sous trois avis porteurs de texte**, **une salle dont les avis n'ont pas bougé n'est pas retraitée**, aucun nom de client n'atteint le modèle, un brouillon n'est jamais résumé, et la table est close |
+| `tests/019_pas_de_telephone_en_demonstration.sql` | un numéro ne se dépose pas sur un compte de démonstration — ni par un `update` direct, ni avec `phone_verified = true`, ni par `request_booking()` — **et il se dépose toujours chez un vrai client** ; `booking_contact()` ouvre le contact sans rien révéler |
 
 Le huitième va plus loin encore : pour mesurer les politiques du bucket, il
 lève au passage `storage.allow_delete_query`, le verrou de Supabase qui refuse

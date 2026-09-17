@@ -115,13 +115,30 @@ c'est le contenu saisi par les propriétaires : `venues.name`, `venues.commune`,
 `venues.description`, les motifs de dates bloquées et le texte des avis. Celui-là
 demanderait un vrai circuit de traduction, pas une colonne.
 
-**Il n'y a aucun numéro de téléphone dans la démonstration.** Un numéro algérien
-valide appartient à quelqu'un, et le site est en ligne : les comptes de
-démonstration portent donc `phone = null`. Le mécanisme du §9 — le contact de
-l'autre partie révélé seulement après acceptation, par `booking_contact()` — est
-en place et couvert par `supabase/tests/007_adresse_et_telephone.sql`. Il n'y a
-simplement rien à révéler ici, et l'espace propriétaire affiche « ce client n'a
-pas renseigné de numéro » au lieu d'un faux numéro.
+**Les comptes de démonstration ne PEUVENT PAS porter de numéro de téléphone :
+la base le refuse.** Un numéro algérien bien formé appartient à quelqu'un, et le
+site est en ligne — c'est une décision, pas un état de fait. Un déclencheur
+(`profiles_pas_de_telephone_en_demonstration`, migration 038) remet `phone` à
+NULL sur tout compte `d0000000-…`, quelle que soit la porte empruntée : l'écran
+de demande, la publication d'une salle, l'inscription, ou une écriture directe
+par l'API. Il force au lieu de refuser, pour que le parcours ci-dessus aboutisse
+normalement ; l'écran de demande le dit à qui tape un numéro.
+
+Le mécanisme du §9 — le contact de l'autre partie révélé seulement après
+acceptation, par `booking_contact()` — est bien là, et couvert par
+`supabase/tests/007_adresse_et_telephone.sql` et
+`supabase/tests/019_pas_de_telephone_en_demonstration.sql`. Il n'a simplement
+rien à révéler sur un compte partagé : l'espace propriétaire affiche « ce client
+n'a pas renseigné de numéro » au lieu d'un faux numéro. Chez un vrai client, le
+numéro est conservé — c'est par lui que la salle rappelle.
+
+**Cette règle-là a été écrite après coup, et c'est pour ça qu'elle est sûre.**
+Le 17 septembre 2026, un visiteur connecté comme Amina a tapé son vrai numéro
+sur l'écran de demande, et il s'est affiché en clair chez Karim : un compte
+partagé plus un champ de coordonnées obligatoire, c'est le second qui remplit le
+premier. Les seeds posaient bien `phone = null` et le §9 fonctionnait — rien
+n'était cassé, et c'est justement pourquoi le correctif est descendu dans la
+base plutôt que dans l'écran qui se trouvait être la porte du jour.
 
 **Pas de SMS : la connexion se fait par adresse électronique et mot de passe.**
 Et la messagerie intégrée de Supabase, en offre gratuite, n'envoie que quelques

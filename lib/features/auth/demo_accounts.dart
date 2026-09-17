@@ -28,3 +28,25 @@ const CompteDemo compteKarim = (
   motDePasse: 'demo1234',
   libelle: 'Entrer comme Karim (propriétaire)',
 );
+
+/// Le préfixe d'identifiant des comptes de démonstration.
+///
+/// C'EST LA CONVENTION DU DÉCOR, PAS UNE INVENTION D'ICI : `d0000000-…` pour
+/// une personne de démonstration, posée par `seed/003_demo_accounts.sql` et
+/// reprise telle quelle par le ménage du décor (035, 036) et par le
+/// déclencheur qui interdit le téléphone (038).
+///
+/// LES DEUX EXEMPLAIRES DOIVENT S'ACCORDER. Celui-ci décide de ce que l'écran
+/// DIT ; celui de la base décide de ce qui se PASSE. Si l'un changeait sans
+/// l'autre, l'écran promettrait une chose et la base en ferait une autre —
+/// c'est exactement le mensonge que 038 répare.
+const String prefixeCompteDemonstration = 'd0000000-';
+
+/// Vrai si [idUtilisateur] est l'un des comptes de démonstration partagés.
+///
+/// Sert à DIRE à la personne que son numéro ne sera pas conservé (écran 5).
+/// Ce n'est pas une protection : la protection est le déclencheur de 038, en
+/// base, qui met `phone` à NULL quoi qu'affiche l'application.
+bool estCompteDeDemonstration(String? idUtilisateur) =>
+    idUtilisateur != null &&
+    idUtilisateur.startsWith(prefixeCompteDemonstration);

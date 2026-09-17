@@ -561,6 +561,10 @@
   "@demandeTelephoneQuiLeVoit": {
     "description": "La regle du §9 dite au client dont c'est le numero. Sans elle, le champ ressemble a une collecte de coordonnees."
   },
+  "demandeTelephoneCompteDemo": "Ce compte est une démonstration partagée : le numéro saisi n’est pas conservé.",
+  "@demandeTelephoneCompteDemo": {
+    "description": "UNIQUEMENT sur les comptes de demonstration. Le champ exige un vrai numero et la base le jette (migration 038) : le dire est une question d'honnetete, pas de confort. Un vrai client ne voit jamais cette ligne — chez lui le numero sert."
+  },
   "demandeEnvoyer": "Envoyer la demande",
   "@demandeEnvoyer": { "description": "Le bouton d'envoi." },
   "demandeAucunPaiement": "Aucun paiement à cette étape. Le propriétaire répond sous 48 h.",

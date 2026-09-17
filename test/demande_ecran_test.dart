@@ -102,6 +102,7 @@ void main() {
     WidgetTester tester,
     ThemeData theme, {
     String? telephoneDuProfil,
+    String? idDuProfil,
   }) async {
     tester.view.physicalSize = const Size(1000, 2400);
     tester.view.devicePixelRatio = 1;
@@ -113,9 +114,12 @@ void main() {
           ficheProvider.overrideWith((ref, demande) async => salle()),
           devisProvider.overrideWith((ref, demande) async => devis()),
           profilProvider.overrideWith(
-            (ref) async => telephoneDuProfil == null
+            (ref) async => telephoneDuProfil == null && idDuProfil == null
                 ? null
-                : <String, dynamic>{'phone': telephoneDuProfil},
+                : <String, dynamic>{
+                    'phone': telephoneDuProfil,
+                    'id': idDuProfil,
+                  },
           ),
         ],
         child: MaterialApp(
@@ -254,6 +258,55 @@ void main() {
       // le numéro.
       await ouvre(tester, FerhaTheme.light());
 
+      expect(
+        find.text(
+          'Le propriétaire ne le voit qu’après avoir accepté votre demande.',
+        ),
+        findsOneWidget,
+      );
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Le numéro jeté, et dit
+  //
+  // Le 17 septembre 2026, un vrai numéro tapé sur cet écran par un visiteur
+  // connecté comme Amina s'est retrouvé affiché en clair dans l'espace
+  // propriétaire de la démonstration en ligne. La migration 038 empêche
+  // désormais la base de le garder ; ces deux tests surveillent la moitié
+  // honnête du correctif — le DIRE à la personne qui tape.
+  //
+  // LES DEUX ENSEMBLE, OU AUCUN. Le premier seul passerait aussi si la ligne
+  // s'affichait pour tout le monde, ce qui inquiéterait un vrai client sans
+  // raison : chez lui, le numéro est conservé et sert.
+  // ---------------------------------------------------------------------------
+  group('la ligne « ce compte est une démonstration »', () {
+    const phrase =
+        'Ce compte est une démonstration partagée : '
+        'le numéro saisi n’est pas conservé.';
+
+    testWidgets('s’affiche sur un compte de démonstration', (tester) async {
+      await ouvre(
+        tester,
+        FerhaTheme.light(),
+        // Le préfixe du décor, celui de seed/003 et du déclencheur de 038.
+        idDuProfil: 'd0000000-0000-4000-a000-000000000010',
+      );
+
+      expect(find.text(phrase), findsOneWidget);
+    });
+
+    testWidgets('ne s’affiche pas sur un compte normal', (tester) async {
+      await ouvre(
+        tester,
+        FerhaTheme.light(),
+        idDuProfil: '7e000000-0000-4000-a000-000000000019',
+      );
+
+      expect(find.text(phrase), findsNothing);
+
+      // Et le champ reste celui de tout le monde : la règle du §9 est dite,
+      // sans avertissement par-dessus.
       expect(
         find.text(
           'Le propriétaire ne le voit qu’après avoir accepté votre demande.',

@@ -13,6 +13,7 @@ import '../../core/theme/ferha_colors.dart';
 import '../../core/theme/ferha_radii.dart';
 import '../../core/validation/telephone.dart';
 import '../auth/auth_providers.dart';
+import '../auth/demo_accounts.dart';
 import '../owner/gerer_ma_salle.dart';
 import '../owner/owner_providers.dart';
 import '../search/search_filters.dart';
@@ -394,6 +395,39 @@ class _DemandeScreenState extends ConsumerState<DemandeScreen> {
             color: context.ferhaColors.inkTertiary,
           ),
         ),
+
+        // LE DIRE, PARCE QUE LE CHAMP EXIGE UN VRAI NUMÉRO ET QUE LA BASE LE
+        // JETTE. Depuis la migration 038, un compte de démonstration ne peut
+        // pas porter de téléphone : le déclencheur remet `phone` à NULL. Un
+        // formulaire qui réclame un numéro valide et s'en débarrasse en
+        // silence est un mensonge, même bien intentionné — d'où cette ligne.
+        //
+        // ELLE NE S'AFFICHE QUE LÀ. Un vrai client ne la voit jamais : chez
+        // lui le numéro est conservé, et c'est par lui que la salle rappelle.
+        if (estCompteDeDemonstration(
+          ref.watch(profilProvider).value?['id'] as String?,
+        )) ...<Widget>[
+          const SizedBox(height: 6),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Icon(
+                Icons.info_outline,
+                size: 16,
+                color: context.ferhaColors.inkTertiary,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  textes.demandeTelephoneCompteDemo,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: context.ferhaColors.inkTertiary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
 
         if (_refus != null) ...<Widget>[
           const SizedBox(height: 16),
