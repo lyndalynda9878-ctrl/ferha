@@ -258,11 +258,12 @@ lib/
     env/        clés lues à la compilation (--dart-define-from-file)
     l10n/       fichiers ARB (fr, ar) et langue active
     router/     go_router : 4 onglets, routes d'authentification, route cachée
-    supabase/   le client, exposé par un fournisseur Riverpod
+    supabase/   le client Riverpod, et la session — qui est connecté
     theme/      palette « Ambre & ivoire », rayons, galerie de contrôle
   features/
-    auth/          connexion, inscription, profil, session
+    auth/          connexion, inscription, profil
     booking/       demande, devis, suivi des réservations
+    favorites/     le cœur sur la carte, et l'onglet qui les rassemble
     notifications/ la cloche, l'écran, et le temps réel
     owner/         espace propriétaire : tableau de bord, agenda, publication
     search/        accueil (= recherche) et résultats
@@ -273,15 +274,28 @@ lib/
 supabase/
   functions/    cinq Edge Functions (Deno) : create-checkout, chargily-webhook,
                 embed-venue, summarize-reviews, ai-chat
-  migrations/   36 fichiers : schéma, RLS, prix, recherche, avis, agent, gardiens
-  seed/         15 salles, 8 comptes et 24 réservations de démonstration
-  tests/        18 bancs d'essai SQL, de la double réservation au décor
+  migrations/   39 fichiers : schéma, RLS, prix, recherche, avis, agent, gardiens
+  seed/         15 salles, 8 comptes, 24 réservations et 3 favoris de démonstration
+  tests/        20 bancs d'essai SQL, de la double réservation aux favoris
   outils/       scripts de mise au point
 services/
   embeddings/   le service Python qui transforme le texte en vecteurs (Render)
 docs/
   captures/     les six images du README
 ```
+
+**Le socle ne dépend d'aucune fonctionnalité, et la frontière passe par la
+session.** `core/supabase/session_providers.dart` dit s'il y a QUELQU'UN —
+le routeur s'en sert pour rediriger, la langue pour savoir s'il existe un
+profil où écrire. Savoir QUI c'est est autre chose : `profilProvider` lit la
+table `profiles`, avec ses colonnes et ses droits, et il vit dans
+`features/auth/`. La seule exception est `core/router/`, qui importe tous les
+écrans : nommer chaque destination est le travail d'un routeur, pas une
+dépendance de travers.
+
+**Dette notée, pas urgente (J28)** : une trentaine de symboles de `lib/` sont
+publics alors qu'ils ne servent que dans leur propre fichier. Les passer en
+privé est un vrai nettoyage — donc pas la veille d'une répétition générale.
 
 La base de données a son propre document : [supabase/README.md](supabase/README.md).
 

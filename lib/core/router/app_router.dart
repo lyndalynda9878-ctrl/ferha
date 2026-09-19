@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/assistant/assistant_screen.dart';
-import '../../features/auth/auth_providers.dart';
 import '../../features/auth/connexion_screen.dart';
 import '../../features/auth/inscription_screen.dart';
 import '../../features/auth/profil_screen.dart';
@@ -11,6 +10,7 @@ import '../../features/booking/acompte_screen.dart';
 import '../../features/booking/demande_envoyee_screen.dart';
 import '../../features/booking/demande_screen.dart';
 import '../../features/booking/mes_reservations_screen.dart';
+import '../../features/favorites/favoris_screen.dart';
 import '../../features/notifications/notifications_screen.dart';
 import '../../features/owner/agenda_screen.dart';
 import '../../features/owner/detail_demande_screen.dart';
@@ -26,10 +26,10 @@ import '../../features/search/search_filters.dart';
 import '../../features/venue/calendrier_screen.dart';
 import '../../features/venue/galerie_screen.dart';
 import '../../features/venue/venue_screen.dart';
+import '../supabase/session_providers.dart';
 import '../theme/design_gallery_screen.dart';
 import 'home_shell.dart';
 import 'routes.dart';
-import '../../features/favorites/favoris_screen.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 

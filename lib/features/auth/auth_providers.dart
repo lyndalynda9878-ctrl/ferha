@@ -1,46 +1,36 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../core/supabase/session_providers.dart';
 import '../../core/supabase/supabase_providers.dart';
 
-/// La session courante, ou `null` si personne n'est connecté.
+/// CETTE LIGNE N'EST PAS UN OUBLI — NE LA RETIREZ PAS SANS LIRE CECI.
 ///
-/// `build()` renvoie la session déjà restaurée par `Supabase.initialize()` :
-/// l'état est donc juste dès la première image, sans passer par un état de
-/// chargement. C'est ce qui évite qu'un utilisateur connecté voie clignoter
-/// l'écran « connectez-vous » au démarrage.
+/// `sessionProvider`, `estConnecteProvider` et `SessionController` ont déménagé
+/// au J27 dans `lib/core/supabase/session_providers.dart` : le socle les
+/// lisait, et le socle ne doit pas dépendre d'une fonctionnalité. L'en-tête du
+/// nouveau fichier dit où passe la frontière.
 ///
-/// L'abonnement qui suit tient l'état à jour : connexion, déconnexion,
-/// renouvellement automatique du jeton, expiration.
-class SessionController extends Notifier<Session?> {
-  @override
-  Session? build() {
-    final auth = ref.watch(supabaseClientProvider).auth;
-
-    final abonnement = auth.onAuthStateChange.listen((donnees) {
-      state = donnees.session;
-    });
-    ref.onDispose(abonnement.cancel);
-
-    return auth.currentSession;
-  }
-}
-
-/// La session courante, ou `null`.
-final sessionProvider = NotifierProvider<SessionController, Session?>(
-  SessionController.new,
-);
-
-/// Vrai quand quelqu'un est connecté.
+/// Cet `export` existe pour que le déménagement ne coûte rien à personne :
+/// **8 fichiers de `lib/features/` — sur les cinq domaines auth, booking,
+/// favorites, notifications et owner — et 17 fichiers de test continuent
+/// d'importer ce fichier-ci comme avant.** Surtout, les 26 surcharges de test
+/// (`estConnecteProvider.overrideWithValue(…)`, `sessionProvider.overrideWith(…)`)
+/// restent valides telles quelles : un `export` ne fabrique pas un second
+/// fournisseur, il rend visible le MÊME objet. Une surcharge posée sur l'objet
+/// exporté est posée sur l'objet déclaré.
 ///
-/// À lire pour décider d'un affichage, jamais pour décider d'un droit : les
-/// droits sont portés par les politiques RLS (§9), et un client qui mentirait
-/// ici n'obtiendrait rien de plus de la base.
-final estConnecteProvider = Provider<bool>(
-  (ref) => ref.watch(sessionProvider) != null,
-);
+/// La retirer obligerait à corriger 25 imports pour ne rien gagner. Le jour où
+/// l'on voudra vraiment que chaque fichier nomme sa source, ce sera un passage
+/// à part, et il se verra dans son propre commit.
+export '../../core/supabase/session_providers.dart'
+    show SessionController, estConnecteProvider, sessionProvider;
 
 /// Le profil de l'utilisateur connecté, ou `null` s'il n'y a personne.
+///
+/// IL RESTE ICI, ET C'EST LA FRONTIÈRE. Il lit la table `profiles` — des
+/// colonnes, un schéma, des droits RLS —, alors que la session ne connaît que
+/// le client Supabase. Savoir s'il y a quelqu'un est du socle ; savoir qui
+/// c'est est de l'authentification.
 ///
 /// Relu à chaque changement de session : se déconnecter vide le profil, se
 /// connecter le recharge, sans qu'aucun écran ait à s'en occuper.

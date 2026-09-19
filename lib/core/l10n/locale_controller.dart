@@ -39,8 +39,8 @@ library;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../features/auth/auth_providers.dart';
 import '../preferences/preferences_affichage.dart';
+import '../supabase/session_providers.dart';
 import '../supabase/supabase_providers.dart';
 
 /// Les deux langues livrées : français et arabe (RTL).

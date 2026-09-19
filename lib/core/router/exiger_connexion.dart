@@ -2,7 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../features/auth/auth_providers.dart';
+import '../supabase/session_providers.dart';
 import 'routes.dart';
 
 /// Demande la connexion, mais seulement au moment d'agir.
