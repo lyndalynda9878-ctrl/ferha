@@ -78,6 +78,33 @@ démonstration](#le-décor-de-démonstration).
 
 Un projet qui ne dit pas ses trous demande qu'on les cherche. Voici les miens.
 
+**Les tests SQL ne tournent pas tout seuls, et c'est le plus gros trou de ce
+dépôt.** Vingt fichiers dans `supabase/tests/` vérifient ce que le Dart ne peut
+pas vérifier : le prix qui ne vient que d'`estimate_price()`, la RLS qui isole
+deux clients, le double créneau que la base refuse. La CI GitHub lance
+`flutter analyze` et les 683 tests Dart à chaque push — **elle ne lance aucun
+des vingt**. Ils se collent à la main dans l'éditeur SQL de Supabase, ou
+s'enchaînent par la boucle `psql` documentée dans
+[`supabase/README.md`](supabase/README.md#les-lancer-tous-en-une-seule-commande).
+
+**Ce que ça a déjà coûté, deux fois.** Trois de ces tests ont pourri dix jours
+sans que personne le voie : ils étaient écrits, ils étaient justes, et ils ne
+tournaient pas. Et le 19 septembre 2026, le décor de démonstration en ligne
+portait deux favoris au lieu de trois et un profil détourné — `etat_du_decor` le
+disait depuis des heures, le test 17 de `tests/018` l'aurait crié, et personne
+n'avait rien lancé. Un test qu'on n'exécute pas n'est pas un test : c'est une
+intention, et elle passe au vert toute seule.
+
+**Le chemin pour le combler, nommé.** Un Supabase LOCAL dans le robot GitHub —
+`supabase start` pose Postgres dans un conteneur, `supabase db reset` y applique
+les 39 migrations et les seeds, puis la même boucle `psql` enchaîne les
+dix-neuf fichiers autonomes contre `localhost`. Aucun secret n'est nécessaire :
+la base est jetable et naît vide à chaque exécution. Ce qui coûte, c'est de
+faire tenir la pile Supabase dans le robot — l'image met des minutes à démarrer,
+les seeds supposent des comptes GoTrue que `db reset` ne crée pas seul, et
+`013` restera dehors de toute façon. C'est une journée, pas une ligne, et c'est
+pour cela qu'elle n'est pas faite : elle est notée pour le J28, pas oubliée.
+
 **Le paiement est en mode test.** Chargily tourne avec ses clés de bac à sable :
 aucune somme n'est débitée, et l'écran de l'acompte le dit au client au lieu de
 le laisser croire qu'il paie. Passer en production demande un compte marchand

@@ -1322,9 +1322,57 @@ qu'il est écrit.
 
 ## Tests
 
-Quatorze fichiers, qui se collent tels quels dans l'éditeur SQL de Supabase et
+Vingt fichiers, qui se collent tels quels dans l'éditeur SQL de Supabase et
 annulent tout par un `ROLLBACK` final. Une erreur rouge commençant par « ÉCHEC »
 signale la règle qui ne tient plus.
+
+### Les lancer tous, en une seule commande
+
+**Dix-neuf des vingt sont autonomes** : chacun ouvre sa transaction par `begin;`
+et l'annule par `rollback;`, sans rien laisser derrière lui. On peut donc les
+enchaîner sans précaution, dans n'importe quel ordre, sur la base de
+démonstration comme sur une base neuve.
+
+La chaîne de connexion se prend dans le tableau de bord Supabase — *Project
+Settings › Database › Connection string › URI*. **Elle porte le mot de passe :
+elle ne s'écrit ni ici, ni dans un fichier du dépôt, ni dans une conversation.**
+
+```bash
+export FERHA_DB_URL='postgresql://…'   # jamais versionné
+
+for f in supabase/tests/0*.sql; do
+  case "$f" in *013_*) continue;; esac   # voir ci-dessous
+  echo "── $(basename "$f")"
+  psql "$FERHA_DB_URL" -v ON_ERROR_STOP=1 -q -f "$f" || break
+done
+```
+
+En PowerShell, qui est le terminal de ce projet sous Windows :
+
+```powershell
+$env:FERHA_DB_URL = 'postgresql://…'
+
+Get-ChildItem supabase/tests/0*.sql |
+  Where-Object { $_.Name -notlike '013_*' } |
+  ForEach-Object {
+    Write-Host "── $($_.Name)"
+    psql $env:FERHA_DB_URL -v ON_ERROR_STOP=1 -q -f $_.FullName
+    if ($LASTEXITCODE -ne 0) { break }
+  }
+```
+
+`ON_ERROR_STOP=1` est ce qui rend la boucle utile : sans lui, `psql` continue
+après une erreur et la boucle se termine en vert sur un test rouge.
+
+**`013_webhook_bac_a_sable.sql` reste dehors, et c'est écrit dans son en-tête.**
+Il est le seul à ne pas faire de `rollback` : ce qu'il prépare doit être VU
+depuis un autre processus — la Edge Function `chargily-webhook`, qui ouvre sa
+propre connexion. Il se déroule en quatre temps, avec `webhook_chargily.ps1` au
+milieu, et ne se scripte donc pas d'un bloc.
+
+**Cette boucle n'est lancée par personne d'autre que vous.** Voir *Les tests SQL
+ne tournent pas tout seuls* dans le README de la racine : ce qui manque, ce
+n'est pas la commande, c'est le robot qui la lance.
 
 | Fichier | Ce qu'il vérifie |
 |---|---|
