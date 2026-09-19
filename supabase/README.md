@@ -1303,6 +1303,23 @@ garderait une liste de goûts attachée à une personne qu'on peut encore
 identifier par ailleurs. Les favoris sont l'une des rares choses de ce schéma
 qu'une fermeture de compte doit vraiment **effacer**, et non conserver.
 
+**La conséquence, en clair, aujourd'hui : un compte fermé garderait ses
+favoris.** Il n'y a encore aucun compte fermé, puisque la fonction
+d'anonymisation n'est pas écrite — mais c'est précisément pour cela que la dette
+se note ici et pas ailleurs. Le jour où quelqu'un écrira
+`fermer_le_compte(uuid)`, la ligne
+
+```sql
+delete from public.favorites where user_id = p_compte;
+```
+
+devra s'y trouver, **à l'intérieur de la fonction** et non dans une tâche
+voisine qui passerait après. Rien dans le schéma ne la réclamera : les deux
+clés de `favorites` sont en `CASCADE`, et une cascade ne se déclenche que sur
+une suppression — or on ne supprime pas, on neutralise. C'est le seul endroit de
+ce schéma où la base ne rattrapera pas un oubli du code, et c'est pour cela
+qu'il est écrit.
+
 ## Tests
 
 Quatorze fichiers, qui se collent tels quels dans l'éditeur SQL de Supabase et
