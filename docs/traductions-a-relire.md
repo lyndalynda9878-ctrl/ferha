@@ -1,4 +1,10 @@
-# Les traductions arabes des écrans d’authentification
+# Les traductions arabes à relire
+
+Ce document a commencé au J22 avec les seuls écrans d’authentification, et son
+nom le disait. Il porte depuis les chaînes de la bascule de thème, la mention
+des comptes de démonstration et l’onglet Favoris : le nom ne disait plus vrai,
+et il a changé au J27. **Toute chaîne arabe qui attend une relecture humaine se
+range ici**, quel que soit l’écran dont elle vient.
 
 > **LES 52 TRADUCTIONS DES ÉCRANS D’AUTHENTIFICATION ONT ÉTÉ RELUES ET
 > VALIDÉES.** Aucune correction n’a été demandée : la colonne *correction* est

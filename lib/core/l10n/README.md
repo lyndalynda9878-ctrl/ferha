@@ -287,7 +287,9 @@ apparaît dans l'application sans qu'on recompile quoi que ce soit.
 
 Les 52 clés ajoutées après le J22 pour la connexion, l'inscription et le profil
 ont été **relues et validées** par un locuteur natif, sans aucune correction.
-`docs/traductions-auth-a-relire.md` en garde la trace, groupée par écran.
+[`docs/traductions-a-relire.md`](../../../docs/traductions-a-relire.md) en
+garde la trace, groupée par écran — avec, à la suite, les treize clés des
+17 et 19 septembre qui attendent encore leur relecture.
 
 Ce document est une **vue** : la traduction ne vit que dans `app_ar.arb`. Une
 relecture sans correction ne change donc pas une ligne — rien n'a été touché.
