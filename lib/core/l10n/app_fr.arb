@@ -23,6 +23,46 @@
   "@themeVersClair": {
     "description": "La meme chose QUAND L'ECRAN EST SOMBRE. Deux libelles et non un seul : c'est ce qui permet de nommer la destination plutot que le bouton."
   },
+  "favorisTitre": "Favoris",
+  "@favorisTitre": {
+    "description": "Le titre de l'onglet Favoris (ecran 3 de la barre du bas)."
+  },
+  "favoriAjouter": "Ajouter aux favoris",
+  "@favoriAjouter": {
+    "description": "Infobulle et etiquette d'accessibilite du coeur QUAND LA SALLE N'EST PAS ENCORE EN FAVORI. Deux libelles et non un seul, comme la bascule de theme : le bouton annonce ce qu'un appui fera, jamais l'etat courant."
+  },
+  "favoriRetirer": "Retirer des favoris",
+  "@favoriRetirer": {
+    "description": "La meme chose QUAND ELLE Y EST DEJA."
+  },
+  "favoriNonEnregistre": "Ce favori n’a pas pu être enregistré.",
+  "@favoriNonEnregistre": {
+    "description": "En-tete du message quand la base refuse : le coeur se reeteint, et cette phrase dit pourquoi il s'est reeteint. Le detail traduit de l'erreur la suit."
+  },
+  "favorisVideTitre": "Rien de côté pour l’instant",
+  "@favorisVideTitre": {
+    "description": "L'etat vide NE DIT PAS « aucun favori ». La regle du projet est qu'un etat vide nomme ce qui manque et donne un bouton pour en sortir."
+  },
+  "favorisVideTexte": "Touchez le cœur sur une salle pour la retrouver ici.",
+  "@favorisVideTexte": {
+    "description": "Le geste a faire, en une phrase. C'est ce qui remplace « aucun favori »."
+  },
+  "favorisVideBouton": "Chercher une salle",
+  "@favorisVideBouton": {
+    "description": "La sortie de l'etat vide : elle ramene a la recherche."
+  },
+  "favorisNonConnecteTitre": "Vos favoris suivent votre compte",
+  "@favorisNonConnecteTitre": {
+    "description": "L'onglet EXPLIQUE et propose de se connecter ; il ne redirige pas. Le routeur n'a aucune redirection globale."
+  },
+  "favorisNonConnecteTexte": "Connectez-vous pour retrouver les salles que vous mettez de côté, d’un appareil à l’autre.",
+  "@favorisNonConnecteTexte": {
+    "description": "Pourquoi un compte est necessaire ici, alors que chercher et consulter ne le demandent pas : un favori se range sur un compte, pas sur l'appareil."
+  },
+  "favorisErreurTitre": "Vos favoris n’ont pas pu être chargés",
+  "@favorisErreurTitre": {
+    "description": "Le titre de l'etat d'erreur. Dire « la recherche n'a pas abouti » ici annoncerait une recherche a quelqu'un qui consultait ses favoris."
+  },
   "langueFrancais": "Français",
   "@langueFrancais": {
     "description": "Le nom de la langue francaise, ecrit en francais dans les deux fichiers : un nom de langue ne se traduit pas."

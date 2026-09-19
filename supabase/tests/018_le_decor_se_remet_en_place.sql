@@ -48,7 +48,7 @@
 --
 -- CE QU'IL LAISSE : rien.
 --
--- Prérequis : migrations 001 à 036, et les seeds 001, 003 et 004.
+-- Prérequis : migrations 001 à 039, et les seeds 001, 003 et 004.
 -- =============================================================================
 
 begin;
@@ -69,6 +69,12 @@ declare
   c_hors_cli   constant uuid := 'c0000018-0000-4000-a000-000000000002';
   c_hors_salle constant uuid := 'c0000018-0000-4000-a000-000000000003';
   c_hors_resa  constant uuid := 'c0000018-0000-4000-a000-000000000004';
+
+  -- Les salles du test 17. Dar El Feth est l'un des trois favoris du décor ;
+  -- les deux autres n'en sont pas, et c'est le visiteur qui les ajoutera.
+  c_darfeth    constant uuid := '5a11e000-0000-4000-a000-000000000004';
+  c_andalouses constant uuid := '5a11e000-0000-4000-a000-000000000002';
+  c_amir       constant uuid := '5a11e000-0000-4000-a000-000000000010';
 
   -- Le délai du banc d'essai — voir l'en-tête.
   c_tout     constant interval := interval '-1 hour';
@@ -534,12 +540,14 @@ begin
   if v_m.reservations_de_visiteurs <> 0 or v_m.avis_de_visiteurs <> 0
      or v_m.paiements_de_visiteurs <> 0 or v_m.decor_remis
      or v_m.dates_bloquees_retirees <> 0 or v_m.dates_bloquees_reposees <> 0
-     or v_m.notifications_purgees <> 0 then
+     or v_m.notifications_purgees <> 0
+     or v_m.favoris_de_visiteurs_retires <> 0 or v_m.favoris_du_decor_reposes <> 0 then
     raise exception 'ÉCHEC 12 — le ménage n''est pas idempotent : resa=%, avis=%, paiements=%, '
-                    'remis=%, dates -%/+%, notifications=%.',
+                    'remis=%, dates -%/+%, notifications=%, favoris -%/+%.',
       v_m.reservations_de_visiteurs, v_m.avis_de_visiteurs, v_m.paiements_de_visiteurs,
       v_m.decor_remis, v_m.dates_bloquees_retirees, v_m.dates_bloquees_reposees,
-      v_m.notifications_purgees;
+      v_m.notifications_purgees,
+      v_m.favoris_de_visiteurs_retires, v_m.favoris_du_decor_reposes;
   end if;
   raise notice 'Test 12 OK — une seconde passe ne remue rien.';
 
@@ -555,7 +563,9 @@ begin
   if (select decor_detourne from public.etat_du_decor) is distinct from 0
      or (select decor_disparu from public.etat_du_decor) is distinct from 0
      or (select dates_bloquees_en_trop from public.etat_du_decor) is distinct from 0
-     or (select dates_bloquees_manquantes from public.etat_du_decor) is distinct from 0 then
+     or (select dates_bloquees_manquantes from public.etat_du_decor) is distinct from 0
+     or (select favoris_de_visiteurs_en_trop from public.etat_du_decor) is distinct from 0
+     or (select favoris_du_decor_manquants from public.etat_du_decor) is distinct from 0 then
     raise exception 'ÉCHEC 13 — le décor vient d''être remis et la vue le dit encore sale.';
   end if;
   if (select demandes_en_attente from public.etat_du_decor) = 0 then
@@ -679,6 +689,112 @@ begin
     raise exception 'ÉCHEC 16 — le ménage a retiré son rôle à un propriétaire hors décor.';
   end if;
   raise notice 'Test 16 OK — hors des comptes de démonstration, le ménage ne voit rien.';
+
+  -- ---------------------------------------------------------------------------
+  -- TEST 17 — LES FAVORIS DU DÉCOR (039)
+  --
+  -- LE CAS RÉEL, ET IL EST BON MARCHÉ À PRODUIRE : un visiteur entre comme
+  -- Amina, met deux cœurs sur des salles qu'il regarde, en retire un de ceux du
+  -- décor, et s'en va. Envoyer une demande lui aurait pris six écrans ; ceci
+  -- lui prend trois doigts. C'est la donnée de visiteur qui s'accumulera le
+  -- plus vite, et c'est pour cela qu'elle est entrée dans le ménage.
+  --
+  -- APRÈS LE MÉNAGE, AMINA DOIT AVOIR EXACTEMENT LES TROIS DU DÉCOR. Ni cinq,
+  -- ni deux. « Au moins trois » ne prouverait rien : c'est exactement ce que
+  -- montrerait une base où le ménage ne retire rien.
+  -- ---------------------------------------------------------------------------
+  if (select count(*) from public.decor_favorites) <> 3 then
+    raise exception 'ÉCHEC 17 — l''empreinte porte % favoris au lieu de 3. Le bloc des '
+                    'favoris de seed/004 n''a pas tourné, ou la migration 039 manque.',
+      (select count(*) from public.decor_favorites);
+  end if;
+
+  -- La date de l'empreinte, qu'on exigera de retrouver à l'identique plus bas.
+  select created_at into v_creee
+    from public.decor_favorites
+   where user_id = c_amina and venue_id = c_darfeth;
+
+  -- Le passage du visiteur.
+  insert into public.favorites (user_id, venue_id, created_at)
+  values (c_amina, c_andalouses, now()),
+         (c_amina, c_amir,       now())
+  on conflict (user_id, venue_id) do nothing;
+
+  delete from public.favorites
+   where user_id = c_amina and venue_id = c_darfeth;
+
+  if (select count(*) from public.favorites where user_id = c_amina) <> 4 then
+    raise exception 'ÉCHEC 17 — le décor de départ n''est pas celui qu''on croit : % favoris.',
+      (select count(*) from public.favorites where user_id = c_amina);
+  end if;
+
+  select * into v_m from public.menage_du_decor(c_tout);
+
+  if v_m.favoris_de_visiteurs_retires <> 2 then
+    raise exception 'ÉCHEC 17 — % favoris de visiteur retirés au lieu de 2.',
+      v_m.favoris_de_visiteurs_retires;
+  end if;
+  if v_m.favoris_du_decor_reposes <> 1 then
+    raise exception 'ÉCHEC 17 — % favori du décor reposé au lieu de 1.',
+      v_m.favoris_du_decor_reposes;
+  end if;
+
+  if (select count(*) from public.favorites where user_id = c_amina) <> 3 then
+    raise exception 'ÉCHEC 17 — Amina a % favoris après le ménage, et non 3.',
+      (select count(*) from public.favorites where user_id = c_amina);
+  end if;
+
+  -- ET CE SONT BIEN LES TROIS DU DÉCOR. Compter trois ne suffit pas : le
+  -- ménage pourrait avoir retiré un favori du décor et laissé un du visiteur.
+  if exists (
+    select 1 from public.favorites f
+     where f.user_id::text like 'd0000000-%'
+       and not exists (select 1 from public.decor_favorites e
+                        where e.user_id = f.user_id and e.venue_id = f.venue_id)) then
+    raise exception 'ÉCHEC 17 — il reste un favori de visiteur sur un compte de démonstration.';
+  end if;
+  if exists (
+    select 1 from public.decor_favorites e
+     where not exists (select 1 from public.favorites f
+                        where f.user_id = e.user_id and f.venue_id = e.venue_id)) then
+    raise exception 'ÉCHEC 17 — un favori du décor manque encore après le ménage.';
+  end if;
+
+  -- LA DATE EST CELLE DE L'EMPREINTE, PAS CELLE DU JOUR. `created_at` porte
+  -- l'ordre de l'onglet : un favori reposé à now() remonterait en tête de liste
+  -- à chaque ménage, et l'écran changerait d'ordre tout seul dans la nuit.
+  if (select created_at from public.favorites
+       where user_id = c_amina and venue_id = c_darfeth) is distinct from v_creee then
+    raise exception 'ÉCHEC 17 — le favori reposé a pris une nouvelle date : l''onglet '
+                    'changerait d''ordre à chaque passage du ménage.';
+  end if;
+
+  -- LA SECONDE PASSE NE REMUE RIEN — comme les dates bloquées au test 12.
+  select * into v_m from public.menage_du_decor(c_tout);
+
+  if v_m.favoris_de_visiteurs_retires <> 0 or v_m.favoris_du_decor_reposes <> 0 then
+    raise exception 'ÉCHEC 17 — la seconde passe remue les favoris : -%/+%.',
+      v_m.favoris_de_visiteurs_retires, v_m.favoris_du_decor_reposes;
+  end if;
+
+  if (select favoris_de_visiteurs_en_trop from public.etat_du_decor) is distinct from 0
+     or (select favoris_du_decor_manquants from public.etat_du_decor) is distinct from 0 then
+    raise exception 'ÉCHEC 17 — les favoris sont remis et la vue les dit encore sales.';
+  end if;
+
+  -- ET LE HORS-DÉCOR N'EST PAS TOUCHÉ. Le compte du test 10 ne porte pas le
+  -- préfixe d0000000- : son favori doit survivre au ménage, comme son nom.
+  insert into public.favorites (user_id, venue_id, created_at)
+  values (c_hors_cli, c_bahia, now() - interval '3 days')
+  on conflict (user_id, venue_id) do nothing;
+
+  perform public.menage_du_decor(c_tout);
+
+  if not exists (select 1 from public.favorites
+                  where user_id = c_hors_cli and venue_id = c_bahia) then
+    raise exception 'ÉCHEC 17 — le ménage a effacé le favori d''une vraie personne.';
+  end if;
+  raise notice 'Test 17 OK — trois favoris, les bons, à leur date, et la seconde passe ne remue rien.';
 
   raise notice '--------------------------------------------------------------';
   raise notice 'tests/018 — tout est passé. La transaction va être annulée.';

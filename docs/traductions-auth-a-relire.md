@@ -5,10 +5,10 @@
 > vide parce que chaque ligne convient telle quelle, et non parce qu’elle n’a
 > pas été regardée.
 >
-> **TROIS CLÉS ATTENDENT, ELLES, LEUR RELECTURE** — ajoutées le 17 septembre
-> 2026, hors des écrans d’authentification. Elles sont dans les deux dernières
-> sections, à part, pour que la validation ci-dessus ne les couvre pas par
-> erreur.
+> **TREIZE CLÉS ATTENDENT, ELLES, LEUR RELECTURE** — ajoutées les 17 et
+> 19 septembre 2026, hors des écrans d’authentification. Elles sont dans les
+> trois dernières sections, à part, pour que la validation ci-dessus ne les
+> couvre pas par erreur.
 
 **52 clés**, ajoutées après le J22 pour les trois écrans d’authentification :
 connexion, inscription, profil, et les messages d’erreur qu’ils montrent.
@@ -229,3 +229,48 @@ contenu, et il est traduit partout où il apparaît.
 |---|---|---|---|---|
 | `themeVersSombre` | l’écran est clair | Passer en thème sombre | التبديل إلى المظهر الداكن | |
 | `themeVersClair` | l’écran est sombre | Passer en thème clair | التبديل إلى المظهر الفاتح | |
+
+
+---
+
+## À RELIRE — l’onglet Favoris, 10 clés (19 septembre 2026)
+
+> **CETTE SECTION N’A PAS ÉTÉ RELUE.** Elle est postérieure aux 52 clés
+> validées plus haut et ne relève pas des écrans d’authentification.
+
+L’onglet Favoris existait dans la barre du bas depuis le J10 et sa page était
+vide ; aucun écran ne permettait d’ajouter un favori. Ces dix clés sont tout ce
+que l’onglet et son cœur disent à voix haute.
+
+Quatre points à regarder en particulier :
+
+* **المفضّلة** (« les favoris ») est le mot qui revient dans huit des dix clés.
+  S’il faut en changer, il faut en changer partout — c’est le nom de l’onglet
+  autant que celui du geste. La forme retenue est au singulier féminin, comme
+  une rubrique, là où le français met un pluriel ;
+* **le cœur a DEUX étiquettes, pas une** — `favoriAjouter` et `favoriRetirer` —
+  parce qu’un bouton annonce ce qu’un appui fera, jamais l’état courant. C’est
+  la règle que suivent déjà `switchLanguage` et la bascule de thème. Les deux
+  verbes sont à l’impératif (أضِف / أزِل) parce qu’ils nomment un geste que la
+  personne fait, et non un état qu’elle constate ;
+* **القلب** (« le cœur ») dans `favorisVideTexte` désigne l’icône, pas l’organe.
+  Si un autre mot est plus naturel pour parler d’un bouton sur un téléphone
+  algérien, c’est celui-là qu’il faut : cette phrase est la seule qui explique
+  le geste à quelqu’un qui ne l’a pas encore trouvé ;
+* **`favorisVideTitre` ne dit pas « aucun favori »**, et sa traduction ne doit pas
+  le dire non plus. La règle du projet est qu’un état vide nomme ce qui manque et
+  donne une sortie ; لا شيء محفوظ بعد porte le بعد (« pas encore ») qui fait toute
+  la différence entre une attente et un mur.
+
+| clé | quand | français | arabe proposé | correction |
+|---|---|---|---|---|
+| `favorisTitre` | le titre de l’onglet | Favoris | المفضّلة | |
+| `favoriAjouter` | la salle n’est pas encore en favori | Ajouter aux favoris | أضِف إلى المفضّلة | |
+| `favoriRetirer` | elle y est déjà | Retirer des favoris | أزِل من المفضّلة | |
+| `favoriNonEnregistre` | la base a refusé, le cœur s’est rééteint | Ce favori n’a pas pu être enregistré. | تعذّر حفظ هذه المفضّلة. | |
+| `favorisVideTitre` | l’onglet est vide | Rien de côté pour l’instant | لا شيء محفوظ بعد | |
+| `favorisVideTexte` | le geste à faire | Touchez le cœur sur une salle pour la retrouver ici. | المس القلب على قاعة لتجدها هنا. | |
+| `favorisVideBouton` | la sortie de l’état vide | Chercher une salle | ابحث عن قاعة | |
+| `favorisNonConnecteTitre` | personne n’est connecté | Vos favoris suivent votre compte | المفضّلة مرتبطة بحسابك | |
+| `favorisNonConnecteTexte` | pourquoi un compte est nécessaire ici | Connectez-vous pour retrouver les salles que vous mettez de côté, d’un appareil à l’autre. | سجّل الدخول لتجد القاعات التي حفظتها، من جهاز إلى آخر. | |
+| `favorisErreurTitre` | la liste n’a pas pu être chargée | Vos favoris n’ont pas pu être chargés | تعذّر تحميل مفضّلتك | |

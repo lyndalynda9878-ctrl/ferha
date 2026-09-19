@@ -15,6 +15,7 @@ import '../search/search_filters.dart';
 import '../search/widgets/etats.dart';
 import 'venue_detail.dart';
 import 'venue_providers.dart';
+import '../favorites/widgets/coeur_favori.dart';
 
 /// Écran 3 des maquettes — la fiche salle (§4.2, CLI-03).
 ///
@@ -212,6 +213,13 @@ class _GalerieEnTete extends StatelessWidget {
         ),
       ),
       actions: <Widget>[
+        // LE MÊME CŒUR QUE SUR LA CARTE, et le même fournisseur derrière :
+        // retirer un favori ici l'éteint aussi dans les résultats, sans que
+        // l'un ait à prévenir l'autre.
+        Padding(
+          padding: const EdgeInsetsDirectional.only(end: 4),
+          child: CoeurFavori(venueId: salle.id, surPhoto: true),
+        ),
         if (salle.photos.length > 1)
           Padding(
             padding: const EdgeInsetsDirectional.only(end: 12),

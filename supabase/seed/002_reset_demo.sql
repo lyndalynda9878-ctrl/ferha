@@ -198,7 +198,10 @@ delete from public.venue_event_types where venue_id in (select id from salles_de
 -- différence n'est pas dans le résultat, elle est dans le fait qu'on le dise.
 --
 -- Les notifications des comptes de démonstration partent avec eux : la clé
--- étrangère de notifications.user_id est en CASCADE.
+-- étrangère de notifications.user_id est en CASCADE. Leurs FAVORIS aussi, par
+-- favorites.user_id, en CASCADE pour la même raison (039) : un favori n'a
+-- qu'une partie, n'enregistre aucune vente, et anonymisé ne conserverait rien
+-- que quiconque puisse lire.
 -- -----------------------------------------------------------------------------
 
 delete from public.venues   where id in (select id from salles_de_demonstration);

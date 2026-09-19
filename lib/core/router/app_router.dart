@@ -28,8 +28,8 @@ import '../../features/venue/galerie_screen.dart';
 import '../../features/venue/venue_screen.dart';
 import '../theme/design_gallery_screen.dart';
 import 'home_shell.dart';
-import 'placeholder_screen.dart';
 import 'routes.dart';
+import '../../features/favorites/favoris_screen.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -53,13 +53,11 @@ final routerProvider = Provider<GoRouter>((ref) {
           // poser la question à un agent plutôt qu'à un formulaire ne change
           // rien à cette règle.
           _branch(FerhaRoutes.assistant, const AssistantScreen()),
-          _branch(
-            FerhaRoutes.favoris,
-            const PlaceholderScreen(
-              title: 'Favoris',
-              icon: Icons.favorite_outline,
-            ),
-          ),
+          // FAVORIS N'A PAS DE REDIRECTION NON PLUS, et c'est délibéré : sans
+          // compte, l'onglet EXPLIQUE pourquoi il en faut un et propose de se
+          // connecter. Une redirection poserait un formulaire devant quelqu'un
+          // qui voulait seulement voir de quoi il s'agit.
+          _branch(FerhaRoutes.favoris, const FavorisScreen()),
           _branch(FerhaRoutes.profil, const ProfilScreen()),
         ],
       ),

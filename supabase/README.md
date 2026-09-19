@@ -49,6 +49,7 @@ seulement :
 | 36 | `migrations/036_les_personnes_du_decor.sql` | `decor_profiles`, `roles_detournes` — l'empreinte tient aussi les personnes ; le rôle se remet sans délai, les saisies attendent — **élargit `capturer_le_decor()`, `vider_le_decor()`, `menage_du_decor()` et `etat_du_decor`** | 001, 018, 035 |
 | 37 | `migrations/037_les_dates_bloquees_manquantes.sql` | les 50 dates bloquées du second bloc de `seed/001`, que la base n'avait jamais reçues — additive, rejouable, et elle reprend l'empreinte APRÈS l'insertion | 001, 035, 036, seed/001 |
 | 38 | `migrations/038_pas_de_telephone_en_demonstration.sql` | `profiles_pas_de_telephone_en_demonstration` — un compte `d0000000-…` ne PEUT PAS porter de numéro : le déclencheur force `phone` à NULL et `phone_verified` à false, sous toutes les portes. Il force, il ne refuse pas | 001, 018, 020 |
+| 39 | `migrations/039_les_favoris.sql` | `favorites` (clé primaire composite), sa RLS, `mes_favoris()`, `decor_favorites` et les trois favoris d'Amina — **élargit `capturer_le_decor()`, `vider_le_decor()`, `menage_du_decor()` et `etat_du_decor`** ; additive et rejouable, elle reprend l'empreinte APRÈS l'insertion | 001, 002, 005, 035, 036, seed/001 |
 
 `002` a besoin des tables de `001`. `003` a besoin de la table `amenities` de
 `001`, mais pas de `002`. Appliquer `002` avant `003` reste le bon ordre : le
@@ -372,6 +373,119 @@ regarde.
 n'y pose aucune échéance, et une demande en attente ne coûte la date à
 personne. Un propriétaire parti en voyage retrouve ses demandes au retour
 plutôt qu'un écran vide.
+
+## Les favoris (039)
+
+Une salle mise de côté, et rien d'autre : `favorites` porte **la personne, la
+salle, la date**. Pas de dossier, pas de note, pas de partage, pas de compteur.
+
+**La clé primaire porte les deux colonnes ensemble.** Aimer deux fois la même
+salle ne crée pas deux lignes, et ce n'est pas un `if` en Dart qui l'empêche —
+c'est `primary key (user_id, venue_id)`. Même doctrine que l'index partiel qui
+rend la double réservation impossible (004) : un double tap, deux onglets
+ouverts, une reprise de réseau qui rejoue la requête, aucun de ces trois chemins
+ne passe.
+
+**RLS : je lis, j'ajoute et je retire MES lignes, et rien d'autre.** Trois
+politiques, et **aucune d'`UPDATE`** — un favori n'a rien à modifier, il existe
+ou il n'existe pas, et ses deux seules colonnes sont sa clé. L'insertion vérifie
+en plus `can_read_venue()` : sans ce contrôle, la table accepterait
+l'identifiant de n'importe quelle salle, et un inconnu pourrait y ranger des
+identifiants au hasard pour apprendre lesquels existent. Le retrait, lui, ne
+vérifie pas la salle — une salle dépubliée après coup laisserait sinon son
+favori collé pour toujours.
+
+`mes_favoris()` rend **les douze colonnes de `search_venues()`, dans le même
+ordre** : l'onglet réutilise la carte de l'accueil et des résultats sans en
+redessiner une. Le prix vient d'`estimate_price()` comme partout ailleurs, pour
+aujourd'hui, le soir, une personne — l'onglet ne porte aucune date.
+
+### À la suppression : CASCADE des deux côtés, et pourquoi la règle tient toujours
+
+`CLAUDE.md` interdit de passer une clé en `CASCADE` pour faire passer une
+suppression, parce que c'est le filet qui garantit qu'on écrira une
+anonymisation. Les deux clés de `favorites` sont pourtant en `CASCADE`. La règle
+n'est pas contournée : **elle ne s'applique pas ici**, et voici les trois
+raisons.
+
+1. **Un favori n'a qu'une seule partie.** Une réservation est un échange : il y
+   a un vendeur et un acheteur, et chacun peut venir demander ce qu'il a fait.
+   Un favori n'est connu que de la personne qui l'a posé — le propriétaire de la
+   salle ne le voit pas, la RLS le lui interdit, et on a refusé exprès le
+   compteur « 12 personnes aiment cette salle ». Il n'existe **aucun tiers** qui
+   pourrait un jour venir réclamer cette ligne.
+
+2. **Anonymiser un favori ne conserverait rien.** C'est le test décisif, et il
+   se pose ainsi : que reste-t-il de lisible après l'anonymisation ? Pour une
+   réservation, beaucoup — « cette salle a été louée ce jour-là, pour ce
+   montant » reste vrai, reste utile, et reste dû au propriétaire. Pour un
+   favori, il reste « quelqu'un, un jour, a aimé cette salle » : une phrase que
+   **personne** ne peut lire, puisque le seul lecteur que la RLS désigne jamais
+   est le propriétaire de la ligne, et qu'il n'existe plus. Ce n'est pas une
+   trace préservée, c'est une ligne orpheline — et la garder serait conserver
+   une donnée personnelle au-delà de la finalité qui la justifiait, l'inverse de
+   ce que demande la loi 18-07.
+
+3. **Cette cascade ne desserre pas le filet d'un millimètre.** Le filet, c'est
+   `bookings.client_id` en `RESTRICT`, et il ne bouge pas. Une suppression
+   franche d'un profil qui a déjà réservé échoue toujours, et elle échoue
+   **avant** que la cascade des favoris ait la moindre occasion de partir. Cette
+   cascade ne peut donc s'exécuter que pour un profil sans aucune réservation —
+   exactement le cas où il n'y a aucun historique comptable à protéger. On ne
+   fait pas passer une suppression qui était bloquée : on choisit le
+   comportement d'une table neuve que rien n'a jamais bloquée.
+
+**La salle qui disparaît** : même raisonnement, plus court. Le contenu entier
+d'un favori EST la salle ; sans elle il ne désigne plus rien, et l'onglet
+afficherait une carte vide. Toutes les tables qui dépendent d'une salle
+cascadent déjà — photos, tarifs, dates bloquées, équipements, avis ; la seule
+qui résiste est `bookings.venue_id`, et elle résiste parce qu'elle enregistre
+une **vente**. Un favori n'enregistre aucune vente.
+
+### Ce que le décor garantit
+
+Les favoris sont la **première donnée qu'un visiteur crée sans formulaire**.
+Envoyer une demande prend six écrans ; toucher un cœur prend un doigt. Le chemin
+d'entrée de la démonstration est « Entrer comme Amina », en un tap, sur un
+compte partagé : sans ce qui suit, dans une semaine l'onglet Favoris d'Amina
+montrerait les salles de trente inconnus — et le gardien du décor n'en saurait
+rien, parce qu'il ne connaissait pas cette table.
+
+Trois gestes, donc, et ce sont ceux de 035 appliqués à une table de plus :
+
+* **le décor porte trois favoris pour Amina** — Salle El Bahia (Oran), Palais
+  Dar El Feth (Zéralda), Salle Les Ponts (Constantine). Trois wilayas, trois
+  propriétaires, trois capacités éloignées : ce qu'une famille met de côté, pas
+  trois variantes de la même salle. El Bahia est celle qui porte les trois avis
+  du décor, donc la seule dont la carte montre une note ;
+* **`decor_favorites` capture ces trois lignes**, `created_at` compris — c'est
+  l'ordre de l'onglet, et un favori reposé à `now()` remonterait en tête de
+  liste à chaque ménage, faisant changer l'écran tout seul dans la nuit ;
+* **`menage_du_decor()` les remet** : exactement trois, ni plus ni moins. Le
+  critère est **la personne** (`user_id like 'd0000000-%'`) et non la salle : un
+  favori n'appartient pas à une salle, il appartient à quelqu'un. Un favori posé
+  par une vraie personne sur une salle de démonstration n'est jamais touché.
+
+Les favoris du décor se reposent **sans délai**, comme les dates bloquées : un
+favori du décor qu'un visiteur a retiré est une absence, pas une saisie en
+cours, et l'onglet d'Amina doit cesser d'être vide à la première heure ronde. Ce
+qu'un visiteur a ajouté en trop attend, lui, `p_delai` — celui qui pose cinq
+cœurs en voit cinq pendant toute sa visite.
+
+`etat_du_decor` gagne trois colonnes, et **elles disent la conformité, pas
+l'exécution** — une tâche cron qui tourne à vide s'exécute parfaitement :
+
+| Colonne | Ce qu'elle dit | Valeur attendue |
+|---|---|---|
+| `empreinte_favoris` | combien de favoris l'empreinte porte | `3` |
+| `favoris_de_visiteurs_en_trop` | les favoris posés par un visiteur sur un compte de démonstration | `0` |
+| `favoris_du_decor_manquants` | les favoris du décor qu'un visiteur a retirés | `0` |
+
+**L'ordre est un garde-fou, pas une préférence.** `menage_du_decor()` efface les
+favoris de comptes de démonstration absents de l'empreinte : insérer les trois
+lignes sans reprendre l'empreinte derrière, c'est les voir disparaître à la
+première heure ronde passé le délai — sans message et sans erreur. **Insertion
+d'abord, empreinte ensuite**, dans `seed/004` comme dans la migration 039.
 
 ## Les notifications (§4.1, CORE-04)
 
@@ -1181,6 +1295,14 @@ filet qui garantit qu'on l'écrira comme une anonymisation.
 Reste à décider au moment de l'écrire : ce que devient le `full_name` affiché
 sur un avis déjà publié.
 
+**Les favoris, eux, devront être supprimés explicitement.** La cascade de
+`favorites.user_id` ne part **jamais** lors d'une fermeture de compte, puisqu'on
+n'y supprime pas la ligne `profiles` — on la neutralise. Sans une suppression
+écrite noir sur blanc dans la fonction d'anonymisation, un compte fermé
+garderait une liste de goûts attachée à une personne qu'on peut encore
+identifier par ailleurs. Les favoris sont l'une des rares choses de ce schéma
+qu'une fermeture de compte doit vraiment **effacer**, et non conserver.
+
 ## Tests
 
 Quatorze fichiers, qui se collent tels quels dans l'éditeur SQL de Supabase et
@@ -1207,6 +1329,7 @@ signale la règle qui ne tient plus.
 | `tests/016_index_semantique.sql` | le document porte tout ce qu'on peut demander, le hachage ne bouge qu'avec le contenu, **une salle non publiée n'est jamais indexée**, et `venue_embeddings` est close |
 | `tests/017_synthese_des_avis.sql` | **pas de synthèse sous trois avis porteurs de texte**, **une salle dont les avis n'ont pas bougé n'est pas retraitée**, aucun nom de client n'atteint le modèle, un brouillon n'est jamais résumé, et la table est close |
 | `tests/019_pas_de_telephone_en_demonstration.sql` | un numéro ne se dépose pas sur un compte de démonstration — ni par un `update` direct, ni avec `phone_verified = true`, ni par `request_booking()` — **et il se dépose toujours chez un vrai client** ; `booking_contact()` ouvre le contact sans rien révéler |
+| `tests/020_les_favoris.sql` | **la clé primaire composite rend le doublon impossible** — une seconde insertion ne crée pas une seconde ligne —, deux personnes aiment la même salle chacune sa ligne, une salle supprimée emporte ses favoris, **B ne voit AUCUN favori de A**, ne peut ni en retirer un ni en poser un au nom de A, `mes_favoris()` ne rend que les siens, et un inconnu non connecté ne lit ni n'écrit rien |
 
 Le huitième va plus loin encore : pour mesurer les politiques du bucket, il
 lève au passage `storage.allow_delete_query`, le verrou de Supabase qui refuse

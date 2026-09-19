@@ -6,6 +6,7 @@ import '../../../core/l10n/generated/app_localizations.dart';
 import '../../../core/widgets/photo_salle.dart';
 import '../../../core/theme/ferha_colors.dart';
 import '../../../core/theme/ferha_radii.dart';
+import '../../favorites/widgets/coeur_favori.dart';
 import '../search_providers.dart';
 import '../venue_summary.dart';
 
@@ -51,9 +52,26 @@ class VenueCard extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            PhotoSalle(
-              chemin: salle.photoCouverture,
-              hauteur: dense ? 108 : 140,
+            // LE CŒUR VIT SUR LA CARTE, ET NON SUR LES ÉCRANS QUI L'UTILISENT :
+            // c'est ce qui le fait apparaître d'un coup sur l'accueil ET dans
+            // les résultats, sans dupliquer une ligne.
+            //
+            // `PositionedDirectional` et `end:` plutôt que `Positioned` et
+            // `right:` — en arabe la carte se retourne, et le cœur doit passer
+            // de l'autre côté de la photo. C'est la règle de tout le projet, et
+            // elle vaut aussi pour ce qui flotte au-dessus d'une image.
+            Stack(
+              children: <Widget>[
+                PhotoSalle(
+                  chemin: salle.photoCouverture,
+                  hauteur: dense ? 108 : 140,
+                ),
+                PositionedDirectional(
+                  top: 4,
+                  end: 4,
+                  child: CoeurFavori(venueId: salle.id, surPhoto: true),
+                ),
+              ],
             ),
             Padding(
               padding: const EdgeInsetsDirectional.all(12),

@@ -305,6 +305,43 @@ values
    'Merci pour tout, la famille a beaucoup apprécié.', '2026-08-24 12:00+01');
 
 -- -----------------------------------------------------------------------------
+-- Les trois favoris d'Amina (039)
+--
+-- POURQUOI LE DÉCOR EN PORTE. Un onglet Favoris vide quand on entre comme Amina
+-- serait exactement le défaut que le J28 répare : un onglet qui existe et ne
+-- montre rien. Trois cartes disent en une image ce que l'écran sait faire.
+--
+-- TROIS WILAYAS, TROIS PROPRIÉTAIRES, TROIS CAPACITÉS ÉLOIGNÉES — Oran, Alger,
+-- Constantine. C'est ce qu'une famille met de côté : pas trois variantes de la
+-- même salle, mais les trois candidates entre lesquelles elle hésite encore.
+-- Salle El Bahia est celle qui porte les trois avis ci-dessus, donc la seule
+-- dont la carte montre une note.
+--
+-- LES DATES SONT FIXES parce que `created_at` porte l'ordre de l'onglet — le
+-- dernier aimé en premier. Trois `now()` donneraient un ordre différent à
+-- chaque base.
+--
+-- Karim n'en a aucun, et ce n'est pas un oubli : c'est un propriétaire, il
+-- gère des salles, il n'en cherche pas.
+--
+-- La migration 039 pose les mêmes trois lignes sur la base déjà semée, qu'on ne
+-- resème pas. Les deux fichiers racontent la même histoire ; si l'un change,
+-- l'autre doit changer.
+-- -----------------------------------------------------------------------------
+
+insert into public.favorites (user_id, venue_id, created_at) values
+  ('d0000000-0000-4000-a000-000000000010',
+   '5a11e000-0000-4000-a000-000000000001',   -- Salle El Bahia, Oran, 450, notée
+   '2026-09-02 19:20+01'),
+  ('d0000000-0000-4000-a000-000000000010',
+   '5a11e000-0000-4000-a000-000000000004',   -- Palais Dar El Feth, Zéralda, 700
+   '2026-09-05 21:05+01'),
+  ('d0000000-0000-4000-a000-000000000010',
+   '5a11e000-0000-4000-a000-000000000013',   -- Salle Les Ponts, Constantine, 400
+   '2026-09-09 13:40+01')
+on conflict (user_id, venue_id) do nothing;
+
+-- -----------------------------------------------------------------------------
 -- L'empreinte, prise ici et à aucun autre moment
 --
 -- Le ménage horaire de la migration 035 remet le décor en place après le
@@ -322,7 +359,7 @@ values
 
 do $$
 declare
-  v_r integer; v_a integer; v_d integer; v_p integer;
+  v_r integer; v_a integer; v_d integer; v_p integer; v_f integer;
 begin
   if to_regprocedure('public.capturer_le_decor()') is null then
     raise notice 'Migration 035 non appliquée : pas d''empreinte, donc pas de ménage horaire.';
@@ -332,12 +369,16 @@ begin
   -- La quatrième colonne vient de la migration 036 : les PERSONNES. Sans elle,
   -- un visiteur qui se donne le rôle de propriétaire ou qui bascule la langue
   -- en arabe laisse une trace que le ménage horaire ne voit pas.
-  select c.reservations, c.avis, c.dates_bloquees, c.personnes
-    into v_r, v_a, v_d, v_p
+  --
+  -- La cinquième vient de 039 : les FAVORIS. Ils se posent en un doigt, sur un
+  -- compte partagé — c'est la donnée de visiteur la moins chère à créer, donc
+  -- celle qui s'accumule le plus vite.
+  select c.reservations, c.avis, c.dates_bloquees, c.personnes, c.favoris
+    into v_r, v_a, v_d, v_p, v_f
   from public.capturer_le_decor() c;
 
-  raise notice 'Empreinte du décor : % réservations, % avis, % dates bloquées, % personnes.',
-    v_r, v_a, v_d, v_p;
+  raise notice 'Empreinte du décor : % réservations, % avis, % dates bloquées, % personnes, % favoris.',
+    v_r, v_a, v_d, v_p, v_f;
 end $$;
 
 commit;
@@ -357,4 +398,5 @@ select
   (select count(*) from public.bookings where id::text like 'b0000000-%')             as lignes,
   (select count(distinct group_id) from public.bookings where id::text like 'b0000000-%') as demandes,
   (select count(*) from public.bookings where id::text like 'b0000000-%' and status = 'pending') as en_attente,
-  (select count(*) from public.reviews  where booking_id::text like 'b0000000-%')      as avis;
+  (select count(*) from public.reviews  where booking_id::text like 'b0000000-%')      as avis,
+  (select count(*) from public.favorites where user_id::text like 'd0000000-%')        as favoris;
