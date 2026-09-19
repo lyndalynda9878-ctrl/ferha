@@ -22,6 +22,8 @@ import 'package:ferha/features/booking/demande_screen.dart';
 import 'package:ferha/features/booking/devis_reservation.dart';
 import 'package:ferha/features/booking/mes_reservations_providers.dart';
 import 'package:ferha/features/booking/reservation.dart';
+import 'package:ferha/features/favorites/favoris_providers.dart';
+import 'package:ferha/features/favorites/favoris_screen.dart';
 import 'package:ferha/features/owner/owner_repository.dart';
 import 'package:ferha/features/search/accueil_screen.dart';
 import 'package:ferha/features/search/resultats_screen.dart';
@@ -209,6 +211,7 @@ void main() {
         calendrierProvider.overrideWith(
           (ref, demande) => selon(() => <DateTime, EtatJour>{}),
         ),
+        mesFavorisProvider.overrideWith((ref) => selon(() => <VenueSummary>[])),
         acompteProvider.overrideWith((ref, id) => selon(acompteNu)),
         mesReservationsProvider.overrideWith(
           () => _MesReservationsSelonLEtat(() => selon(() => <Reservation>[])),
@@ -329,6 +332,11 @@ void main() {
       widget: const AcompteScreen(bookingId: bookingId),
       connecte: false,
     ),
+    // L'onglet Favoris SE MONTE CONNECTÉ, et c'est le seul choix qui montre
+    // quelque chose : sans compte il n'affiche que son explication, et les
+    // trois états du projet — squelettes, erreur, vide — resteraient hors du
+    // banc.
+    'favoris': (widget: const FavorisScreen(), connecte: true),
     'connexion': (widget: const ConnexionScreen(), connecte: false),
     'inscription': (widget: const InscriptionScreen(), connecte: false),
     'profil': (widget: const ProfilScreen(), connecte: true),

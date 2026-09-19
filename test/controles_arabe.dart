@@ -94,12 +94,20 @@ final motsLatins = RegExp(r'[A-Za-zÀ-ÖØ-öø-ÿ]{2,}');
 /// n'y figure pas ressort, même s'il ressemble à l'un d'eux.
 const donneesDeLaBase = <String>{
   // Les noms propres du jeu d'essai.
+  //
+  // ILS SE RELISENT CONTRE LA BASE, PAS CONTRE LA MÉMOIRE. « Amina Benali » et
+  // « Karim Belkacem » ont figuré ici pendant des semaines : la base dit
+  // « Amina Haddad » et « Karim Belhadj », et « Benali » est le nom d'une
+  // TROISIÈME personne du décor, Sofia. Une tolérance qui protège un nom
+  // inexistant ne protège rien — elle laisse le vrai nom se faire accuser par
+  // le premier écran arabe qui l'affichera, avec un message qui désignera la
+  // traduction au lieu de désigner cette liste.
   'Salle El Bahia',
   'Bir El Djir',
   'Oran',
   'Alger',
-  'Karim Belkacem',
-  'Amina Benali',
+  'Karim Belhadj',
+  'Amina Haddad',
   'amina@demo.ferha.dz',
   // Les référentiels, en label_fr.
   'Climatisation',
