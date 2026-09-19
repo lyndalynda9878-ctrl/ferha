@@ -364,7 +364,7 @@
   },
   "cartePrixParCreneau": "{montant} / {creneau}",
   "@cartePrixParCreneau": {
-    "description": "« 180 000 DA / soiree » sur l'accueil, ou aucune date n'est encore choisie.",
+    "description": "PAS ENCORE UTILISEE, ET GARDEE A DESSEIN (J27). Aucun ecran ne l'appelle : la carte d'une salle montre aujourd'hui un prix sans creneau. Elle attend l'onglet Favoris du jour ou il portera une date, ou chaque carte dira « libre le 14 juin, 210 000 DA » plutot qu'un prix d'attente — voir « Ce qui manque encore » dans le README. On ne la supprime pas parce que sa traduction arabe est DEJA RELUE : la jeter couterait une seconde relecture le jour ou elle revient. « 180 000 DA / soiree » sur l'accueil, ou aucune date n'est encore choisie.",
     "placeholders": {
       "montant": { "type": "String" },
       "creneau": { "type": "String" }
