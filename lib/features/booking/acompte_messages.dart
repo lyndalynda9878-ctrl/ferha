@@ -48,10 +48,6 @@ RefusAcompte refusAcompte(AppLocalizations textes, Object erreur) {
   return (message: messageErreur(textes, erreur), definitif: false);
 }
 
-/// La phrase seule, pour les endroits qui n'ont aucun bouton à éteindre.
-String messageErreurAcompte(AppLocalizations textes, Object erreur) =>
-    refusAcompte(textes, erreur).message;
-
 /// Le code Ferha caché dans le corps d'erreur d'une Edge Function.
 ///
 /// `details` porte le JSON décodé quand la fonction a répondu en

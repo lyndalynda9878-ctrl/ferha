@@ -9,15 +9,18 @@
 /// fichier de seed — c'est ici, et ici seulement, qu'il faut les corriger.
 library;
 
-/// Un compte de démonstration.
-typedef CompteDemo = ({String email, String motDePasse, String libelle});
+/// Un compte de démonstration : de quoi se connecter, et rien de plus.
+///
+/// PAS DE LIBELLÉ ICI. Le texte du bouton vit dans l'ARB — `connexionDemoAmina`,
+/// `connexionDemoKarim` — parce qu'une phrase à lire change de langue et qu'un
+/// identifiant, jamais. `connexion_screen.dart` le dit de son côté.
+typedef CompteDemo = ({String email, String motDePasse});
 
 /// Amina — cliente, aucune salle. Le point de vue par défaut : quelqu'un qui
 /// cherche une salle.
 const CompteDemo compteAmina = (
   email: 'amina@demo.ferha.dz',
   motDePasse: 'demo1234',
-  libelle: 'Entrer comme Amina (cliente)',
 );
 
 /// Karim — propriétaire de quatre salles du catalogue de démonstration. C'est
@@ -26,7 +29,6 @@ const CompteDemo compteAmina = (
 const CompteDemo compteKarim = (
   email: 'karim.belhadj@demo.ferha.dz',
   motDePasse: 'demo1234',
-  libelle: 'Entrer comme Karim (propriétaire)',
 );
 
 /// Le préfixe d'identifiant des comptes de démonstration.
