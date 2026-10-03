@@ -17,8 +17,20 @@
     4. connexion avec demo1234                          -> 200 attendu ;
     5. connexion avec le mot de passe temporaire        -> 400 attendu.
 
+    6. POST /factors (inscription TOTP)                 -> 422 attendu,
+                                                           mfa_totp_enroll_not_enabled.
+
   SI LA SERRURE A LACHE (etape 5 en 200), le script remet demo1234 lui-meme
   par l'API, puis echoue. Il ne laisse jamais les boutons casses.
+
+  L'ETAPE 6 PROUVE UN REGLAGE, PAS UNE MIGRATION. Un visiteur pouvait inscrire
+  et verifier un facteur TOTP sur Amina ; un visiteur suivant ne pouvait plus
+  le retirer (422 insufficient_aal), et le menage ne touche pas
+  auth.mfa_factors. La fermeture est dans le tableau de bord - Authentication
+  > Multi-Factor > TOTP : Disabled -, et donc nulle part dans le depot. Voir
+  supabase/README.md, « Ce qu'un visiteur ne peut pas leur faire ». Si le
+  reglage est perdu, l'etape 6 echoue ; et si un facteur a ete cree, le
+  script le retire aussitot (un facteur non verifie se retire en aal1).
 
   NI L'ADRESSE NI LE TELEPHONE ne sont essayes ici : GoTrue refuse avant toute
   ecriture (adresse @demo.ferha.dz sans serveur de courrier ; aucun fournisseur
@@ -108,6 +120,15 @@ foreach ($email in @('amina@demo.ferha.dz', 'karim.belhadj@demo.ferha.dz')) {
         Write-Host '  LA SERRURE A LACHE - remise de demo1234 par l''API.' -ForegroundColor Red
         $remise = Appel 'PUT' '/user' @{ password = $demo } $t.Corps.access_token
         Write-Host ("  remise : {0}" -f $remise.Statut) -ForegroundColor Yellow
+    }
+
+    $f = Appel 'POST' '/factors' @{ factor_type = 'totp'; friendly_name = $temp } $jeton
+    Verifie 'inscription TOTP refusee (reglage du tableau de bord)' $f.Statut 422
+
+    if ($f.Statut -eq 200 -and $f.Corps.id) {
+        Write-Host '  LE REGLAGE TOTP EST PERDU - facteur retire aussitot.' -ForegroundColor Red
+        $retrait = Appel 'DELETE' "/factors/$($f.Corps.id)" $null $jeton
+        Write-Host ("  retrait : {0}" -f $retrait.Statut) -ForegroundColor Yellow
     }
 }
 

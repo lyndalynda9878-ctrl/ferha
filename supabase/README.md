@@ -50,6 +50,9 @@ seulement :
 | 37 | `migrations/037_les_dates_bloquees_manquantes.sql` | les 50 dates bloquées du second bloc de `seed/001`, que la base n'avait jamais reçues — additive, rejouable, et elle reprend l'empreinte APRÈS l'insertion | 001, 035, 036, seed/001 |
 | 38 | `migrations/038_pas_de_telephone_en_demonstration.sql` | `profiles_pas_de_telephone_en_demonstration` — un compte `d0000000-…` ne PEUT PAS porter de numéro : le déclencheur force `phone` à NULL et `phone_verified` à false, sous toutes les portes. Il force, il ne refuse pas | 001, 018, 020 |
 | 39 | `migrations/039_les_favoris.sql` | `favorites` (clé primaire composite), sa RLS, `mes_favoris()`, `decor_favorites` et les trois favoris d'Amina — **élargit `capturer_le_decor()`, `vider_le_decor()`, `menage_du_decor()` et `etat_du_decor`** ; additive et rejouable, elle reprend l'empreinte APRÈS l'insertion | 001, 002, 005, 035, 036, seed/001 |
+| 40 | `migrations/040_nom_et_email_figes_en_demonstration.sql` | `profiles_nom_et_email_figes_en_demonstration` — un compte connecté ne change plus le nom ni l'adresse d'un compte `d0000000-…` ; le rôle de service, si | 001, 018, 036 |
+| 41 | `migrations/041_connexion_figee_en_demonstration.sql` | `auth_connexion_figee_en_demonstration`, sur **`auth.users`** — GoTrue ne change plus le mot de passe, l'adresse, le téléphone ni les métadonnées d'un compte de démonstration. **SECURITY INVOKER exprès** | seed/003, 040 |
+| 42 | `migrations/042_la_connexion_du_decor_se_remet.sql` | `remettre_la_connexion_du_decor()` et le cron `ferha-connexion-du-decor` — la ceinture de 041 : `demo1234` revient chaque heure s'il a bougé | seed/003, 036, 041 |
 
 `002` a besoin des tables de `001`. `003` a besoin de la table `amenities` de
 `001`, mais pas de `002`. Appliquer `002` avant `003` reste le bon ordre : le
@@ -923,6 +926,42 @@ connaît que des requêtes — à la seule exception de `demo_accounts.dart`, qu
 porte les deux adresses parce que le cahier des charges demande un accès en un
 tap.
 
+### Ce qu'un visiteur ne peut pas leur faire
+
+Le mot de passe est public : n'importe qui entre comme Amina, et a donc en main
+l'API d'authentification de son compte. Le 3 octobre 2026, on a essayé pour de
+vrai ce qu'un visiteur pouvait en faire. Trois portes étaient ouvertes ; voici
+qui ferme chacune.
+
+| Ce que le visiteur tentait | Ce qui l'arrête | Où ça vit |
+|---|---|---|
+| Changer le mot de passe (`auth.updateUser({password})`) : **les boutons cassaient pour tout le monde** | le déclencheur de 041, et la ceinture de 042 qui remet `demo1234` chaque heure | migrations — versionné |
+| Changer l'adresse, le téléphone, les métadonnées | le déclencheur de 041. L'adresse était déjà refusée, mais par chance : `demo.ferha.dz` n'a pas de serveur de courrier | migrations — versionné |
+| **Inscrire un facteur MFA (TOTP)**, qu'aucun visiteur suivant ne pouvait retirer (`422 insufficient_aal`) et que le ménage ne voit pas | **TOTP désactivé dans le tableau de bord** | **réglage du projet — NON versionné** |
+
+**LE TROISIÈME N'EST DANS AUCUN FICHIER, ET C'EST LA RAISON DE CETTE NOTE.**
+Il se règle dans le tableau de bord Supabase, *Authentication › Multi-Factor ›
+TOTP (App Authenticator)* : **Disabled**. Un projet recréé, restauré ou copié
+repart avec TOTP activé, et rien dans le dépôt ne le dirait. L'application
+n'utilise pas le MFA — aucun `mfa` ni `aal` dans `lib/`, aucune politique RLS
+qui lise `aal` — : le désactiver ne retire rien à personne. Le jour où l'on
+voudra du MFA pour de vrais comptes, il faudra rouvrir ce réglage ET écrire,
+dans le même mouvement, ce qui empêche un visiteur d'en poser un sur les
+comptes de démonstration.
+
+**La preuve des trois, en une commande** — la moitié que le SQL ne peut pas
+jouer, puisque `postgres` n'a pas le droit d'endosser le rôle de GoTrue :
+
+```powershell
+.\supabase\tests\connexion_figee_demo.ps1
+```
+
+Pour Amina puis Karim, il tente le mot de passe et les métadonnées (200, sans
+effet), vérifie que `demo1234` ouvre toujours, puis tente d'inscrire un facteur
+TOTP : **un 422 est attendu**. Si le réglage a été perdu, cette ligne échoue, et
+le script retire aussitôt le facteur qu'il vient de créer. Il lit la clé
+publique dans `env.json` et n'affiche rien de son contenu.
+
 ## Le versement de l'acompte (024)
 
 ### Un seul arrondi, trois lecteurs
@@ -1322,13 +1361,13 @@ qu'il est écrit.
 
 ## Tests
 
-Vingt fichiers, qui se collent tels quels dans l'éditeur SQL de Supabase et
-annulent tout par un `ROLLBACK` final. Une erreur rouge commençant par « ÉCHEC »
-signale la règle qui ne tient plus.
+Vingt-deux fichiers, qui se collent tels quels dans l'éditeur SQL de Supabase
+et annulent tout par un `ROLLBACK` final. Une erreur rouge commençant par
+« ÉCHEC » signale la règle qui ne tient plus.
 
 ### Les lancer tous, en une seule commande
 
-**Dix-neuf des vingt sont autonomes** : chacun ouvre sa transaction par `begin;`
+**Vingt et un des vingt-deux sont autonomes** : chacun ouvre sa transaction par `begin;`
 et l'annule par `rollback;`, sans rien laisser derrière lui. On peut donc les
 enchaîner sans précaution, dans n'importe quel ordre, sur la base de
 démonstration comme sur une base neuve.
@@ -1395,6 +1434,8 @@ n'est pas la commande, c'est le robot qui la lance.
 | `tests/017_synthese_des_avis.sql` | **pas de synthèse sous trois avis porteurs de texte**, **une salle dont les avis n'ont pas bougé n'est pas retraitée**, aucun nom de client n'atteint le modèle, un brouillon n'est jamais résumé, et la table est close |
 | `tests/019_pas_de_telephone_en_demonstration.sql` | un numéro ne se dépose pas sur un compte de démonstration — ni par un `update` direct, ni avec `phone_verified = true`, ni par `request_booking()` — **et il se dépose toujours chez un vrai client** ; `booking_contact()` ouvre le contact sans rien révéler |
 | `tests/020_les_favoris.sql` | **la clé primaire composite rend le doublon impossible** — une seconde insertion ne crée pas une seconde ligne —, deux personnes aiment la même salle chacune sa ligne, une salle supprimée emporte ses favoris, **B ne voit AUCUN favori de A**, ne peut ni en retirer un ni en poser un au nom de A, `mes_favoris()` ne rend que les siens, et un inconnu non connecté ne lit ni n'écrit rien |
+| `tests/021_nom_et_email_figes_en_demonstration.sql` | un compte connecté ne change ni le nom ni l'adresse d'Amina ou de Karim, la langue écrite dans la même requête passe, **un vrai client change toujours les siens**, et le rôle de service garde la main sur le décor |
+| `tests/022_connexion_figee_en_demonstration.sql` | le déclencheur de 041 est actif **et n'est pas SECURITY DEFINER**, `postgres` change toujours le mot de passe d'Amina, la ceinture de 042 remet `demo1234` puis ne réécrit plus rien, ne donne de mot de passe à personne d'autre, et n'est pas exposée par l'API. **La moitié GoTrue est dans `connexion_figee_demo.ps1`**, voir *Ce qu'un visiteur ne peut pas leur faire* |
 
 Le huitième va plus loin encore : pour mesurer les politiques du bucket, il
 lève au passage `storage.allow_delete_query`, le verrou de Supabase qui refuse
