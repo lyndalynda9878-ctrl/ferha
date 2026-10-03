@@ -1,9 +1,12 @@
 # Ferha — la mise en ligne du web
 
-Une adresse publique qui ouvre l'application, **alors que le dépôt reste privé**.
+Une adresse publique qui ouvre l'application : <https://ferha.pages.dev>.
+Retour au [README](../README.md).
 
-Hébergeur : **Cloudflare Pages**, en mode *Direct Upload*. GitHub Actions
-construit, Cloudflare sert.
+Hébergeur : **Cloudflare Pages**, en mode *Direct Upload*. À chaque poussée sur
+`master`, GitHub Actions compile `flutter build web` puis **envoie** le
+résultat. Cloudflare ne lit pas le dépôt : il reçoit un dossier de fichiers déjà
+construits.
 
 | | |
 |---|---|
@@ -24,17 +27,18 @@ construit, Cloudflare sert.
 
 ---
 
-## Pourquoi pas GitHub Pages, et pourquoi pas d'APK
+## Pourquoi Cloudflare Pages, et pourquoi pas d'APK
 
-**GitHub Pages exige un dépôt public.** Le code de Ferha reste fermé : cette
-seule ligne écarte l'hébergeur le plus évident. Cloudflare Pages lit les dépôts
-privés, ne demande pas de carte bancaire et n'endort pas le site — contrairement
-à Render, qui héberge le service des empreintes et met une minute à se réveiller.
+**Le choix a été fait quand le dépôt était encore privé**, et c'est ce qui a
+écarté GitHub Pages, qui exigeait alors un dépôt public. Il tient toujours pour
+d'autres raisons : Cloudflare Pages ne demande pas de carte bancaire, n'endort
+pas le site — contrairement à Render, qui héberge le service des empreintes et
+met une minute à se réveiller —, sert plus vite depuis l'Algérie, et le workflow
+marche déjà.
 
-**L'APK est reporté.** Sur un dépôt privé, le fichier attaché à une *Release*
-n'est pas téléchargeable sans compte autorisé : le lien serait mort pour qui le
-reçoit. Et quelqu'un qui découvre un travail ouvre une adresse, il n'installe pas
-un paquet Android.
+**L'APK est reporté.** Il demande une signature, un `keystore` gardé hors du
+dépôt, et un circuit de publication à tenir. Et quelqu'un qui découvre un
+travail ouvre une adresse, il n'installe pas un paquet Android.
 
 ---
 
@@ -210,7 +214,7 @@ Ce que cela change : `urlDeRetour()` n'acceptera plus que les adresses de retour
 de ce domaine — et celles de `localhost`, laissées ouvertes pour le
 développement. La variable est **facultative** ; jusqu'ici elle n'était pas
 posée, et n'importe quelle adresse http(s) était acceptée. Le commentaire en tête
-de `create-checkout/index.ts` le dit depuis le J15 : « le jour où l'application
+de `create-checkout/index.ts` le dit depuis l'écriture du paiement : « le jour où l'application
 aura un domaine, cette variable ferme la porte sans qu'une ligne de code
 change ». C'est ce jour-là.
 
@@ -275,18 +279,20 @@ Sur un téléphone, ou une fenêtre de 390 px de large :
   un jour une mise à jour semble ne pas arriver, c'est là qu'il faut regarder —
   et un rechargement forcé (Ctrl+Maj+R) tranche la question en deux secondes.
 
-- **Le dépôt reste privé.** Cloudflare ne lit pas le code : GitHub Actions lui
-  envoie un dossier de fichiers déjà construits. Rien de ce qui est publié ne
-  contient de source Dart — sauf `assets/NOTICES`, qui ne porte que les licences
-  des dépendances.
+- **Cloudflare ne lit pas le code**, même maintenant que le dépôt est public :
+  GitHub Actions lui envoie un dossier de fichiers déjà construits. Rien de ce
+  qui est publié ne contient de source Dart — sauf `assets/NOTICES`, qui ne
+  porte que les licences des dépendances.
 
-- **Le jour où le dépôt deviendra public**, rien de ceci ne devient inutile :
-  GitHub Pages resterait plus lent à servir depuis l'Algérie, et le workflow
-  d'ici marche déjà.
+- **L'APK reste à faire, plus tard.** Il demande une signature, un `keystore`
+  hors du dépôt, et une *Release* où poser le fichier.
 
-- **L'APK reste à faire** (J24b ou plus tard). Il demande une signature, un
-  `keystore` hors du dépôt, et un endroit où poser le fichier qui ne soit pas
-  une *Release* de dépôt privé.
+- **Les tâches planifiées s'arrêtent après 60 jours sans commit.** Sur un dépôt
+  public, GitHub désactive les workflows planifiés d'un dépôt resté 60 jours
+  sans activité — ici `maintien-supabase.yml`, celui qui empêche le projet
+  Supabase de se mettre en pause. GitHub prévient par e-mail : il faut alors
+  cliquer sur « réactiver » dans l'onglet Actions. Voir
+  [Les gardiens](gardiens.md).
 
 - **Rien n'a été déployé en écrivant ce document.** Aucun compte n'a été créé,
   aucun secret n'a été posé, et `build/web` n'a pas quitté cette machine.

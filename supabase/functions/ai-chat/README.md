@@ -1,8 +1,8 @@
 # ai-chat — l'agent de recherche
 
-Quatre temps (§8.1) : le modèle **extrait** les critères, le SQL **trie** de
-façon exacte, le vecteur **classe** ce qui reste, le modèle **rédige** à partir
-des salles trouvées et de rien d'autre.
+Quatre temps, comme le prévoit le cahier des charges : le modèle **extrait** les
+critères, le SQL **trie** de façon exacte, le vecteur **classe** ce qui reste,
+le modèle **rédige** à partir des salles trouvées et de rien d'autre.
 
 Modèle : **`gemini-3.5-flash-lite`**, palier gratuit. Surchargeable par le
 secret `GEMINI_MODEL` sans redéploiement.
@@ -11,7 +11,7 @@ secret `GEMINI_MODEL` sans redéploiement.
 |---|---|
 | Secret à créer | `GEMINI_API_KEY` |
 | Facultatif | `GEMINI_MODEL` |
-| Déjà posés au J19 | `EMBEDDINGS_URL`, `EMBED_TOKEN` |
+| Déjà posés avec l'index sémantique | `EMBEDDINGS_URL`, `EMBED_TOKEN` |
 | `verify_jwt` | `true` — c'est l'application qui appelle |
 | Appelée par | l'écran 8 (`lib/features/assistant/`), sans compte |
 
@@ -25,11 +25,11 @@ $env:FERHA_SUPABASE_ANON_KEY = "..."          # SUPABASE_ANON_KEY de env.json
 
 ## LES EN-TÊTES CORS, ET POURQUOI ILS N'ÉTAIENT PAS LÀ AVANT
 
-Jusqu'au J20, cette fonction n'était appelée que par le banc des 30 questions —
-un script PowerShell, qui n'est pas un navigateur et ne demande donc aucune
-permission. L'écran 8 change cela : la page Flutter web est servie depuis
-`localhost`, la fonction depuis `*.supabase.co`, et le navigateur envoie
-d'abord un `OPTIONS` de pré-vol.
+Jusqu'à l'écran de l'assistant, cette fonction n'était appelée que par le banc
+des 30 questions — un script PowerShell, qui n'est pas un navigateur et ne
+demande donc aucune permission. L'écran 8 change cela : la page Flutter web est
+servie depuis `localhost`, la fonction depuis `*.supabase.co`, et le navigateur
+envoie d'abord un `OPTIONS` de pré-vol.
 
 **Sans réponse à ce pré-vol, l'appel n'a pas lieu** — et il n'échoue même pas
 d'une façon qu'on puisse afficher : il ne part jamais. Ce sont les mêmes
@@ -51,9 +51,9 @@ La fonction compose désormais **deux objets** là où il y en avait un :
 | `salles` — ce que l'APPLICATION reçoit | le même, **plus la photo** |
 
 Un chemin de Storage n'aide pas à rédiger trois phrases ; il occupe du contexte,
-et le §8.5 tient parce que ce contexte est PAUVRE. Chaque champ ajouté est de la
-matière à reformuler — et à déborder. Une photo s'affiche, elle ne se raconte
-pas.
+et le garde-fou « aucune salle inventée » tient parce que ce contexte est
+PAUVRE. Chaque champ ajouté est de la matière à reformuler — et à déborder. Une
+photo s'affiche, elle ne se raconte pas.
 
 ---
 
@@ -76,9 +76,9 @@ Aucune **affirmation factuelle vérifiable**. La comparaison de dates, le report
 d'année, l'annonce de l'hypothèse, le prix : tout se calcule dans la fonction ou
 en SQL. Il rédige, il n'atteste pas.
 
-C'est la même règle que le §8.1 énonce pour la recherche — « la similarité ne
-sait pas compter » — appliquée à la génération. Chaque fois qu'on a laissé le
-modèle produire un fait, il s'est trompé au moins une fois :
+C'est la même règle que le cahier des charges énonce pour la recherche — « la
+similarité ne sait pas compter » — appliquée à la génération. Chaque fois qu'on
+a laissé le modèle produire un fait, il s'est trompé au moins une fois :
 
 * il rendait l'**année en cours** pour « le 14 août », déjà passée, et l'agent
   répondait « cette date est passée » à qui demandait un prix ;
@@ -135,11 +135,11 @@ dans le code : brouillon puis envoi en validation (`017`), cinq photos
 une administration que `venues_guard_status` (`001`) protège.
 
 **Son point 6 est le plus important, et c'est celui qu'on aurait envie de
-retirer** : la saisie des tarifs (OWN-03) n'existe pas, `search_venues()` fait
-une jointure interne sur `venue_pricing`, et une salle validée sans tarif ne
-sort donc d'aucune recherche. Le récapitulatif de l'inscription le dit déjà au
-propriétaire ; l'assistant dit la même chose, parce que deux voix qui divergent
-là-dessus sont pires qu'une seule qui se tait.
+retirer** : la saisie de la grille tarifaire n'existe pas, `search_venues()`
+fait une jointure interne sur `venue_pricing`, et une salle validée sans tarif
+ne sort donc d'aucune recherche. Le récapitulatif de l'inscription le dit déjà
+au propriétaire ; l'assistant dit la même chose, parce que deux voix qui
+divergent là-dessus sont pires qu'une seule qui se tait.
 
 ### Deux sortes de gardes
 
@@ -160,10 +160,10 @@ U+0654 planté au milieu du mot. D'où « سعار » plutôt que « أسعار 
 
 ## « Bloquer une date » a deux lectures — décision prise, pas encore faite
 
-**Rien de ce qui suit n'est implémenté.** C'est une décision arbitrée au J22 et
-volontairement reportée : le comportement actuel n'est pas faux, il est
-incomplet. Cette section existe pour qu'on puisse l'exécuter sans refaire
-l'analyse.
+**Rien de ce qui suit n'est implémenté.** C'est une décision arbitrée pendant la
+mise au point et volontairement reportée : le comportement actuel n'est pas
+faux, il est incomplet. Cette section existe pour qu'on puisse l'exécuter sans
+refaire l'analyse.
 
 ### Le problème
 
@@ -183,7 +183,7 @@ deux features tiennent une date.**
 Aujourd'hui l'agent répond le parcours client **sans dire qu'il a choisi un
 sens**. Ce n'est pas un accident : `instructionExtraction()` range explicitement
 « comment BLOQUER ou TENIR une date » dans `reservation`, et c'était pour
-protéger la question 30, seule question de procédure du banc avant le J22.
+protéger la question 30, seule question de procédure du banc à l'époque.
 
 **L'énumération n'a aucune case pour la lecture propriétaire.** L'agenda n'est
 ni `reservation` ni `publication`. Détecter l'ambiguïté ne servirait donc à rien
@@ -225,11 +225,11 @@ ambiguës : ce serait un annuaire, et ce projet refuse les annuaires — « on b
 la FORME, pas l'annuaire ». Avantage du second sujet : aucune liste à tenir à
 jour, et un septième sujet entrerait dans le mécanisme sans le toucher.
 
-**`agenda` prend un texte, pas un refus.** Contrairement aux tarifs (OWN-03), la
-fonctionnalité existe vraiment : `bloquer_date()` refuse déjà une date qui porte
-une demande en attente (FE022), et la feuille de créneau sait rouvrir. Refuser
-serait dire « je ne sais pas » de quelque chose que l'application fait — faux
-dans l'autre sens.
+**`agenda` prend un texte, pas un refus.** Contrairement à la grille tarifaire,
+la fonctionnalité existe vraiment : `bloquer_date()` refuse déjà une date qui
+porte une demande en attente (FE022), et la feuille de créneau sait rouvrir.
+Refuser serait dire « je ne sais pas » de quelque chose que l'application fait —
+faux dans l'autre sens.
 
 ### Les deux conséquences à accepter d'avance
 
@@ -252,7 +252,8 @@ dans l'autre sens.
 2. `instructionExtraction()` cesse de ranger « bloquer une date » d'office dans
    `reservation`, et gagne le second sujet.
 3. La phrase qui nomme les deux lectures, construite en code — jamais par le
-   modèle : §8.5, « il rédige, il n'atteste pas ».
+   modèle : c'est le garde-fou du cahier des charges, « il rédige, il n'atteste
+   pas ».
 4. La question 30 est re-spécifiée dans `docs/questions-reference.md`, et le banc
    apprend à vérifier la présence de cette phrase.
 
@@ -260,8 +261,8 @@ dans l'autre sens.
 
 ## Les critères que le modèle extrait
 
-Le §8.1 dit que la similarité ne sait pas compter. Chaque fois qu'un nombre est
-parti dans `soft_query`, le vecteur l'a perdu :
+Le cahier des charges dit que la similarité ne sait pas compter. Chaque fois
+qu'un nombre est parti dans `soft_query`, le vecteur l'a perdu :
 
 | Demande | Champ | Effet |
 |---|---|---|
@@ -281,7 +282,7 @@ encore.
 
 ---
 
-## LE GARDE-FOU DU §8.5, ET SA LIMITE
+## LE GARDE-FOU « AUCUNE SALLE INVENTÉE », ET SA LIMITE
 
 Le banc vérifie SIX choses sur chaque réponse : aucun identifiant hors
 contexte, aucune salle non publiée, aucun prix absent de la base, aucun nom
@@ -324,10 +325,10 @@ c'est le nom que la personne lira sur l'application, et une translittération
 l'empêche de l'y retrouver. Elle a pour effet second de rendre ce filet
 opérant dans les deux écritures.
 
-**Elle vaut pour TOUT nom propre — salles, communes, wilayas.** Le J21 avait
-vu passer Blida écrit avec son article en arabe et sa fin en latin, dans un
-seul mot. Illisible dans les deux alphabets, introuvable pour qui le cherche.
-Un nom propre s'écrit donc soit en latin comme la base le porte, soit
+**Elle vaut pour TOUT nom propre — salles, communes, wilayas.** Un passage du
+banc avait vu passer Blida écrit avec son article en arabe et sa fin en latin,
+dans un seul mot. Illisible dans les deux alphabets, introuvable pour qui le
+cherche. Un nom propre s'écrit donc soit en latin comme la base le porte, soit
 **entièrement** dans l'écriture de la réponse — et pour cela il faut que la
 forme arabe existe quelque part.
 
@@ -375,9 +376,9 @@ ces salles-là aussi, seul le contrôle par identifiant s'applique.
 
 C'était une consigne — la règle 5 du prompt — et elle échouait comme échouent
 les consignes : **par intermittence**. La question 15, en darja, a reçu une
-réponse française au J20. « بغيت صالة في وهران عندها 300 كرسي » en a reçu une au
-J21, alors que la même question, posée au coup d'avant, rendait de l'arabe
-impeccable.
+réponse française lors d'un passage du banc. « بغيت صالة في وهران عندها 300
+كرسي » en a reçu une au passage suivant, alors que la même question, posée au
+coup d'avant, rendait de l'arabe impeccable.
 
 **La faute n'était pas dans la rédaction.** Elle était une étape plus haut : le
 modèle d'extraction avait classé cette question arabe en `langue: "mixte"` — et
@@ -400,10 +401,10 @@ le contrôle accuserait une réponse juste.
 **Le banc, lui, lit l'attendu dans la QUESTION, pas dans `criteres.langue`.**
 C'est tout son cinquième contrôle : juger la réponse sur l'étiquette que la
 fonction s'est donnée, c'est lui demander si elle est d'accord avec elle-même —
-et c'est exactement ce qui serait passé inaperçu au J21, l'étiquette étant
-fausse et la réponse fidèle à l'étiquette.
+et c'est exactement ce qui serait passé inaperçu lors de ce passage, l'étiquette
+étant fausse et la réponse fidèle à l'étiquette.
 
-### Aucun appel au contact direct (§9)
+### Aucun appel au contact direct
 
 L'agent a écrit « **Contactez les propriétaires pour vérifier la
 disponibilité** ». Deux fautes en une phrase : c'est une invitation à contourner
@@ -460,14 +461,14 @@ libre d'une salle, le modèle aura de la matière à reformuler — et à débor
 
 ---
 
-## Le service d'empreintes ne fait plus attendre (J25)
+## Le service d'empreintes ne fait plus attendre
 
 Les deux appels au service — `/health` puis `/embed` — avaient chacun **90 s**
 de délai. Un visiteur ouvrant la démonstration à froid attendait donc jusqu'à
 une minute avant d'obtenir quoi que ce soit. Le repli existait déjà et il est
 bon ; c'est le délai avant de l'atteindre qui était faux.
 
-### Ce qui a été mesuré au J25
+### Ce qui a été mesuré
 
 | | |
 |---|---|
@@ -522,12 +523,12 @@ régression.
 
 ## Ce qui manque encore
 
-* **`kb_documents` et le vrai §8.2.** Le parcours de réservation est aujourd'hui
-  six lignes en dur dans `PROCEDURE`. Elles ont un avantage sur un RAG — elles
-  ne peuvent pas se tromper — et un défaut : toute autre question de support
-  reste sans réponse.
-* **`ai_cache`, les 30 réponses pré-générées du §8.5**, pour que la démonstration
-  survive à un quota épuisé.
+* **`kb_documents` et la vraie base de connaissances du cahier des charges.** Le
+  parcours de réservation est aujourd'hui six lignes en dur dans `PROCEDURE`.
+  Elles ont un avantage sur un RAG — elles ne peuvent pas se tromper — et un
+  défaut : toute autre question de support reste sans réponse.
+* **`ai_cache`, les 30 réponses pré-générées que prévoit le cahier des
+  charges**, pour que la démonstration survive à un quota épuisé.
 * **L'agent n'a AUCUNE MÉMOIRE.** Il reçoit une question et rien d'autre : chaque
   question est traitée seule. Ce que l'écran 8 affiche est un compte rendu de ce
   qui s'est dit, pas un fil que l'agent relit — « et avec un jardin ? » posé
@@ -536,10 +537,10 @@ régression.
 * **La limite de débit par utilisateur** (20 messages/jour). Elle demande
   d'identifier l'utilisateur, ce que le journal s'interdit — il faudra décider
   où cette identité vit.
-* **Le mode dégradé en recherche plein texte (§8.4).** Si le service d'empreintes
-  ne répond pas, l'agent continue **sans vecteur** : le tri exact suffit, le
+* **Le mode dégradé en recherche plein texte.** Si le service d'empreintes ne
+  répond pas, l'agent continue **sans vecteur** : le tri exact suffit, le
   classement fin est perdu. Le repli `tsvector` + `pg_trgm` reste à écrire.
-  Depuis le J25, l'attente avant ce repli est bornée — voir ci-dessous.
+  Depuis, l'attente avant ce repli est bornée — voir ci-dessous.
 * **La description d'une salle n'est pas dans le contexte.** Le modèle reçoit le
   nom, la commune, la capacité, les équipements, le prix et la note — rien qui
   décrive le lieu. C'est ce qui rend la règle 10 tenable aujourd'hui, et ce qui

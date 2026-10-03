@@ -1,10 +1,10 @@
 # Les traductions arabes à relire
 
-Ce document a commencé au J22 avec les seuls écrans d’authentification, et son
-nom le disait. Il porte depuis les chaînes de la bascule de thème, la mention
-des comptes de démonstration et l’onglet Favoris : le nom ne disait plus vrai,
-et il a changé au J27. **Toute chaîne arabe qui attend une relecture humaine se
-range ici**, quel que soit l’écran dont elle vient.
+Ce document a commencé avec les seuls écrans d’authentification, et son nom le
+disait. Il porte depuis les chaînes de la bascule de thème, la mention des
+comptes de démonstration et l’onglet Favoris : le nom ne disait plus vrai, et il
+a changé. **Toute chaîne arabe qui attend une relecture humaine se range ici**,
+quel que soit l’écran dont elle vient.
 
 > **LES 52 TRADUCTIONS DES ÉCRANS D’AUTHENTIFICATION ONT ÉTÉ RELUES ET
 > VALIDÉES.** Aucune correction n’a été demandée : la colonne *correction* est
@@ -16,8 +16,9 @@ range ici**, quel que soit l’écran dont elle vient.
 > trois dernières sections, à part, pour que la validation ci-dessus ne les
 > couvre pas par erreur.
 
-**52 clés**, ajoutées après le J22 pour les trois écrans d’authentification :
-connexion, inscription, profil, et les messages d’erreur qu’ils montrent.
+**52 clés**, ajoutées après le parcours client pour les trois écrans
+d’authentification : connexion, inscription, profil, et les messages d’erreur
+qu’ils montrent.
 
 ## Ce document est une VUE, pas une source
 
@@ -37,8 +38,8 @@ Deux points regardés de plus près que les autres :
 * **les noms propres** — Amina, Karim, Supabase, CIB — restent en écriture
   latine au milieu d’une phrase arabe ; c’est la règle que suit déjà
   l’assistant ;
-* **les chiffres** restent latins eux aussi (§10) : `0770 11 22 33` et
-  `007_auth.sql` s’écrivent comme ici.
+* **les chiffres** restent latins eux aussi, comme le veut le cahier des
+  charges : `0770 11 22 33` et `007_auth.sql` s’écrivent comme ici.
 
 ## Ce qui arrive ensuite
 
@@ -71,7 +72,7 @@ Un seul champ, un seul libellé : ces huit textes s'affichent sur les deux écra
 
 ## Écran de connexion — 7 clés
 
-Les deux premiers boutons sont les comptes de démonstration du §4.1. Les prénoms — Amina, Karim — restent en écriture latine : ce sont des noms propres, et ceux du jeu de démonstration.
+Les deux premiers boutons sont les comptes de démonstration du cahier des charges. Les prénoms — Amina, Karim — restent en écriture latine : ce sont des noms propres, et ceux du jeu de démonstration.
 
 | clé | français | arabe proposé | correction |
 |---|---|---|---|
@@ -244,9 +245,9 @@ contenu, et il est traduit partout où il apparaît.
 > **CETTE SECTION N’A PAS ÉTÉ RELUE.** Elle est postérieure aux 52 clés
 > validées plus haut et ne relève pas des écrans d’authentification.
 
-L’onglet Favoris existait dans la barre du bas depuis le J10 et sa page était
-vide ; aucun écran ne permettait d’ajouter un favori. Ces dix clés sont tout ce
-que l’onglet et son cœur disent à voix haute.
+L’onglet Favoris existait dans la barre du bas depuis les premiers écrans et sa
+page était vide ; aucun écran ne permettait d’ajouter un favori. Ces dix clés
+sont tout ce que l’onglet et son cœur disent à voix haute.
 
 Quatre points à regarder en particulier :
 

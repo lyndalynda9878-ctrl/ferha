@@ -2,11 +2,11 @@
 
 **Dix écrans** parlent arabe, en deux temps :
 
-* **J22 — le parcours client, sept écrans** : accueil/recherche, résultats,
+* **D'abord, le parcours client, sept écrans** : accueil/recherche, résultats,
   fiche salle, calendrier, demande, l'écran de confirmation qui suit l'envoi, et
   l'acompte.
-* **Après le J22 — l'authentification, trois écrans** : connexion,
-  inscription, profil. Hors plan, et fait d'un bloc.
+* **Ensuite, l'authentification, trois écrans** : connexion, inscription,
+  profil. Hors plan, et fait d'un bloc.
 
 Le reste de l'application est **en français, et volontairement** : les écrans du
 propriétaire, l'assistant, les avis. Une traduction à moitié faite dit plus fort
@@ -28,7 +28,7 @@ lib/features/auth/
 
 ---
 
-## LES TROIS PIÈGES DU §10, ET OÙ CHACUN EST TRAITÉ
+## LES TROIS PIÈGES DE L'ARABE NOMMÉS PAR LE CAHIER DES CHARGES, ET OÙ CHACUN EST TRAITÉ
 
 ### 1. Les prix et les nombres restent en CHIFFRES LATINS
 
@@ -177,7 +177,7 @@ page française ne dit pas s'il change quelque chose.
 | Où | Ce que ça suit | Quand ça sert |
 |---|---|---|
 | `profiles.locale` | le **compte** | on se reconnecte depuis un autre téléphone ; un jour, un courriel ou une notification |
-| préférence d'appareil (`shared_preferences`) | le **téléphone** | un visiteur sans compte — c'est-à-dire tout le parcours du §3 jusqu'à l'envoi |
+| préférence d'appareil (`shared_preferences`) | le **téléphone** | un visiteur sans compte — c'est-à-dire tout le parcours de réservation jusqu'à l'envoi |
 
 **C'est l'appareil qui décide au démarrage**, et c'est la seule chose qui compte
 ici : elle se lit avant la première image, sans réseau. Faire dépendre la langue
@@ -285,11 +285,11 @@ apparaît dans l'application sans qu'on recompile quoi que ce soit.
 
 ## LES TRADUCTIONS DE L'AUTHENTIFICATION ONT ÉTÉ RELUES
 
-Les 52 clés ajoutées après le J22 pour la connexion, l'inscription et le profil
-ont été **relues et validées** par un locuteur natif, sans aucune correction.
-[`docs/traductions-a-relire.md`](../../../docs/traductions-a-relire.md) en
-garde la trace, groupée par écran — avec, à la suite, les treize clés des
-17 et 19 septembre qui attendent encore leur relecture.
+Les 52 clés ajoutées ensuite pour la connexion, l'inscription et le profil ont
+été **relues et validées** par un locuteur natif, sans aucune correction.
+[`docs/traductions-a-relire.md`](../../../docs/traductions-a-relire.md) en garde
+la trace, groupée par écran — avec, à la suite, les treize clés des 17 et 19
+septembre qui attendent encore leur relecture.
 
 Ce document est une **vue** : la traduction ne vit que dans `app_ar.arb`. Une
 relecture sans correction ne change donc pas une ligne — rien n'a été touché.
@@ -308,7 +308,7 @@ précédente.
 
 ## CE QUI MANQUE ENCORE
 
-* **Les écrans du propriétaire** (§4.3) — tableau de bord, agenda, détail d'une
+* **Les écrans du propriétaire** — tableau de bord, agenda, détail d'une
   demande, publication d'une salle, photos. C'est le plus gros morceau restant,
   et il a sa propre logique : un propriétaire lit des états de réservation, des
   indicateurs et des créneaux, un vocabulaire que le parcours client ne
@@ -317,9 +317,9 @@ précédente.
   QUESTION, pas celle de l'application — c'est ce que fait déjà
   `direction_du_texte.dart`. Ce qui reste à traduire est l'écran autour : le
   champ, les exemples, les états.
-* **Les avis** (§5.4), et la synthèse qui les résume — même particularité : la
+* **Les avis**, et la synthèse qui les résume — même particularité : la
   synthèse est rédigée dans la langue des avis.
-* **Les textes que la base envoie** : les messages des notifications (§7.2) et
+* **Les textes que la base envoie** : les messages des notifications et
   les courriels. Ils ne passent pas par l'application, et `profiles.locale`
   existe précisément pour eux.
 * **Le nom de l'application dans une phrase arabe.** L'assistant écrit parfois

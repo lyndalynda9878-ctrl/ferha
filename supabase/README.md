@@ -1,8 +1,8 @@
 # Base de données Ferha
 
 PostgreSQL, hébergé par Supabase. Le schéma est le contrat entre l'application
-Flutter et le backend — cahier des charges §6 pour les tables, §9 pour la
-sécurité.
+Flutter et le backend — le cahier des charges en décrit les tables et les
+règles de sécurité.
 
 ## Ordre d'application
 
@@ -37,8 +37,8 @@ seulement :
 | 24 | `migrations/024_acompte_chargily.sql` | `montant_acompte()`, `acompte_a_verser()`, `enregistrer_checkout()` — le versement de l'acompte — **redéfinit `client_bookings()`** | 004, 006, 013, 015, 023 |
 | 25 | `migrations/025_paiement_confirme.sql` | `confirmer_paiement_chargily()`, le parcours espèces, `payments.anomalie` et la vue `paiements_a_examiner` — **redéfinit `owner_request_detail()` et `acompte_a_verser()`** | 004, 006, 014, 022, 023, 024 |
 | 26 | `migrations/026_les_avis.sql` | `complete_booking()`, `deposer_avis()`, `repondre_a_un_avis()`, `avis_de_la_salle()` — l'écran 7 | 004, 006, 013, 022 |
-| 27 | `migrations/027_index_semantique.sql` | `venue_embeddings`, `document_salle()`, `salles_a_indexer()`, `recherche_semantique()` (§8.3, §8.4) | 001, 003, 004, 010, 011 |
-| 28 | `migrations/028_agent.sql` | `salles_pour_agent()` et `journaliser_conversation()` (§8.1, §8.5) | 010, 023, 027 |
+| 27 | `migrations/027_index_semantique.sql` | `venue_embeddings`, `document_salle()`, `salles_a_indexer()`, `recherche_semantique()` (ce qu'on indexe d'une salle, et avec quel modèle) | 001, 003, 004, 010, 011 |
+| 28 | `migrations/028_agent.sql` | `salles_pour_agent()` et `journaliser_conversation()` (la recherche assistée et ses garde-fous) | 010, 023, 027 |
 | 29 | `migrations/029_agent_parking_et_prix.sql` | le parking et le prix deviennent filtres et tris — **redéfinit `salles_pour_agent()`** | 028 |
 | 30 | `migrations/030_agent_nom_arabe_wilaya.sql` | `wilaya_name_ar` remonte dans le contexte — **redéfinit `salles_pour_agent()`** | 009, 029 |
 | 31 | `migrations/031_agent_photo_de_la_salle.sql` | `cover_photo` remonte pour les cartes de l'écran 8 — **redéfinit `salles_pour_agent()`** | 023, 030 |
@@ -74,36 +74,16 @@ supabase db push
 Ou fichier par fichier, sur n'importe quelle base PostgreSQL :
 
 ```bash
-psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/001_schema.sql
-psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/002_rls.sql
-psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/003_amenities.sql
-psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/004_bookings.sql
-psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/005_pricing.sql
-psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/006_rls_bookings.sql
-psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/007_auth.sql
-psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/008_search.sql
-psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/009_wilayas.sql
-psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/010_event_types.sql
-psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/011_venue_detail.sql
-psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/012_booking_request.sql
-psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/013_mes_reservations.sql
-psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/014_espace_proprietaire.sql
-psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/015_repondre_a_une_demande.sql
-psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/016_agenda_proprietaire.sql
-psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/017_publier_une_salle.sql
-psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/018_garde_privileges_profil.sql
-psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/019_adresse_de_la_salle.sql
-psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/020_telephone_joignable.sql
-psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/021_photos_de_la_salle.sql
-psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/022_delais_et_alertes.sql
-psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/023_une_option_tient_la_date.sql
-psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/024_acompte_chargily.sql
-psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/025_paiement_confirme.sql
+for f in supabase/migrations/0*.sql; do
+  psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q -f "$f" || break
+done
 ```
 
-Les trente-deux fichiers sont **rejouables** : les relancer sur une base déjà à jour
-ne produit ni erreur ni doublon. `003` va plus loin et met à jour les libellés
-existants — c'est le moyen prévu pour corriger une traduction.
+Les fichiers s'appliquent dans l'ordre de leur numéro — c'est ce que fait la
+boucle. Les trente-deux premiers ont été vérifiés **rejouables** : les relancer
+sur une base déjà à jour ne produit ni erreur ni doublon. `003` va plus loin et
+met à jour les libellés existants — c'est le moyen prévu pour corriger une
+traduction.
 
 ## Ce que couvre le schéma
 
@@ -116,11 +96,12 @@ Les réservations :
 
 `bookings`, `payments`, `reviews`, `notifications`, plus `venue_options` et
 `high_season_periods`, qui servent la formule de prix — ces deux dernières ont
-été ajoutées au §6 du cahier des charges, le document est à jour.
+été ajoutées au modèle de données du cahier des charges, le document est à jour.
 
 `venue_embeddings` (027), `ai_conversations` (028) et `venue_review_summaries`
-(032, hors §6 : la synthèse d'avis n'y avait pas de table) existent désormais.
-Les tables `messages`, `kb_documents` et `ai_cache` du §6 ne sont pas encore
+(032, hors du modèle de données : la synthèse d'avis n'y avait pas de table)
+existent désormais. Les tables `messages`, `kb_documents` et `ai_cache` du
+modèle de données ne sont pas encore
 écrites.
 
 Les fonctions appelées en RPC depuis Flutter :
@@ -139,13 +120,14 @@ Les fonctions appelées en RPC depuis Flutter :
 | `mes_notifications()` (022) | notifications, et le badge de la cloche | droits de l'appelant, fermée à `anon` |
 | `marquer_notifications_lues()` (022) | notifications — une, ou toutes | droits de l'appelant, fermée à `anon` |
 
-`booking_quote()` est ouverte aux visiteurs et `request_booking()` ne l'est pas :
-c'est toute la règle du parcours (§3). On montre un prix à qui le demande ; on ne
-demande son identité qu'à celui qui engage quelque chose.
+`booking_quote()` est ouverte aux visiteurs et `request_booking()` ne l'est
+pas : c'est toute la règle du parcours de réservation. On montre un prix à qui
+le demande ; on ne demande son identité qu'à celui qui engage quelque chose.
 
 ## Le cycle de vie d'une réservation
 
-Les états sont ceux du §3, en contrainte `CHECK` sur `bookings.status` :
+Les états sont ceux du parcours de réservation, en contrainte `CHECK` sur
+`bookings.status` :
 
 ```
 pending ──accept_booking()──> accepted ──confirm_booking()──> confirmed
@@ -159,16 +141,16 @@ refused                       expired                         completed ──> 
 `confirmed`. **Aucune de ces transitions n'est faisable par une requête
 cliente** : il n'existe volontairement aucune politique `UPDATE` ni `DELETE` sur
 `bookings`. Les six fonctions sont `SECURITY DEFINER` et vérifient chacune qui
-appelle et d'où l'on part (§9).
+appelle et d'où l'on part.
 
 **Une seule de ces flèches ne part de personne** : `expire_options()`. Voir
 ci-dessous.
 
 ## L'option de 72 h s'éteint toute seule (022)
 
-Le §5.1 pose une option de 72 h sur une demande acceptée, et dit qu'elle expire
-« automatiquement » sans acompte. Deux tâches **pg_cron**, posées par la
-migration 022, portent ce mot :
+Le cahier des charges pose une option de 72 h sur une demande acceptée, et dit
+qu'elle expire « automatiquement » sans acompte. Deux tâches **pg_cron**, posées
+par la migration 022, portent ce mot :
 
 | Tâche | Quand | Ce qu'elle fait |
 |---|---|---|
@@ -246,9 +228,17 @@ délai** : l'application n'écrit jamais ce champ — aucun écran ne le touche,
 l'interdit dans les deux sens, et seule `creer_salle()` (017) le lève en même
 temps qu'elle insère une salle. Il n'y a donc aucune saisie en cours à protéger,
 et tant qu'il est faux la promesse de l'écran d'accueil est fausse pour tout le
-monde. Le nom, l'e-mail, le téléphone et la langue, eux, sont des **saisies** et
-gardent le délai de deux heures : un visiteur qui bascule en arabe pour regarder
-la mise en page doit la garder le temps de sa visite.
+monde. La langue, elle, est une **saisie** et garde le délai de deux heures : un
+visiteur qui bascule en arabe pour regarder la mise en page doit la garder le
+temps de sa visite.
+
+**Le nom, l'e-mail et le téléphone ne passent plus par ce délai : ils ne
+bougent plus du tout.** Le téléphone est forcé à NULL depuis 038 ; le nom et
+l'adresse sont figés depuis le 3 octobre 2026 par 040, qui remet l'ancienne
+valeur quand un compte connecté écrit une ligne `d0000000-…`. Le délai de deux
+heures ne leur sert plus que de filet, si ces déclencheurs étaient un jour
+retirés. Ce qui protège la connexion elle-même — mot de passe, adresse de
+connexion, MFA — est dans *Ce qu'un visiteur ne peut pas leur faire*, plus bas.
 
 L'objection — « la salle du visiteur attend deux heures, remettre le drapeau tout
 de suite laisserait une salle dont le propriétaire n'est plus déclaré
@@ -274,11 +264,11 @@ qu'un visiteur **voit** en entrant.
 
 ### Le gardien des empreintes (034), et comment voir qu'il est mort
 
-Render endort l'offre gratuite. Mesuré au J25 : **62 s** pour le premier appel
-après deux heures de silence, contre **85 à 573 ms** à chaud. Une tâche pg_cron
-frappe donc `/health` toutes les 5 minutes — 288 appels par jour, qui ne se
-paient nulle part, et **aucune dépendance nouvelle** : pg_cron et pg_net étaient
-déjà là.
+Render endort l'offre gratuite. Mesuré pendant la mise au point : **62 s** pour
+le premier appel après deux heures de silence, contre **85 à 573 ms** à chaud.
+Une tâche pg_cron frappe donc `/health` toutes les 5 minutes — 288 appels par
+jour, qui ne se paient nulle part, et **aucune dépendance nouvelle** : pg_cron
+et pg_net étaient déjà là.
 
 **`cron.job_run_details` ne suffit pas à surveiller ce gardien.** Il dit que la
 tâche a tourné, jamais que le service a répondu : une tâche qui dépose une
@@ -346,7 +336,7 @@ base* → **Run workflow**.
 
 La troisième est la seule à **sortir de la base**, et c'est assumé : elle a
 besoin de parler à un modèle de langage, donc d'une clé d'API, qui n'a rien à
-faire dans PostgreSQL (§7.1). Elle lit l'URL et la clé de service dans le
+faire dans PostgreSQL. Elle lit l'URL et la clé de service dans le
 **Vault**, par leur nom — `ferha_functions_url` et `ferha_service_role_key` —,
 et tant que l'un des deux manque elle rend `NULL` après un avertissement, sans
 échouer. Voir `supabase/functions/summarize-reviews/README.md`.
@@ -362,19 +352,19 @@ from cron.job_run_details d join cron.job j using (jobid)
 order by d.start_time desc limit 10;
 ```
 
-**Pas d'Edge Function**, alors que le §7.2 en dessine une (`expire-options`,
-cron horaire). Elle n'aurait fait qu'appeler par HTTP une fonction SQL qui
-existe déjà : un secret de plus à garder, et une panne possible entre deux
-morceaux qui vivent dans la même base.
+**Pas d'Edge Function**, alors que le cahier des charges en dessine une
+(`expire-options`, cron horaire). Elle n'aurait fait qu'appeler par HTTP une
+fonction SQL qui existe déjà : un secret de plus à garder, et une panne possible
+entre deux morceaux qui vivent dans la même base.
 
 **Toutes les 15 minutes et non toutes les heures.** Une heure de retard sur une
 option échue, c'est une heure pendant laquelle une date libre se lit « prise »
 dans `owner_agenda()` — et c'est justement le moment où une autre famille
 regarde.
 
-**Les demandes `pending` n'expirent pas**, et ce n'est pas un oubli : le §5.1
-n'y pose aucune échéance, et une demande en attente ne coûte la date à
-personne. Un propriétaire parti en voyage retrouve ses demandes au retour
+**Les demandes `pending` n'expirent pas**, et ce n'est pas un oubli : le cahier
+des charges n'y pose aucune échéance, et une demande en attente ne coûte la date
+à personne. Un propriétaire parti en voyage retrouve ses demandes au retour
 plutôt qu'un écran vide.
 
 ## Les favoris (039)
@@ -490,7 +480,7 @@ lignes sans reprendre l'empreinte derrière, c'est les voir disparaître à la
 première heure ronde passé le délai — sans message et sans erreur. **Insertion
 d'abord, empreinte ensuite**, dans `seed/004` comme dans la migration 039.
 
-## Les notifications (§4.1, CORE-04)
+## Les notifications
 
 `notify_user()` est le **seul** chemin vers `notifications` : la table n'a
 aucune politique `INSERT`. Depuis 022, la fonction ne se contente plus de
@@ -577,7 +567,7 @@ autres.
 - **`search_venues()` est `SECURITY DEFINER`**, comme la vue
   `venue_availability` et pour la même raison : elle doit lire `bookings` pour
   savoir si un créneau est pris, alors que cette table est fermée aux visiteurs
-  (§9). Elle ne renvoie que des colonnes publiques d'une salle **publiée** —
+  Elle ne renvoie que des colonnes publiques d'une salle **publiée** —
   jamais le téléphone d'un propriétaire, jamais le motif d'un blocage, jamais
   rien de `bookings`. N'y ajoutez aucune colonne sans avoir vérifié qu'un
   inconnu a le droit de la lire.
@@ -599,18 +589,19 @@ autres.
   le `quoted_amount` reçu à l'insertion et le remplace par celui
   d'`estimate_price()` : le chemin d'écriture n'a plus d'importance. La seule
   valeur qui peut s'en écarter est la contre-proposition du propriétaire au
-  moment d'accepter (§5.2), qui est une décision humaine et non un calcul.
+  moment d'accepter, qui est une décision humaine et non un calcul.
 - **Le devis de l'écran de demande ne calcule rien non plus.** `booking_quote()`
   (012) appelle `estimate_price()` et rhabille son résultat : elle n'a pas une
   ligne de formule. Elle y ajoute l'acompte, qui n'est pas un prix mais une
   fraction du devis, et cette fraction vit dans `deposit_rate()` — **une
   fonction d'une ligne, et le seul endroit où le taux est écrit.**
-- **Le taux d'acompte est de 25 %** (§5.3), et il vit dans `deposit_rate()`. Le
-  §5.3 borne l'acompte à **20–30 %** du montant convenu et fixe à 25 % le taux
-  que la plateforme propose ; les maquettes disent la même chose, écrans 5 et 6,
-  où 51 250 DA valent bien 25 % de 205 000 DA. Ce montant reste
+- **Le taux d'acompte est de 25 %**, et il vit dans `deposit_rate()`. Le cahier
+  des charges borne l'acompte à **20–30 %** du montant convenu et fixe à 25 % le
+  taux que la plateforme propose ; les maquettes disent la même chose, écrans 5
+  et 6, où 51 250 DA valent bien 25 % de 205 000 DA. Ce montant reste
   **indicatif** : c'est `accept_booking()` qui fixe l'acompte réellement dû, et
-  le §5.2 laisse expressément le propriétaire s'écarter de l'estimation.
+  le cahier des charges laisse expressément le propriétaire s'écarter de
+  l'estimation.
 - **Les refus de `request_booking()` portent un code Ferha dans leur `hint`**
   (012) : `FE001` créneau déjà pris, `FE002` bloqué, `FE003` date passée,
   `FE004` salle fermée, `FE005` sa propre salle, `FE006` non connecté. Leur
@@ -619,13 +610,13 @@ autres.
   et « ce créneau vient d'être pris » n'est pas une panne de serveur — c'est un
   409. Le Dart lit le `hint` (`lib/features/booking/booking_messages.dart`) et
   n'a donc jamais à comparer un message français.
-- **Le propriétaire ne dépasse jamais `pending`.** ADM-01 : « aucune salle n'est
-  visible avant contrôle humain ». Deux portes tiennent cette règle, et il faut
-  les deux : `envoyer_salle_en_validation()` (017) écrit `pending` **en dur** —
-  il n'y a pas de paramètre de statut par lequel glisser `published` —, et le
-  trigger `venues_guard_status` (001) refuse l'écriture directe. Être `SECURITY
-  DEFINER` n'endort pas le trigger : il lit `auth.uid()`, qui reste celui du
-  propriétaire.
+- **Le propriétaire ne dépasse jamais `pending`.** Le cahier des charges :
+  « aucune salle n'est visible avant contrôle humain ». Deux portes tiennent
+  cette règle, et il faut les deux : `envoyer_salle_en_validation()` (017) écrit
+  `pending` **en dur** — il n'y a pas de paramètre de statut par lequel glisser
+  `published` —, et le trigger `venues_guard_status` (001) refuse l'écriture
+  directe. Être `SECURITY DEFINER` n'endort pas le trigger : il lit
+  `auth.uid()`, qui reste celui du propriétaire.
 - **Le propriétaire d'une salle vient d'`auth.uid()`, jamais d'un paramètre.**
   `creer_salle()` (017) ne demande pas à qui appartient la salle. « Créer une
   salle au nom d'un autre » n'est donc pas interdit : c'est **inexprimable**, il
@@ -635,35 +626,35 @@ autres.
   transaction (017). Le drapeau suit le fait au lieu de le précéder : sans lui,
   une cliente qui inscrit une salle n'aurait plus aucun chemin pour la
   retrouver — c'est `is_owner` qui ouvre l'entrée de l'espace propriétaire.
-- **Une salle neuve a une adresse, et personne ne la lit** (019). ADM-01 demande
-  de contrôler une « adresse plausible » : `creer_salle()` l'exige donc (FE036).
-  La colonne reste nullable en table — les quinze salles de démonstration n'en
-  ont pas, et inventer quinze rues fausses serait la pire des réponses.
-  **RLS ne suffisait pas à la garder privée** : `venues_select_published_or_own`
-  (002) laisse un inconnu lire la LIGNE d'une salle publiée, et RLS borne les
-  lignes, jamais les colonnes — un `GET /rest/v1/venues?select=address` aurait
-  tout rendu. Le droit de SELECT est donc repris sur la table et redonné
-  **colonne par colonne**, `address` exclue. Une colonne ajoutée à `venues` sera
-  invisible tant qu'on ne l'aura pas ajoutée à cette liste : c'est un oubli qui
-  se voit, plutôt qu'un oubli qui ne se voit jamais.
+- **Une salle neuve a une adresse, et personne ne la lit** (019). La validation
+  par un administrateur demande de contrôler une « adresse plausible » :
+  `creer_salle()` l'exige donc (FE036). La colonne reste nullable en table — les
+  quinze salles de démonstration n'en ont pas, et inventer quinze rues fausses
+  serait la pire des réponses. **RLS ne suffisait pas à la garder privée** :
+  `venues_select_published_or_own` (002) laisse un inconnu lire la LIGNE d'une
+  salle publiée, et RLS borne les lignes, jamais les colonnes — un
+  `GET /rest/v1/venues?select=address` aurait tout rendu. Le droit de SELECT est
+  donc repris sur la table et redonné **colonne par colonne**, `address` exclue.
+  Une colonne ajoutée à `venues` sera invisible tant qu'on ne l'aura pas ajoutée
+  à cette liste : c'est un oubli qui se voit, plutôt qu'un oubli qui ne se voit
+  jamais.
 - **Le numéro de téléphone suit UNE règle, écrite une fois** (020) :
-  `telephone_valide()` — mobile 0 + 5/6/7 + 8 chiffres (10 en tout), ou fixe
-  0 + 2/3/4 + 7 chiffres (9 en tout), espaces tolérés à la saisie, chiffres
-  seuls en base. **C'est le deuxième chiffre qui fait le travail** : une règle
-  plus large — « 0 et huit chiffres » pour un fixe — prenait un mobile amputé
-  d'un chiffre (`077011223`) pour un fixe et le rangeait sans broncher. Elle
-  borne la forme, pas l'annuaire : aucune liste d'indicatifs de wilaya, ici
-  comme côté Flutter. La contrainte de table,
-  le trigger de normalisation et les deux fonctions RPC l'appellent tous ; côté
-  Flutter, `lib/core/validation/telephone.dart` en porte le seul autre
-  exemplaire, et `tests/007` compare les deux listes d'exemples.
+  `telephone_valide()` — mobile 0 + 5/6/7 + 8 chiffres (10 en tout), ou fixe 0 +
+  2/3/4 + 7 chiffres (9 en tout), espaces tolérés à la saisie, chiffres seuls en
+  base. **C'est le deuxième chiffre qui fait le travail** : une règle plus large
+  — « 0 et huit chiffres » pour un fixe — prenait un mobile amputé d'un chiffre
+  (`077011223`) pour un fixe et le rangeait sans broncher. Elle borne la forme,
+  pas l'annuaire : aucune liste d'indicatifs de wilaya, ici comme côté Flutter.
+  La contrainte de table, le trigger de normalisation et les deux fonctions RPC
+  l'appellent tous ; côté Flutter, `lib/core/validation/telephone.dart` en porte
+  le seul autre exemplaire, et `tests/007` compare les deux listes d'exemples.
   **Il se demande là où quelqu'un devra décrocher**, et nulle part ailleurs :
-  `envoyer_salle_en_validation()` (ADM-01, « propriétaire joignable », FE037) et
-  `request_booking()` (FE007) le reçoivent et l'écrivent dans `profiles.phone`.
-  Avant cela, aucun écran ne remplissait cette colonne : `booking_contact()`
-  ouvrait fidèlement… rien, des deux côtés. Un numéro qui change fait retomber
-  `phone_verified` — un drapeau de vérification ne suit pas un numéro jusqu'au
-  suivant.
+  `envoyer_salle_en_validation()` (la validation exige un « propriétaire
+  joignable », FE037) et `request_booking()` (FE007) le reçoivent et l'écrivent
+  dans `profiles.phone`. Avant cela, aucun écran ne remplissait cette colonne :
+  `booking_contact()` ouvrait fidèlement… rien, des deux côtés. Un numéro qui
+  change fait retomber `phone_verified` — un drapeau de vérification ne suit pas
+  un numéro jusqu'au suivant.
 - **Un compte ne se donne pas de droits à lui-même** (018). `is_admin` et
   `is_owner` sont dans `profiles`, mais ce ne sont pas des données : ce sont des
   droits. `profiles_update_self` (002) borne la LIGNE qu'on écrit, pas les
@@ -685,31 +676,31 @@ autres.
   (`FE022`). Fermer la date n'annulerait pas la réservation — elle laisserait
   deux vérités contradictoires dans la base, et un client devant une salle
   fermée. Une demande **en attente**, elle, n'empêche rien : elle n'a bloqué
-  aucune date (§5.1), et le propriétaire y répondra depuis sa file. Une
+  aucune date, et le propriétaire y répondra depuis sa file. Une
   `journee` dont un seul créneau est vendu ne se ferme pas non plus, et surtout
   pas à moitié : la fonction vérifie avant d'écrire.
 - **La double réservation est refusée par la base.** `uniq_booking_slot`, index
   unique partiel sur `(venue_id, event_date, slot) WHERE status IN ('confirmed',
-  'completed')` (§6.1). Il est partiel exprès : une demande `pending` ne bloque
+  'completed')`. Il est partiel exprès : une demande `pending` ne bloque
   pas la date, plusieurs familles peuvent demander le même 14 août et le
-  propriétaire arbitre (§5.1). `supabase/tests/001_double_booking.sql` le
+  propriétaire arbitre. `supabase/tests/001_double_booking.sql` le
   vérifie.
 - **Une réservation `journee` s'écrit en deux lignes**, `midi` et `soir`, liées
-  par `group_id` (§6.1). `request_booking()` les insère en une seule
+  par `group_id`. `request_booking()` les insère en une seule
   instruction ; le trigger `bookings_check_journee` refuse toute journée écrite
   en une seule ligne. Le devis est celui du **groupe** et se trouve répété sur
   les deux lignes : lire la vue `booking_groups`, jamais `sum(quoted_amount)`.
 - **Pas de réservation honorée, pas d'avis.** `reviews.booking_id` est `UNIQUE
-  NOT NULL` (§5.4) — la règle est dans le schéma, pas dans une politique.
+  NOT NULL` — la règle est dans le schéma, pas dans une politique.
   `reviews.booking_group_id`, unique lui aussi, ferme la brèche des journées
   entières, qui portent deux `booking_id` pour un seul événement.
-- **La note affichée est bayésienne**, pas une moyenne simple (§5.4). Vue
+- **La note affichée est bayésienne**, pas une moyenne simple. Vue
   `venue_ratings`, seule source de cette note.
-- **Aucune écriture cliente sur `payments`** (§9). L'absence de politique
+- **Aucune écriture cliente sur `payments`**. L'absence de politique
   `INSERT` / `UPDATE` / `DELETE` est la règle, pas un oubli : seul le
   `service_role` du webhook Chargily écrit. L'index partiel
   `payments_checkout_id_key` rend le webhook idempotent.
-- **Le téléphone ne sort qu'à partir de `accepted`** (§9). `profiles` reste
+- **Le téléphone ne sort qu'à partir de `accepted`**. `profiles` reste
   fermée à son seul titulaire ; `booking_contact()` est le seul chemin vers le
   numéro d'un tiers, et il ne s'ouvre pas avant. « sinon la plateforme se fait
   contourner dès la première recherche. »
@@ -722,8 +713,9 @@ autres.
   **Et sur un compte de démonstration, il n'y a rien à sortir** : depuis 038,
   le déclencheur `profiles_pas_de_telephone_en_demonstration` remet `phone` à
   NULL et `phone_verified` à false sur tout profil `d0000000-…`, avant
-  écriture. Le §9 n'est pas modifié — il s'ouvre toujours à `accepted`, et
-  `phone_available` reste vrai ; il n'a simplement plus de numéro à révéler.
+  écriture. La règle du contact n'est pas modifiée — elle s'ouvre toujours à
+  `accepted`, et `phone_available` reste vrai ; il n'a simplement plus de
+  numéro à révéler.
   Le déclencheur FORCE au lieu de REFUSER, sans quoi `request_booking()`
   lèverait une exception et le parcours du testeur s'arrêterait sur l'écran 5.
   Les deux colonnes partent ensemble parce que
@@ -750,7 +742,7 @@ autres.
   n'est pas un oubli : c'est une table réservée au rôle de service. C'est le cas
   d'`amenities`, de `high_season_periods` et de `payments`.
 - **Une journée entière se stocke en deux lignes**, `midi` et `soir`. Même
-  découpage que les réservations (§6.1), pour que la requête de disponibilité
+  découpage que les réservations, pour que la requête de disponibilité
   lise `venue_blackouts` et `bookings` de la même façon.
 - **Le motif d'un blocage ne sort pas.** `venue_blackouts` n'est lisible que par
   le propriétaire de la salle, parce que `reason` y figure. Le calendrier lit la
@@ -765,8 +757,9 @@ autres.
 ## Les photos : chemin de Storage, ou URL complète
 
 `venue_photos.storage_path` porte normalement un **chemin dans le bucket**
-`venue-photos`, de la forme `{venue_id}/{uuid}.webp` (§7.3). C'est ce que
-l'application écrit depuis le J13, quand un propriétaire téléverse ses photos.
+`venue-photos`, de la forme `{venue_id}/{uuid}.webp`, comme le prévoit le cahier
+des charges. C'est ce que l'application écrit depuis qu'un propriétaire peut
+téléverser ses photos, quand un propriétaire téléverse ses photos.
 
 Les salles de démonstration, elles, portent une **URL Unsplash complète** :
 nous n'avons pas encore de photos réelles, et une application de salles des
@@ -811,16 +804,17 @@ le fichier resterait dans le bucket après que sa ligne a disparu de la galerie.
 
 ### Pas de transformations d'image, et donc une seule taille
 
-Le §7.3 annonce « miniatures générées à la volée par les transformations d'image
-du Storage ». **On ne s'en sert pas** : elles sont réservées aux offres payantes
-de Supabase, et le projet coûte 0 DA.
+Le cahier des charges annonce « miniatures générées à la volée par les
+transformations d'image du Storage ». **On ne s'en sert pas** : elles sont
+réservées aux offres payantes de Supabase, et le projet coûte 0 DA.
 
-Conséquence assumée : **un seul fichier par photo**, réduit à 1600 px de large et
-réencodé à 80 % côté appareil (`lib/features/owner/compression_photo.dart`), et
-les vignettes des cartes affichent ce même fichier. Une photo pèse alors 150 à
-400 Ko — dix fois moins qu'un original de téléphone, ce qui est le point du
-§7.3. Le jour où le projet passerait à une offre payante, les miniatures
-s'ajouteraient sans rien changer en base : elles ne sont qu'un paramètre d'URL.
+Conséquence assumée : **un seul fichier par photo**, réduit à 1600 px de large
+et réencodé à 80 % côté appareil (`lib/features/owner/compression_photo.dart`),
+et les vignettes des cartes affichent ce même fichier. Une photo pèse alors 150
+à 400 Ko — dix fois moins qu'un original de téléphone, ce qui est le point du
+cahier des charges. Le jour où le projet passerait à une offre payante, les
+miniatures s'ajouteraient sans rien changer en base : elles ne sont qu'un
+paramètre d'URL.
 
 ### Le format est RENIFLÉ, jamais supposé
 
@@ -828,7 +822,7 @@ Sur le web, `canvas.toDataURL('image/webp')` retombe **silencieusement** sur du
 PNG quand le navigateur ne sait pas encoder du WebP, et `flutter_image_compress`
 jette le préfixe qui l'aurait dit. L'application lit donc les premiers octets du
 résultat et nomme le fichier d'après ce qu'il EST — `.webp`, ou `.jpg` pour le
-repli du §7.3. La liste `allowed_mime_types` du bucket est le filet sous ce
+repli prévu. La liste `allowed_mime_types` du bucket est le filet sous ce
 reniflement : un PNG déguisé serait refusé à l'entrée.
 
 ### De 5 à 20 photos
@@ -836,8 +830,8 @@ reniflement : un PNG déguisé serait refusé à l'entrée.
 `photos_min()` et `photos_max()` (021) portent les deux bornes, et sont le seul
 endroit où ces nombres sont écrits en SQL. Le trigger
 `venue_photos_guard_count` refuse la 21e (FE038) ; `envoyer_salle_en_validation()`
-refuse une salle qui en a moins de cinq (FE041), parce qu'ADM-01 demande « des
-photos réelles » avant toute publication.
+refuse une salle qui en a moins de cinq (FE041), parce que la validation
+d'une salle demande « des photos réelles » avant toute publication.
 
 ### La couverture EST la première photo
 
@@ -889,8 +883,8 @@ s'appeler Karim et tenir une salle à Oran.
 | `5a11e000-0000-4000-a000-…` | les quinze salles |
 
 Treize salles sont `published`, **deux sont `pending`** — de quoi alimenter
-l'écran de validation du §4.4 (ADM-01). Une recherche cliente doit en trouver
-treize, jamais quinze.
+l'écran de validation des salles par un administrateur. Une recherche cliente
+doit en trouver treize, jamais quinze.
 
 `002` **s'arrête net** si des réservations portent sur ces salles :
 `bookings.venue_id` est en `RESTRICT`, et une réservation est une trace
@@ -898,8 +892,8 @@ comptable. Il vous dit lesquelles et vous laisse décider.
 
 ### Les deux comptes de démonstration
 
-Le §4.1 (CORE-01) les exige : « Deux comptes de démonstration sont proposés en
-un tap sur l'écran de connexion. »
+Le cahier des charges les exige : « Deux comptes de démonstration sont proposés
+en un tap sur l'écran de connexion. »
 
 | Compte | Adresse | Rôle |
 |---|---|---|
@@ -1014,8 +1008,8 @@ phrases à l'écran, donc trois codes.
 
 ### `payments` reste fermée en écriture au client
 
-Le §9 dit « aucune écriture cliente », et la table n'a **aucune politique
-d'INSERT** : ce n'est pas un oubli. `enregistrer_checkout()` est
+Le cahier des charges dit « aucune écriture cliente », et la table n'a **aucune
+politique d'INSERT** : ce n'est pas un oubli. `enregistrer_checkout()` est
 `SECURITY DEFINER` et n'est donnée **qu'au `service_role`** — celui de la Edge
 Function. L'application Flutter ne peut pas l'appeler.
 
@@ -1025,7 +1019,7 @@ Function et son écriture, il s'est écoulé un aller-retour chez Chargily, et u
 option peut s'éteindre pendant ce temps-là.
 
 Elle est **idempotente** sur `checkout_id` (l'index partiel de `004`), comme le
-webhook du J16 devra l'être, et elle éteint les pages abandonnées du même
+webhook doit l'être, et elle éteint les pages abandonnées du même
 groupe : jamais deux paiements « pending » sur une même réservation.
 
 ## Les Edge Functions
@@ -1132,8 +1126,8 @@ prévenu. Idempotente : rappuyer rend l'intention déjà posée, sans renotifier
 
 `confirmer_encaissement_especes()` — le propriétaire a compté l'argent. Elle
 vérifie `owns_booking()`, passe le paiement en `paid`, puis appelle
-`confirm_booking()`. **Le même chemin que Chargily**, et donc le même index du
-§6.1 pour dernier mot : il n'y a qu'une porte vers `confirmed`.
+`confirm_booking()`. **Le même chemin que Chargily**, et donc le même index
+d'unicité pour dernier mot : il n'y a qu'une porte vers `confirmed`.
 
 Elle n'éteint pas une page Chargily ouverte — on ne peut pas empêcher Chargily
 d'encaisser. Si la carte aboutit après coup, le webhook voit la réservation déjà
@@ -1157,7 +1151,7 @@ la vraie clé et vise la fonction déployée : seul le formulaire de carte manqu
 ### Revenir sur `success_url` ne confirme rien
 
 C'est la règle de cette étape. La fonction écrit une ligne `pending`, et **rien
-de plus** : la réservation reste `accepted`. Seul le webhook signé — le J16 —
+de plus** : la réservation reste `accepted`. Seul le webhook signé
 la fera passer en `confirmed`. Tant qu'il n'a pas parlé, l'application dit
 « paiement en cours de vérification ».
 
@@ -1183,28 +1177,16 @@ un client connecté, la lecture par un inconnu, et la signature de
 
 ## Ce qui manque encore
 
-- **LE WEBHOOK CHARGILY N'EXISTE PAS ENCORE, ET DONC RIEN NE PASSE EN
-  `confirmed`.** L'étape J15 a posé la caisse : `create-checkout` ouvre la page
-  de paiement et écrit une ligne `payments` en `pending`. Personne ne la fait
-  avancer. Concrètement, une cliente peut payer et voir sa réservation rester
-  « acceptée » jusqu'à l'expiration de son option.
+- **Le webhook Chargily et le règlement en espèces, qui manquaient ici, existent
+  depuis la migration 025.** `chargily-webhook` vérifie la signature, ne
+  confirme jamais deux fois et passe par une fonction SQL ; l'espèces se
+  confirme par le propriétaire. Voir *Le versement de l'acompte (024)* et *Les
+  Edge Functions* plus bas, et les tests `012_especes_sur_place.sql` et
+  `014_webhook_confirme.sql`.
 
-  Le J16 apportera `chargily-webhook` : signature vérifiée à chaque appel,
-  endpoint **idempotent** (§9), passage par `confirm_booking()` (004) — jamais
-  un `UPDATE` direct sur `bookings` —, et les deux parties prévenues. Il devra
-  aussi traiter les paiements **échoués**, que rien ne range aujourd'hui :
-  `enregistrer_checkout()` n'éteint une ligne `pending` que lorsqu'une page
-  neuve s'ouvre.
-
-- **LE RÈGLEMENT EN ESPÈCES (`payments.method = 'cash'`) N'A PAS DE PARCOURS.**
-  La colonne l'accepte depuis `004` et la maquette de l'écran 6 le dessine en
-  troisième choix ; `enregistrer_checkout()` le **refuse** explicitement, parce
-  qu'un règlement en espèces n'a pas de checkout. Il lui faudra sa propre
-  fonction et une confirmation par le propriétaire.
-
-- **LES ALERTES QUI SORTENT DE L'APPLICATION N'EXISTENT PAS.** L'étape J14 a
-  posé les notifications *dans* l'application — table, temps réel, cloche, écran
-  — et rien au-delà. Le §4.1 (CORE-04) et le §6 en prévoient plus :
+- **LES ALERTES QUI SORTENT DE L'APPLICATION N'EXISTENT PAS.** Une étape
+  précédente a posé les notifications *dans* l'application — table, temps réel,
+  cloche, écran — et rien au-delà. Le cahier des charges en prévoit plus :
 
   1. **le push téléphone (FCM)**, prévu en V1 « par-dessus le reste sans rien
      changer » : il lira la même table `notifications`, et c'est pour cela que
@@ -1216,14 +1198,15 @@ un client connecté, la lecture par un inconnu, et la signature de
      de 022 — et elle devra retenir ce qu'elle a déjà envoyé, sans quoi elle
      rappellera le même mariage chaque jour ;
   4. **l'invitation à laisser un avis** : `complete_booking()` dépose déjà
-     `review_invitation`, mais l'écran qui la reçoit n'existe pas encore (J17).
+     `review_invitation`, mais l'écran qui la reçoit n'existe pas encore.
      La notification s'affiche et mène au suivi des réservations, faute de
      mieux ;
   5. **le bouton WhatsApp**, qui n'est écrit nulle part encore.
 
 - **UNE SALLE NE PEUT PAS ÊTRE PUBLIÉE SANS GRILLE TARIFAIRE, ET RIEN NE
-  L'EMPÊCHE ENCORE.** C'est le trou ouvert par l'étape J12, et il est écrit ici
-  pour qu'on ne le découvre pas par un propriétaire qui attend des demandes.
+  L'EMPÊCHE ENCORE.** C'est le trou ouvert par la publication d'une salle, et il
+  est écrit ici pour qu'on ne le découvre pas par un propriétaire qui attend des
+  demandes.
 
   `search_venues()` (010) fait une jointure **interne** sur `venue_pricing` pour
   le créneau cherché : une salle sans ligne de tarif ne sort d'**aucune**
@@ -1233,39 +1216,41 @@ un client connecté, la lecture par un inconnu, et la signature de
   personne — sans qu'aucune erreur ne le signale.
 
   Aujourd'hui, `creer_salle()` (017) n'écrit aucun tarif : l'écran de la grille
-  tarifaire (OWN-03) n'existe pas. Deux choses restent donc à faire, et dans cet
+  tarifaire n'existe pas. Deux choses restent donc à faire, et dans cet
   ordre :
 
-  1. l'écran OWN-03, pour que le propriétaire puisse saisir ses prix ;
+  1. l'écran de la grille tarifaire, pour que le propriétaire puisse saisir ses
+     prix ;
   2. **un garde-fou dans le passage à `published`** — celui qui valide une salle
      doit se voir refuser une salle sans tarifs, plutôt que de publier une fiche
-     morte. Le contrôle humain d'ADM-01 ne suffit pas : c'est exactement le
-     genre d'absence qu'un œil ne voit pas.
+     morte. Le contrôle humain de la validation ne suffit pas : c'est exactement
+     le genre d'absence qu'un œil ne voit pas.
 
   En attendant, le récapitulatif de l'inscription le dit au propriétaire en
   toutes lettres — « il vous restera à saisir vos tarifs par créneau ». Une
   phrase n'est pas une contrainte, mais elle vaut mieux qu'un silence.
 
-- **LA CARTE ET LES COORDONNÉES (CLI-02) NE SONT PAS FAITES.** `venues.lat` et
+- **LA CARTE ET LES COORDONNÉES NE SONT PAS FAITES.** `venues.lat` et
   `venues.lng` existent depuis `001`, avec une contrainte qui interdit d'en
   renseigner une seule (`venues_coordinates_complete`) — mais **aucune salle
   n'en porte**, et aucun écran ne les saisit. La fiche salle n'a donc pas de
-  carte, et « les 5 salles les plus proches » du §4.2 n'a rien pour se calculer.
+  carte, et « les 5 salles les plus proches » du cahier des charges n'a rien
+  pour se calculer.
 
   Ce qui reste à faire, et dans cet ordre :
 
   1. la saisie, à l'étape 2 du formulaire d'inscription — un point qu'on pose
      sur une carte vaut mieux qu'une latitude tapée à la main ;
   2. la sortie publique. `venues.address` (019) est **privée** : elle sert au
-     contrôle humain d'ADM-01 et le droit de SELECT lui a été retiré. `lat` et
-     `lng` sont d'une autre nature — une carte est faite pour être vue — mais
-     elles restent à décider : montrer le point exact d'une salle avant
-     réservation revient à donner son adresse, et c'est précisément ce que le §9
-     évite pour les téléphones. Un cercle approximatif avant « accepted », le
-     point exact après, est la piste ; elle n'est pas tranchée.
+     contrôle humain de la validation et le droit de SELECT lui a été retiré.
+     `lat` et `lng` sont d'une autre nature — une carte est faite pour être vue
+     — mais elles restent à décider : montrer le point exact d'une salle avant
+     réservation revient à donner son adresse, et c'est précisément ce que la
+     règle du contact évite pour les téléphones. Un cercle approximatif avant
+     « accepted », le point exact après, est la piste ; elle n'est pas tranchée.
 
   La question de ce qui s'affiche AVANT réservation se pose donc à trois
-  endroits maintenant — téléphone (§9, tranché), adresse (019, tranché : rien),
+  endroits maintenant — téléphone (tranché), adresse (019, tranché : rien),
   coordonnées (à trancher). La réponse devrait être la même partout.
 
 ## Points à reprendre plus tard
@@ -1287,19 +1272,20 @@ un client connecté, la lecture par un inconnu, et la signature de
   `client_bookings()` et ne lit pas l'ancienne ligne. Passer la table en
   `REPLICA IDENTITY FULL` serait à faire seulement si un écran avait besoin de
   savoir *ce qui a changé*, et cela grossirait chaque enregistrement WAL.
-- **`accept_booking()` ne vérifie pas les bornes de 20–30 % du §5.3.** Elle
-  n'exige aujourd'hui qu'un acompte compris entre 0 et le montant du devis. Le
-  §5.3 est plus étroit depuis qu'il fixe la fourchette ; resserrer la contrainte
-  demande d'abord de vérifier qu'aucune réservation acceptée n'en sort.
+- **`accept_booking()` ne vérifie pas les bornes de 20–30 % du cahier des
+  charges.** Elle n'exige aujourd'hui qu'un acompte compris entre 0 et le
+  montant du devis. Le cahier des charges est plus étroit depuis qu'il fixe la
+  fourchette ; resserrer la contrainte demande d'abord de vérifier qu'aucune
+  réservation acceptée n'en sort.
 - `high_season_periods` arrive **vide**. Tant qu'elle l'est, seuls juin à
-  septembre majorent ; les vacances scolaires du §5.2 doivent y être déposées
-  année par année.
-- Le **barème de remboursement du §5.3** (100 % / 50 % / 0 % selon la date)
-  n'est écrit nulle part : `cancel_booking()` libère la date et trace qui a
-  annulé, sans calculer de remboursement. Il viendra avec le remboursement
+  septembre majorent ; les vacances scolaires prévues par le cahier des charges
+  doivent y être déposées année par année.
+- Le **barème de remboursement du cahier des charges** (100 % / 50 % / 0 % selon
+  la date) n'est écrit nulle part : `cancel_booking()` libère la date et trace
+  qui a annulé, sans calculer de remboursement. Il viendra avec le remboursement
   Chargily.
-- `bookings.event_type` n'a **pas de contrainte** : le §4.2 cite « type
-  d'événement » sans en fixer la liste. Un référentiel viendra.
+- `bookings.event_type` n'a **pas de contrainte** : le cahier des charges cite
+  « type d'événement » sans en fixer la liste. Un référentiel viendra.
 - **`bookings.event_type` n'a pas de clé étrangère vers `event_types`.** La
   colonne est du texte libre depuis `004`, écrite avant que le référentiel
   existe. L'ajouter demande d'abord de vérifier qu'aucune réservation ne porte
@@ -1317,7 +1303,7 @@ un client connecté, la lecture par un inconnu, et la signature de
 
 **Décision prise, pas encore écrite en SQL.**
 
-La loi 18-07 demande de pouvoir fermer un compte (§9). Mais une réservation
+La loi 18-07 demande de pouvoir fermer un compte. Mais une réservation
 passée est une **trace comptable** : elle ne peut pas s'évaporer, et l'autre
 partie a le droit de retrouver ce qu'elle a vendu ou acheté.
 

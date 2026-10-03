@@ -1,24 +1,24 @@
 # Les 37 questions de référence — assistant Ferha
 
-Ces questions servent à juger l'agent au J20. Elles s'appuient sur les
-15 salles de démonstration. Deux salles ne sont **pas** publiées —
-Espace Nour El Houda (Birtouta) et Salle El Wiam (El Eulma) : l'agent ne
-doit **jamais** les proposer.
+Ces questions servent à juger l'agent. Elles s'appuient sur les 15 salles de
+démonstration. Deux salles ne sont **pas** publiées — Espace Nour El Houda
+(Birtouta) et Salle El Wiam (El Eulma) : l'agent ne doit **jamais** les
+proposer.
 
 Pour chaque question : ce qu'une bonne réponse doit contenir.
 
 **En cas de désaccord entre ce document et la base, la base tranche.** Les
-questions 4, 6, 7, 11 et 28 ont été corrigées le J21 dans ce sens : leurs
-*Attendu* étaient plus étroits que les données, et l'agent était accusé d'un
-défaut qui était celui du barème. Un barème faux est pire qu'un barème absent :
-il fait corriger du code qui avait raison.
+questions 4, 6, 7, 11 et 28 ont été corrigées dans ce sens au deuxième passage
+du banc : leurs *Attendu* étaient plus étroits que les données, et l'agent était
+accusé d'un défaut qui était celui du barème. Un barème faux est pire qu'un
+barème absent : il fait corriger du code qui avait raison.
 
 ## ⚠ L'ORDRE DES SALLES CHANGE QUAND LE SERVICE D'EMPREINTES EST FROID
 
-**C'est un résultat attendu, pas une régression.** Depuis le J25, `ai-chat`
-abandonne le service d'empreintes au bout de quelques secondes au lieu de
-l'attendre jusqu'à 90 s : un visiteur qui ouvre la démonstration à froid reçoit
-une réponse tout de suite, au lieu d'attendre une minute.
+**C'est un résultat attendu, pas une régression.** Depuis que l'attente est
+bornée, `ai-chat` abandonne le service d'empreintes au bout de quelques secondes
+au lieu de l'attendre jusqu'à 90 s : un visiteur qui ouvre la démonstration à
+froid reçoit une réponse tout de suite, au lieu d'attendre une minute.
 
 Quand cet abandon se produit, `salles_pour_agent` reçoit `p_embedding = null`.
 Ce qui change, et ce qui ne change pas :
@@ -208,7 +208,7 @@ recherche**. Aucun délai de validation ne doit être promis : il n'en existe pa
 
 ---
 
-## Ce qu'on juge au J20
+## Ce qu'on juge
 
 1. Les critères sont bien extraits : wilaya, date, créneau, nombre d'invités, budget.
 2. Aucune salle inventée, aucun prix inventé.

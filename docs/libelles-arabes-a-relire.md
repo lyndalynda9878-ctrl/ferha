@@ -13,7 +13,7 @@ moi, je ne retirerai la mention que sur ce qui a ete relu.
 
 Ces libelles sont **de l'arabe standard**, pas de la darja : ce sont des
 etiquettes d'interface, pas une conversation. Le meme choix qu'aux six
-ecrans traduits au J22.
+ecrans traduits avant eux.
 
 ## Ce qui arrive ensuite
 
