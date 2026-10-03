@@ -137,10 +137,13 @@ nuance est ailleurs que là où on l'attend : les référentiels **sont** biling
 `not null` et renseignées pour les 58 wilayas et tous les codes. C'est le client
 Flutter qui ne les demande jamais : `search_providers.dart` écrit `name_fr` et
 `label_fr` en dur, quelle que soit la langue active. Le réparer, c'est choisir
-la colonne selon la langue — un après-midi. Ce qui n'a, lui, aucune traduction,
-c'est le contenu saisi par les propriétaires : `venues.name`, `venues.commune`,
-`venues.description`, les motifs de dates bloquées et le texte des avis. Celui-là
-demanderait un vrai circuit de traduction, pas une colonne.
+la colonne selon la langue — un après-midi. La barre d'onglets du bas — Accueil,
+Assistant, Favoris, Profil — reste elle aussi en français dans la page arabe,
+pour une raison plus simple encore : `lib/core/router/home_shell.dart` écrit ses
+quatre libellés en dur au lieu de les lire dans l'ARB. Ce qui n'a, lui, aucune
+traduction, c'est le contenu saisi par les propriétaires : `venues.name`,
+`venues.commune`, `venues.description`, les motifs de dates bloquées et le texte
+des avis. Celui-là demanderait un vrai circuit de traduction, pas une colonne.
 
 **Les comptes de démonstration ne PEUVENT PAS porter de numéro de téléphone :
 la base le refuse.** Un numéro algérien bien formé appartient à quelqu'un, et le

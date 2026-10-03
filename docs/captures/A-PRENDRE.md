@@ -47,11 +47,17 @@ côte, et une seule image d'une autre taille casserait la rangée dans le README
 
 Ce qui doit être dans le cadre :
 
-- le champ « où », le champ « quand », le champ « combien » et le bouton qui
-  lance la recherche — c'est-à-dire la promesse du produit en un coup d'œil ;
-- les puces de wilayas sous le formulaire, avec leur nombre de salles : elles
-  montrent que les données sont réelles et non un décor dessiné ;
+- le formulaire entier, rien de sélectionné : le champ « Wilaya, commune ou nom
+  de salle », les puces de wilayas (Sétif, Oran, Constantine, Blida, Alger), les
+  champs « Date » et « Invités », le choix du créneau — Midi, Soir, Journée —,
+  les types d'événement et le bouton « Rechercher » : la promesse du produit en
+  un coup d'œil ;
+- le début de « Les mieux notées », avec au moins une carte entière — photo,
+  nom, commune, couverts, prix par soirée, note en étoiles ;
 - la barre d'onglets du bas.
+
+Les puces de wilayas ne portent pas de nombre de salles : l'écran n'en affiche
+pas.
 
 Ce qui ne doit pas y être : un menu ouvert par-dessus, un clavier virtuel.
 
@@ -75,21 +81,28 @@ Ce qui doit être dans le cadre :
 
 ## 03-fiche-salle-calendrier.png
 
-**Écran** : la fiche d'une salle, déroulée jusqu'au calendrier.
+**Écran** : « Disponibilité », le calendrier plein écran qu'on ouvre depuis la
+fiche d'une salle.
 **Langue** : français. **Thème** : clair.
 
 Prendre **Salle El Bahia** (Oran) : c'est la salle la mieux garnie du décor —
 six photos, cinq options, une grille tarifaire complète.
 
-Ce qui doit être dans le cadre, en priorité **le calendrier** :
+Ce qui doit être dans le cadre :
 
-- un mois où l'on voit les **trois états** côte à côte : libre, pris, et passé.
-  Juillet ou août 2027 conviennent, ils portent des dates bloquées ;
-- la légende des trois états si l'écran l'affiche ;
-- si la hauteur le permet, le bloc du prix au-dessus.
+- le choix du créneau en tête — Midi, Soir, Journée entière —, sur **Soir** ;
+- **juillet et août 2027 en entier**, l'un sous l'autre : ce sont les mois qui
+  portent les dates bloquées du décor, et l'on y voit côte à côte des dates
+  **libres** (vert) et **indisponibles** (sable) ;
+- la légende en bas — Libre, Réservé, Indisponible.
+
+Les trois états de l'application sont ceux de la légende : libre, réservé,
+indisponible. Sur ces deux mois et ce créneau, aucune date n'est réservée : la
+capture en montre deux sur trois, et la légende nomme le troisième. Le bloc du
+prix n'y est pas — il est sur la fiche, pas sur cet écran.
 
 Le calendrier est la pièce la plus travaillée de l'application. Une capture qui
-le coupe en deux ne sert à rien.
+coupe un mois en deux ne sert à rien.
 
 ## 04-accueil-ar-sombre.png
 
@@ -97,17 +110,28 @@ le coupe en deux ne sert à rien.
 **Langue** : arabe. **Thème** : sombre.
 
 C'est la capture qui prouve le plus en une image, à condition qu'on puisse la
-**comparer à la 01**. Donc : même écran, même position de défilement, même
-largeur de fenêtre. Le lecteur doit voir d'un coup que toute la mise en page
-s'est retournée.
+**comparer à la 01** : même écran, même largeur. Le lecteur doit voir d'un coup
+que toute la mise en page s'est retournée.
+
+Elle n'est pas prise dans le même état que la 01, et c'est ce qui la rend
+parlante : **Oran est sélectionné et « 300 » saisi dans les invités**. La
+section du bas devient alors « الأعلى تقييماً في ORAN » — les mieux notées à
+Oran. Le formulaire est légèrement défilé : le champ de recherche est sorti par
+le haut, les puces de wilayas sont la première ligne visible.
 
 Ce qui doit être dans le cadre :
 
-- le sens de lecture inversé, visible sur l'alignement des champs et sur la
-  barre d'onglets ;
-- **les chiffres, qui restent latins** — capacité, prix, nombres de salles sur
-  les puces. C'est une décision, pas un oubli, et elle ne se voit que là ;
-- la flèche de retour retournée, si l'écran en porte une.
+- le sens de lecture inversé : titre et cloche échangés, puces et champs
+  alignés à droite, carte retournée (cœur à gauche, note à gauche), barre
+  d'onglets dans l'ordre Profil → Accueil ;
+- la puce Oran cochée et le champ des invités rempli, dans la couleur d'accent
+  du thème sombre ;
+- **les chiffres, qui restent latins** — 300, 286 000, 450, 4,3. C'est une
+  décision, pas un oubli, et elle ne se voit que là.
+
+Ce qui reste en français dans la page arabe, et que la capture montre tel quel :
+les noms de wilayas, les types d'événement et les quatre libellés de la barre
+d'onglets. Le README le dit dans « Ce que ça ne fait pas, et pourquoi ».
 
 Pour basculer : l'écran de profil, ou le sélecteur de langue de l'accueil.
 
@@ -119,11 +143,21 @@ Pour basculer : l'écran de profil, ou le sélecteur de langue de l'accueil.
 
 Ce qui doit être dans le cadre :
 
-- **la file des demandes en attente**, avec au moins deux demandes et leur âge
-  (« il y a 2 heures », « il y a 3 jours ») ;
-- les chiffres du haut : taux d'occupation, part des demandes acceptées, note
-  moyenne — et leur variation par rapport au mois précédent ;
-- le sélecteur de salle, qui montre que Karim en tient plusieurs.
+- le sélecteur de salle en titre — **Salle El Bahia** et sa flèche —, qui
+  montre que Karim en tient plusieurs ;
+- les deux raccourcis : « Agenda » et « Publier une autre salle » ;
+- **la file des demandes en attente de cette salle** — trois sur la capture —,
+  chacune avec son prénom et l'initiale du nom, sa date, son créneau, ses
+  invités, son type d'événement, son estimation, et son âge (« il y a 17
+  jours ») ;
+- le début de « Ce mois-ci » : taux d'occupation, prévisionnel du mois, note
+  moyenne, demandes acceptées, avec leur variation par rapport au mois
+  précédent.
+
+La file ne compte que les demandes de la salle choisie : Karim en a quatre en
+tout, trois sur El Bahia. Les chiffres du mois sont ceux du jour de la capture —
+le 3 octobre 2026, un mois sans réservation : 0 %, 0 DA, et des flèches qui
+descendent. Ils sont vrais ; ils changeront avec la date.
 
 À vérifier **avant** de déclencher la capture : la file n'est pas vide. Si elle
 l'est, le ménage horaire ne l'a pas encore remise — attendre le passage à la
