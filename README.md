@@ -66,7 +66,7 @@ décor](docs/gardiens.md).
 | **Deux langues** | Français et arabe, la mise en page entière se retourne de droite à gauche ([détail](docs/arabe-et-rtl.md)) | 217 tests dédiés |
 | **Base de données** | PostgreSQL (Supabase) : RLS sur chaque table, prix calculés en base et jamais en Dart, changements d'état par fonctions sécurisées ([supabase/README.md](supabase/README.md)) | 42 migrations, 22 bancs d'essai SQL |
 | **Recherche** | Filtres SQL, puis une recherche sémantique par vecteurs qui reclasse les résultats ([détail](docs/recherche-et-assistant.md)) | modèle multilingue, 384 dimensions |
-| **Assistant** | Répond sur le catalogue, refuse le reste au lieu d'inventer ([détail](docs/recherche-et-assistant.md#lassistant)) | banc de 30 questions |
+| **Assistant** | Répond sur le catalogue, refuse le reste au lieu d'inventer ([détail](docs/recherche-et-assistant.md#lassistant)) | banc de 37 questions |
 | **Paiement** | Acompte par carte algérienne (Chargily, mode test) ou en espèces, confirmé par un webhook signé ([détail](docs/paiement.md)) | 1 seul arrondi, lu aux 3 endroits qui l'affichent |
 | **Serveur** | Cinq Edge Functions (Deno) : paiement, webhook, empreintes, synthèse des avis, assistant | 5 fonctions |
 | **Mise en ligne** | GitHub Actions compile et publie sur Cloudflare Pages à chaque poussée ([détail](docs/deploiement.md)) | automatique |
