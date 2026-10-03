@@ -1,7 +1,8 @@
 # Les six captures du README
 
-Le README les appelle déjà par leur nom. Tant que les fichiers ne sont pas là,
-les six images sont cassées — sans conséquence, le dépôt est privé.
+Le README les appelle par leur nom : un fichier renommé, ou une extension
+doublée (`.png.png`), et l'image est cassée sans erreur nulle part. Prises le
+3 octobre 2026 ; ce fichier dit comment les reprendre à l'identique.
 
 Toutes se prennent sur <https://ferha.pages.dev>, pas en local : c'est le site
 que le lecteur ouvrira, et une capture d'un `localhost` se reconnaît à sa barre
@@ -20,11 +21,22 @@ Ces quatre règles valent pour toutes les captures, sans exception.
 - **Aucune adresse électronique personnelle.** Les adresses en
   `@demo.ferha.dz` sont faites pour être vues ; une vraie, non.
 
-Deux conseils qui font la différence entre une capture utile et une capture
-molle : prendre en fenêtre large (autour de 1440 px) pour que la mise en page
-respire, et **recadrer sur le contenu** — ni bureau, ni barre des tâches, ni
-favoris. La barre d'adresse peut rester si elle montre `ferha.pages.dev` : elle
-prouve que le site est en ligne.
+**LE FORMAT EST CELUI D'UN TÉLÉPHONE : 390 px de large.** Ferha est une
+application mobile, et c'est la largeur pour laquelle les maquettes sont
+dessinées (CLAUDE.md, « Maquettes et charte ») : une capture en fenêtre de
+bureau montrerait une mise en page que personne n'utilisera. Les six images
+font donc **780 × 1688 px** — 390 × 844 à la densité 2, celle du mode appareil
+de Chrome.
+
+En pratique : le mode appareil des outils de développement, réglé à 390 × 844,
+et la commande « Capture screenshot » de ce mode. Elle ne prend que l'écran
+simulé — ni panneau d'outils, ni barre d'adresse, ni bureau — et respecte donc
+d'elle-même la deuxième règle ci-dessus, à condition de ne rien capturer
+d'autre. Il n'y a pas de barre d'adresse sur les images, et c'est voulu : sur
+un téléphone il n'y en a pas non plus.
+
+**Les six au même format, sans exception** : la 01 et la 04 se comparent côte à
+côte, et une seule image d'une autre taille casserait la rangée dans le README.
 
 ---
 
