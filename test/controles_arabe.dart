@@ -83,7 +83,7 @@ final motsLatins = RegExp(r'[A-Za-zÀ-ÖØ-öø-ÿ]{2,}');
 ///     respectivement d'`amenities.label_fr`, d'`event_types.label_fr` et de
 ///     `wilayas.name_fr` — les trois fournisseurs de `search_providers.dart` le
 ///     disent dans leur `select`. Leurs 73 traductions arabes attendent une
-///     relecture humaine dans `docs/libelles-arabes-a-relire.md`.
+///     relecture humaine dans `docs/notes/libelles-arabes-a-relire.md`.
 ///
 /// S'Y AJOUTENT LES NOMS PROPRES DU JEU D'ESSAI — la salle, la commune, le
 /// propriétaire, la cliente. Une salle s'appelle comme elle s'appelle, dans

@@ -49,7 +49,7 @@ dira de nouveau ce qui a été relu et ce qui ne l’a pas été.
 
 Il reste en revanche les **libellés arabes de la base** — équipements, types
 d’événement, wilayas — qui, eux, attendent toujours :
-`docs/libelles-arabes-a-relire.md`.
+`docs/notes/libelles-arabes-a-relire.md`.
 
 ---
 

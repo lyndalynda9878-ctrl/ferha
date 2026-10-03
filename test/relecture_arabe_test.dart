@@ -542,7 +542,7 @@ void main() {
       // trois `select` de `search_providers.dart` le disent.
       //
       // Leurs 73 traductions arabes attendent une relecture humaine dans
-      // `docs/libelles-arabes-a-relire.md`. Le jour où elles seront relues, ce
+      // `docs/notes/libelles-arabes-a-relire.md`. Le jour où elles seront relues, ce
       // sont les `select` qui changeront — pas les écrans.
       //
       // CE TEST NE VÉRIFIE RIEN DE L'APPLICATION. Il tient la liste à jour et

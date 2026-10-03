@@ -236,7 +236,7 @@ faux dans l'autre sens.
 1. **La question 30 change d'attendu.** Sa bonne réponse devient « le parcours
    client **plus** la phrase qui nomme l'autre lecture ». Le contrôle 7 du banc
    ne la couvre pas : il vérifie une absence, or il faudra vérifier une
-   **présence**. `docs/questions-reference.md` doit être corrigé dans le même
+   **présence**. `docs/notes/questions-reference.md` doit être corrigé dans le même
    mouvement — le document dit lui-même qu'« un barème faux est pire qu'un
    barème absent ».
 2. **`agenda` demande son texte en français et en arabe**, avec ses `reperes` et
@@ -254,7 +254,7 @@ faux dans l'autre sens.
 3. La phrase qui nomme les deux lectures, construite en code — jamais par le
    modèle : c'est le garde-fou du cahier des charges, « il rédige, il n'atteste
    pas ».
-4. La question 30 est re-spécifiée dans `docs/questions-reference.md`, et le banc
+4. La question 30 est re-spécifiée dans `docs/notes/questions-reference.md`, et le banc
    apprend à vérifier la présence de cette phrase.
 
 ---
@@ -516,7 +516,7 @@ part au `catch` : `/embed` n'est jamais tenté.
 Conséquence assumée : quand le service est froid, `salles_pour_agent` reçoit
 `p_embedding = null`, **les salles retenues sont les mêmes** et seul leur ORDRE
 change — `rating desc` au lieu de la proximité sémantique. Le banc le verra.
-C'est écrit dans `docs/questions-reference.md`, et c'est un résultat, pas une
+C'est écrit dans `docs/notes/questions-reference.md`, et c'est un résultat, pas une
 régression.
 
 ---

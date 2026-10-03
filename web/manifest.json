@@ -1,11 +1,11 @@
 {
-    "name": "ferha",
-    "short_name": "ferha",
+    "name": "Ferha — réservation de salles des fêtes",
+    "short_name": "Ferha",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#FAF5EC",
+    "theme_color": "#A06B22",
+    "description": "Réservez une salle des fêtes en Algérie : prix exact pour votre date, demande au propriétaire, acompte en ligne ou en espèces. En français et en arabe.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

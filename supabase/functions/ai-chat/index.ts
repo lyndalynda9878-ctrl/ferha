@@ -1486,7 +1486,7 @@ Deno.serve(async (requete: Request): Promise<Response> => {
     // n'attend pas une minute. L'abandon ne coûte pas le réveil — Render démarre
     // l'instance quand même —, donc la personne suivante retrouve le classement
     // sémantique. Le banc voit alors l'ordre des salles changer : c'est écrit
-    // dans docs/questions-reference.md, et c'est un résultat, pas un défaut.
+    // dans docs/notes/questions-reference.md, et c'est un résultat, pas un défaut.
     // -------------------------------------------------------------------------
     let vecteur: string | null = null;
     // Le nom du modele d'empreintes, pour ne comparer qu'a des vecteurs de la

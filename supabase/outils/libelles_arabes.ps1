@@ -1,7 +1,7 @@
 # =============================================================================
-# Ferha - la liste des libelles arabes de la base, a faire relire (J22)
+# Ferha - la liste des libelles arabes de la base, a faire relire
 #
-#   .\libelles_arabes.ps1              ecrit docs/libelles-arabes-a-relire.md
+#   .\libelles_arabes.ps1              ecrit docs/notes/libelles-arabes-a-relire.md
 #   .\libelles_arabes.ps1 -sortie X.md ailleurs
 #
 # LA CLE VIENT DE L'ENVIRONNEMENT, jamais d'un fichier versionne :
@@ -29,7 +29,7 @@
 
 param(
   [string]$supabaseUrl = "https://rpcrkpklrqejahztfjvu.supabase.co",
-  [string]$sortie      = "..\..\docs\libelles-arabes-a-relire.md"
+  [string]$sortie      = "..\..\docs\notes\libelles-arabes-a-relire.md"
 )
 
 $ErrorActionPreference = "Stop"
@@ -85,7 +85,7 @@ Ajouter "moi, je ne retirerai la mention que sur ce qui a ete relu."
 Ajouter ""
 Ajouter "Ces libelles sont **de l'arabe standard**, pas de la darja : ce sont des"
 Ajouter "etiquettes d'interface, pas une conversation. Le meme choix qu'aux six"
-Ajouter "ecrans traduits au J22."
+Ajouter "ecrans traduits avant eux."
 Ajouter ""
 Ajouter "## Ce qui arrive ensuite"
 Ajouter ""

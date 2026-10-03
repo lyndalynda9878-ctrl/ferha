@@ -276,7 +276,7 @@ arabe en base, marqué `-- À RELIRE` dans les migrations 003, 009 et 010 : ils 
 
 `supabase/outils/libelles_arabes.ps1` en tire la liste complète — code, français,
 arabe actuel, et une colonne vide pour la correction — dans
-`docs/libelles-arabes-a-relire.md`. La mention ne sera retirée que sur ce qui
+`docs/notes/libelles-arabes-a-relire.md`. La mention ne sera retirée que sur ce qui
 aura été relu.
 
 **Ces libellés ne sont pas dans les fichiers ARB, et ils n'y seront jamais** :
@@ -287,7 +287,7 @@ apparaît dans l'application sans qu'on recompile quoi que ce soit.
 
 Les 52 clés ajoutées ensuite pour la connexion, l'inscription et le profil ont
 été **relues et validées** par un locuteur natif, sans aucune correction.
-[`docs/traductions-a-relire.md`](../../../docs/traductions-a-relire.md) en garde
+[`docs/notes/traductions-a-relire.md`](../../../docs/notes/traductions-a-relire.md) en garde
 la trace, groupée par écran — avec, à la suite, les treize clés des 17 et 19
 septembre qui attendent encore leur relecture.
 

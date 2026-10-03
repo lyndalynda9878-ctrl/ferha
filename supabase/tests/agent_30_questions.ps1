@@ -86,7 +86,7 @@
 
 param(
   [string]$supabaseUrl = "https://rpcrkpklrqejahztfjvu.supabase.co",
-  [string]$questions   = "..\..\docs\questions-reference.md",
+  [string]$questions   = "..\..\docs\notes\questions-reference.md",
   [int[]]$seulement    = @(),
   [switch]$detail,
   # DEUX APPELS AU MODELE PAR QUESTION - extraction puis redaction. Le palier
